@@ -15,6 +15,8 @@ from qdarktheme.widget_gallery._ui.frame_ui import FrameUI
 from qdarktheme.widget_gallery._ui.icons_ui import IconsUi
 from qdarktheme.widget_gallery._ui.mdi_ui import MdiUI
 from qdarktheme.widget_gallery._ui.widgets_ui import WidgetsUI
+#TODO: добавить динамическое меню переводов в зависимости от количества файлов в TS
+#TODO: добавить сохранение последней вкладки, добавить сохранение размера окна.
 
 
 class _BaseGUI:
