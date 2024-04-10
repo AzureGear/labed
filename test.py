@@ -1,3 +1,7 @@
+
+
+#####################################################
+
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
@@ -83,6 +87,7 @@ if __name__ == "__main__":
     res = app.exec_()
     sys.exit(res)
 
+####################################################################
 
 # import sys
 # from PyQt5 import QtCore, QtGui, QtWidgets

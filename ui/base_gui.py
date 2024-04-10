@@ -9,6 +9,7 @@ from PyQt5 import QtWidgets
 from utils.settings_handler import AppSettings
 import qdarktheme
 import sys
+import os
 from ui import newIcon
 from ui import DockUI
 from qdarktheme.widget_gallery._ui.frame_ui import FrameUI
@@ -92,12 +93,22 @@ class _BaseGUI:
         self.menu_view = QMenu("&View")
         self.menu_view.addActions(self.actions_page)
         menubar.addMenu(self.menu_view)
+
+        available_translation = []
+        print (config.LOCALIZATION_FOLDER)
+        print("Текущая деректория:", os.getcwd())
+        # available_translation += os.listdir(is)
+        #
+        # os.listdir('sample_data')
+
+
         menu_toggle = menubar.addMenu("&Toggle")
         menu_toggle.addActions((self.action_enable, self.action_disable))
         menu_dialog = menubar.addMenu("&Dialog")
         menu_dialog.addActions(
             (self.action_open_folder, self.action_open_color_dialog, self.action_open_font_dialog)
         )
+
         menu_message_box = menu_dialog.addMenu("&Messages")
         menu_message_box.addActions(self.actions_message_box)
         menu_help = menubar.addMenu("&Help")
@@ -169,20 +180,35 @@ class BaseGUI(QMainWindow):
             action.triggered.connect(self.change_page)
 
         # Настройки по умолчанию
-        self._theme = self.settings.read_ui_theme()  # по умолчанию будет тема светлая
+        self._theme = self.settings.read_ui_theme()  # тема светлая
         qdarktheme.setup_theme(self._theme, 'sharp')  # стиль границ острый, можно и сглаженный: "rounded"
-        if self._theme == "light": self._ui.action_switch_theme.setChecked(True)  # по умолчанию кнопка зажата
-        self._ui.stack_widget.setCurrentIndex(self.settings.read_ui_stack_widget_cur_tab())   # последняя активная
-        # вкладка (0, если впервые)
-        self._ui.actions_page[1].event()
-        self.actions_page[self.settings.read_ui_stack_widget_cur_tab()].setChecked(True)  # по умолчанию установлено первое действие и оно должно быть активно
-
-        # Последняя панель
-        # self._ui. = self.settings.read_ui_stack_widget_cur_tab()
+        if self._theme == "light": self._ui.action_switch_theme.setChecked(True)  # кнопка зажата
+        self._ui.stack_widget.setCurrentIndex(self.settings.read_ui_stack_widget_cur_tab())   # загрузка вкладки
+        self._ui.actions_page[self.settings.read_ui_stack_widget_cur_tab()].setChecked(True)  # активация вкладки
 
         # Локализация
         self.trans = QTranslator(self)  # переводчик
         self._retranslate_ui()  # переключение языка
+
+    def preload_translations(self):
+        self.menuRecentFiles.clear()
+        recentFiles = []
+        for fname in self.recentFiles:
+            if fname not in self.filename and QtCore.QFile.exists(fname):
+                recentFiles.append(fname)
+        if recentFiles:
+            self.menuRecentFiles.addSeparator()
+            for i, fname in enumerate(recentFiles):
+                action = QtWidgets.QAction("&%d %s" % (i + 1, fname), self)
+                action.setData(QtCore.QVariant(fname))
+                action.triggered.connect(self.loadFile)
+                self.menuRecentFiles.addAction(action)
+        self.menuRecentFiles.addSeparator()
+        self.menuRecentFiles.addAction(
+            QtGui.QIcon(IMAGE_PATH + "button/clear.png"),
+            QtWidgets.QApplication.translate("pychemqt", "Clear"),
+            self.clearRecentFiles)
+
 
     def _retranslate_ui(self):
         # Перечень всех виджетов и объектов для которых будет выполняться локализация
