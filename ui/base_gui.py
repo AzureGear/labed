@@ -18,6 +18,8 @@ from qdarktheme.widget_gallery._ui.mdi_ui import MdiUI
 from qdarktheme.widget_gallery._ui.widgets_ui import WidgetsUI
 from functools import partial
 
+project_folder = os.path.dirname(os.path.abspath(__file__))  # начнём из каталога проекта
+
 # TODO: добавить динамическое меню переводов в зависимости от количества файлов в TS
 # TODO: добавить сохранение последней вкладки, добавить сохранение размера окна.
 
@@ -31,7 +33,6 @@ class _BaseGUI:
 
         # Actions для боковой панели
         self.create_actions()
-
         self.action_switch_theme = QAction(newIcon("glyph_black-and-white"), "Switch theme")
         self.action_switch_theme.setCheckable(True)
 
@@ -56,10 +57,19 @@ class _BaseGUI:
         )
 
         # Выбор языка
-        self.actions_switch_lang = (QAction(text="Russian"), QAction(text="English"))
-        tool_btn_lang.setIcon(newIcon('glyph_language'))
-        tool_btn_lang.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        tool_btn_lang.addActions(self.actions_switch_lang)
+        tool_btn_lang.setIcon(newIcon('glyph_language'))  # кнопка
+        tool_btn_lang.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)  # со всплывающим меню
+        self.actions_switch_lang = []
+        # сделаем для него динамическое меню
+        available_translation = []  # перечень доступных переводов
+        for file in os.listdir(os.path.join(project_folder, "../" + config.LOCALIZATION_FOLDER)):
+            if file.endswith(".qm"):  # файлы локализаций *.qm
+                available_translation.append(file)  # формируем перечень локализаций
+        print(available_translation)
+        for file in available_translation:
+            only_file_name = os.path.splitext(file)[0]  # удаляем расширение
+            self.actions_switch_lang.append(QAction(text=only_file_name))  # формируем набор QAction для локализаций
+        tool_btn_lang.addActions(self.actions_switch_lang)  # передаем его кнопке
 
         # Группировка виджетов
         self.central_window = QMainWindow()  # главный виджет
@@ -93,13 +103,6 @@ class _BaseGUI:
         self.menu_view = QMenu("&View")
         self.menu_view.addActions(self.actions_page)
         menubar.addMenu(self.menu_view)
-
-        available_translation = []
-        print (config.LOCALIZATION_FOLDER)
-        print("Текущая деректория:", os.getcwd())
-        # available_translation += os.listdir(is)
-        #
-        # os.listdir('sample_data')
 
 
         menu_toggle = menubar.addMenu("&Toggle")
@@ -179,16 +182,20 @@ class BaseGUI(QMainWindow):
             action.setData(i)
             action.triggered.connect(self.change_page)
 
-        # Настройки по умолчанию
+        # Локализация
+        self.trans = QTranslator(self)  # переводчик
+        self._retranslate_ui()  # переключение языка
+
+        # Настройки по умолчанию и сохранённые настройки
         self._theme = self.settings.read_ui_theme()  # тема светлая
         qdarktheme.setup_theme(self._theme, 'sharp')  # стиль границ острый, можно и сглаженный: "rounded"
         if self._theme == "light": self._ui.action_switch_theme.setChecked(True)  # кнопка зажата
         self._ui.stack_widget.setCurrentIndex(self.settings.read_ui_stack_widget_cur_tab())   # загрузка вкладки
         self._ui.actions_page[self.settings.read_ui_stack_widget_cur_tab()].setChecked(True)  # активация вкладки
+        last_lang = self.settings.read_lang()   # загрузка сохранённого языка
+        for action in self._ui.actions_switch_lang:
+            if action.text() == last_lang: action.trigger()  # меняем язык на сохранённый
 
-        # Локализация
-        self.trans = QTranslator(self)  # переводчик
-        self._retranslate_ui()  # переключение языка
 
     def preload_translations(self):
         self.menuRecentFiles.clear()
@@ -246,14 +253,13 @@ class BaseGUI(QMainWindow):
     # Смена языка
     def change_lang(self):
         action_name: str = self.sender().text()
-        if self.settings.read_lang() == action_name:
-            return  # если выбора, как такового не произошло
-        else:
-            self.trans.load(
-                "D:/data_prj/labed/labed/l10n/" + action_name)  # загружаем перевод с таким же именем как и имя QAction
+        # if self.settings.read_lang() == action_name:
+        #     return  # если выбора, как такового не произошло
+        # else:
+        if action_name:
+            self.trans.load(os.path.join(project_folder, "../", config.LOCALIZATION_FOLDER, action_name))
+            # загружаем перевод с таким же именем как и имя QAction
             QtWidgets.QApplication.instance().installTranslator(self.trans)
-            # _app = QApplication.instance()  # получаем экземпляр приложения
-            # _app.installTranslator(self.trans)
             self.settings.write_lang(action_name)  # записываем в настройки выбранный язык
             self.statusBar().showMessage(action_name)
 
