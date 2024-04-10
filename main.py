@@ -7,7 +7,7 @@ import sys
 class MyWindow(BaseGUI):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("ML Editor")
+        self.setWindowTitle("Label Dataset Editor")
 
 
 if __name__ == '__main__':
