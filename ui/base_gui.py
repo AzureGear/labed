@@ -15,14 +15,17 @@ from qdarktheme.widget_gallery._ui.frame_ui import FrameUI
 from qdarktheme.widget_gallery._ui.icons_ui import IconsUi
 from qdarktheme.widget_gallery._ui.mdi_ui import MdiUI
 from qdarktheme.widget_gallery._ui.widgets_ui import WidgetsUI
-#TODO: добавить динамическое меню переводов в зависимости от количества файлов в TS
-#TODO: добавить сохранение последней вкладки, добавить сохранение размера окна.
+
+
+# TODO: добавить динамическое меню переводов в зависимости от количества файлов в TS
+# TODO: добавить сохранение последней вкладки, добавить сохранение размера окна.
 
 
 class _BaseGUI:
     """
     Настройка интерфейса
     """
+
     def setup_ui(self, main_widget: QMainWindow):
         # Actions для боковой панели
         self.actions_page = (
@@ -130,7 +133,7 @@ class BaseGUI(QMainWindow):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.settings = AppSettings()   # настройки программы
+        self.settings = AppSettings()  # настройки программы
         self.setWindowIcon(newIcon('digitalization'))
         self.width = 900
         self.height = int(0.628 * self.width)
@@ -167,10 +170,15 @@ class BaseGUI(QMainWindow):
     def _retranslate_ui(self):
         # Перечень всех виджетов и объектов для которых необходима локализация
         self._ui.action_help.setText(QtWidgets.QApplication.translate('BaseGUI', 'Help'))
+        self._ui.actions_page[0].setText(QtWidgets.QApplication.translate('BaseGUI', 'Move to widgets'))
+        self._ui.actions_page[1].setText(QtWidgets.QApplication.translate('BaseGUI', 'Move to dock'))
+        self._ui.actions_page[2].setText(QtWidgets.QApplication.translate('BaseGUI', 'Move to frame'))
+        self._ui.actions_page[3].setText(QtWidgets.QApplication.translate('BaseGUI', 'Move to mdi'))
+        self._ui.actions_page[4].setText(QtWidgets.QApplication.translate('BaseGUI', 'Settings'))
         self._ui.action_switch_theme.setText(QtWidgets.QApplication.translate('BaseGUI', 'Switch'))
         for action in self._ui.actions_switch_lang:
             pass
-            #action.setText(QtWidgets.QApplication.translate('BaseGUI', 'Hello, World'))
+            # action.setText(QtWidgets.QApplication.translate('BaseGUI', 'Hello, World'))
 
     def changeEvent(self, event):
         if event.type() == qdarktheme.qtpy.QtCore.QEvent.LanguageChange:
@@ -196,13 +204,14 @@ class BaseGUI(QMainWindow):
     def change_lang(self):
         action_name: str = self.sender().text()
         if self.settings.read_lang() == action_name:
-            return # если выбора, как такового не произошло
+            return  # если выбора, как такового не произошло
         else:
-            self.trans.load("F:/data_prj/lab_ed/ui/l10n/" + action_name)  # загружаем перевод с таким же именем как и имя QAction
+            self.trans.load(
+                "F:/data_prj/lab_ed/ui/l10n/" + action_name)  # загружаем перевод с таким же именем как и имя QAction
             QtWidgets.QApplication.instance().installTranslator(self.trans)
-            #_app = QApplication.instance()  # получаем экземпляр приложения
-            #_app.installTranslator(self.trans)
-            self.settings.write_lang(action_name)   # записываем в настройки выбранный язык
+            # _app = QApplication.instance()  # получаем экземпляр приложения
+            # _app.installTranslator(self.trans)
+            self.settings.write_lang(action_name)  # записываем в настройки выбранный язык
             self.statusBar().showMessage(action_name)
 
     @Slot()
