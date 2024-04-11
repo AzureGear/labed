@@ -20,8 +20,7 @@ from functools import partial
 
 project_folder = os.path.dirname(os.path.abspath(__file__))  # начнём из каталога проекта
 
-# TODO: добавить динамическое меню переводов в зависимости от количества файлов в TS
-# TODO: добавить сохранение последней вкладки, добавить сохранение размера окна.
+# TODO: добавить сохранение размера окна.
 
 
 class _BaseGUI:
@@ -30,7 +29,6 @@ class _BaseGUI:
     """
 
     def setup_ui(self, main_widget: QMainWindow):
-
         # Actions для боковой панели
         self.create_actions()
         self.action_switch_theme = QAction(newIcon("glyph_black-and-white"), "Switch theme")
@@ -59,16 +57,12 @@ class _BaseGUI:
         # Выбор языка
         tool_btn_lang.setIcon(newIcon('glyph_language'))  # кнопка
         tool_btn_lang.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)  # со всплывающим меню
-        self.actions_switch_lang = []
-        # сделаем для него динамическое меню
-        available_translation = []  # перечень доступных переводов
+        self.actions_switch_lang = []  # перечень QActions для доступных переводов (сделаем динамическое меню)
         for file in os.listdir(os.path.join(project_folder, "../" + config.LOCALIZATION_FOLDER)):
             if file.endswith(".qm"):  # файлы локализаций *.qm
-                available_translation.append(file)  # формируем перечень локализаций
-        print(available_translation)
-        for file in available_translation:
-            only_file_name = os.path.splitext(file)[0]  # удаляем расширение
-            self.actions_switch_lang.append(QAction(text=only_file_name))  # формируем набор QAction для локализаций
+                only_file_name = os.path.splitext(file)[0]  # удаляем расширение
+                self.actions_switch_lang.append(QAction(text=only_file_name))  # формируем набор QAction для локализаций
+
         tool_btn_lang.addActions(self.actions_switch_lang)  # передаем его кнопке
 
         # Группировка виджетов
