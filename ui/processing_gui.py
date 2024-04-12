@@ -6,7 +6,9 @@ from qdarktheme.qtpy.QtWidgets import QDockWidget, QMainWindow, QTextEdit, QVBox
 
 
 class DockUI:
-    """The ui class of dock window."""
+    """
+    Класс обработки датасетов
+    """
 
     def setup_ui(self, win: QWidget) -> None:
         """Set up ui."""

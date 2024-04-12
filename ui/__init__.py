@@ -3,3 +3,7 @@ from .qt import newButton
 from .qt import labelValidator
 from .qt import struct
 from .processing_gui import DockUI
+from .base_experiments import ExperimentUI
+from .base_settings import SettingsUI
+from .base_view import ViewDatasetUI
+from .base_processing import ProcessingUI

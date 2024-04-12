@@ -11,10 +11,8 @@ import qdarktheme
 import sys
 import os
 from ui import newIcon
-from ui import DockUI
+from ui import DockUI, SettingsUI, ViewDatasetUI, ExperimentUI, ProcessingUI
 from qdarktheme.widget_gallery._ui.frame_ui import FrameUI
-from qdarktheme.widget_gallery._ui.icons_ui import IconsUi
-from qdarktheme.widget_gallery._ui.mdi_ui import MdiUI
 from qdarktheme.widget_gallery._ui.widgets_ui import WidgetsUI
 from functools import partial
 
@@ -23,11 +21,8 @@ project_folder = os.path.dirname(os.path.abspath(__file__))  # начнём из
 # TODO: сделать заготовку для настроек
 # TODO: сделать сброс всех настроек по нажатию CTRL+SHIFT+R
 
-class _BaseGUI:
-    """
-    Настройка интерфейса
-    """
 
+class _BaseGUI:
     def setup_ui(self, main_widget: QMainWindow):
         # Actions для боковой панели
         self.actions_page = (
@@ -99,26 +94,25 @@ class _BaseGUI:
         menubar.addMenu(self.menu_help)
 
         # Layout
-        for ui in (WidgetsUI, DockUI, FrameUI, MdiUI, IconsUi):
-            container = QWidget()
-            ui().setup_ui(container)
-            self.stack_widget.addWidget(container)
+        for ui in (WidgetsUI, DockUI, FrameUI, WidgetsUI, SettingsUI):
+            container = QWidget()       # создаём виджет...
+            ui().setup_ui(container)    # ...куда помещаем экземпляры классов "Просмотра", "Настроек" и т.д.
+            self.stack_widget.addWidget(container)  # все размещаем в Stack_widget
 
-        self.central_window.setCentralWidget(self.stack_widget)
+        self.central_window.setCentralWidget(self.stack_widget)  # центральный
         #self.central_window.addToolBar(self.toolbar)  # пока в ней нет надобности
 
+        # настраиваем интерфейс
         main_widget.setCentralWidget(self.central_window)
         main_widget.addToolBar(Qt.ToolBarArea.LeftToolBarArea, sidepanel)
         main_widget.setMenuBar(menubar)
         main_widget.setStatusBar(statusbar)
 
-        statusbar.showMessage('Ready!')
 
 class BaseGUI(QMainWindow):
     """
     Базовый класс для взаимодействия с пользователем
     """
-
     def __init__(self, parent=None):
         super().__init__(parent)
         self.settings = AppSettings()  # настройки программы
@@ -153,19 +147,12 @@ class BaseGUI(QMainWindow):
         self.setMinimumHeight(250)
 
         position, size, state = self.settings.read_ui_position()
-        #self.settings.write_ui_position(position, size, Qt.WindowNoState)
-        #state = Qt.WindowNoState
         self.resize(size)
         self.move(position)
         self.setWindowState(Qt.WindowState(state))
-        #print(self.windowState())
-        #print(QWindow.windowState(self.windowState()))
-        #
-
 
     def closeEvent(self, event):
         self.settings.write_ui_position(self.pos(), self.size(), self.windowState())
-
 
     def _retranslate_ui(self):
         # Перечень всех виджетов и объектов для которых будет выполняться локализация
@@ -240,11 +227,14 @@ class BaseGUI(QMainWindow):
             else:
                 self._ui.stack_widget.setCurrentIndex(index)
 
+    @Slot()
+    # Аккуратный выход
     def slot_exit(self):
         self.close()  # вызываем закрытие приложения
 
     @Slot()
-    def test_slot(self):  # TODO: temp slot, del at release
+    # Тестовый слот
+    def test_slot(self):
         self.statusBar().showMessage(str(self.settings.read_ui_stack_widget_cur_tab()))
 
 

@@ -2,9 +2,9 @@ from qdarktheme.qtpy.QtCore import Qt
 from qdarktheme.qtpy.QtWidgets import QDockWidget, QMainWindow, QTextEdit, QVBoxLayout, QWidget
 
 
-class ExperimentUI:
+class ViewDatasetUI:
     """
-    Класс Экспериментов
+    Класс просмотра датасетов
     """
 
     def setup_ui(self, win: QWidget):

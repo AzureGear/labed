@@ -41,8 +41,3 @@ class AppSettings:
         self.settings.setValue('ui/base_gui_position', position)
         self.settings.setValue('ui/base_gui_size', size)
         self.settings.setValue('ui/base_gui_state', state)
-
-        # self.qt_settings.beginGroup("main_window")
-        # self.qt_settings.setValue("size", size)
-        # self.qt_settings.setValue("pos", pos)
-        # self.qt_settings.endGroup()
