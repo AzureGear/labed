@@ -5,7 +5,6 @@ APPLICATION = 'lab_ed'
 
 LOCALIZATION_FOLDER = 'l10n'
 
-
 # main
 DATABASE = {
     'name': 'test',

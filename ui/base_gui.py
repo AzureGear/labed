@@ -1,7 +1,7 @@
 # from PyQt5.QtWidgets import QApplication, QTabWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel
 from PyQt5.QtGui import QPixmap
 from qdarktheme.qtpy.QtCore import QDir, Qt, Slot, QTranslator
-from qdarktheme.qtpy.QtGui import QAction, QActionGroup
+from qdarktheme.qtpy.QtGui import QAction, QActionGroup, QWindow
 from qdarktheme.qtpy.QtWidgets import QApplication, QToolBar, QToolButton, QWidget, QMainWindow, QStackedWidget, \
     QStatusBar, QMenuBar, QSizePolicy, QMessageBox, QLabel, QMenu
 from utils import config
@@ -20,8 +20,8 @@ from functools import partial
 
 project_folder = os.path.dirname(os.path.abspath(__file__))  # начнём из каталога проекта
 
-# TODO: добавить сохранение размера окна.
-
+# TODO: сделать заготовку для настроек
+# TODO: сделать сброс всех настроек по нажатию CTRL+SHIFT+R
 
 class _BaseGUI:
     """
@@ -30,29 +30,23 @@ class _BaseGUI:
 
     def setup_ui(self, main_widget: QMainWindow):
         # Actions для боковой панели
-        self.create_actions()
+        self.actions_page = (
+            QAction(newIcon("glyph_pickaxe"), 'Processing'),
+            QAction(newIcon("glyph_flask"), "Experiments"),
+            QAction(newIcon("glyph_eye"), "View datasets"),
+            QAction(newIcon("glyph_highlight"), "Move to mdi"),
+            QAction(newIcon("glyph_gear"), "Settings")
+        )
         self.action_switch_theme = QAction(newIcon("glyph_black-and-white"), "Switch theme")
         self.action_switch_theme.setCheckable(True)
 
         # Actions для меню
-        self.action_enable = QAction(newIcon("glyph_upload"), "Enable")
-        self.action_disable = QAction(newIcon("glyph_check"), "Disable")
+        self.action_exit = QAction("Exit")
         self.actions_theme = [QAction(theme, main_widget) for theme in ["dark", "light"]]
-        self.action_open_folder = QAction(newIcon("glyph_check"), "Open folder dialog")
-        self.action_open_color_dialog = QAction(newIcon("glyph_check"), "Open color dialog")
-        self.action_open_font_dialog = QAction(newIcon("glyph_check"), "Open font dialog")
         self.action_help = (QAction("Help"))
-        self.actions_message_box = (
-            QAction(text="Open question dialog"),
-            QAction(text="Open information dialog"),
-            QAction(text="Open warning dialog"),
-            QAction(text="Open critical dialog"),
-        )
 
         # Создаем кнопки
-        tool_btn_lang, tool_btn_theme, tool_btn_enable, tool_btn_disable, tool_btn_message_box = (
-            QToolButton() for _ in range(5)  # создаем кнопки
-        )
+        tool_btn_lang, tool_btn_theme = (QToolButton() for _ in range(2))  # создаем кнопки
 
         # Выбор языка
         tool_btn_lang.setIcon(newIcon('glyph_language'))  # кнопка
@@ -62,7 +56,6 @@ class _BaseGUI:
             if file.endswith(".qm"):  # файлы локализаций *.qm
                 only_file_name = os.path.splitext(file)[0]  # удаляем расширение
                 self.actions_switch_lang.append(QAction(text=only_file_name))  # формируем набор QAction для локализаций
-
         tool_btn_lang.addActions(self.actions_switch_lang)  # передаем его кнопке
 
         # Группировка виджетов
@@ -74,9 +67,7 @@ class _BaseGUI:
         menubar = QMenuBar()  # панель меню
 
         # Добавляем в кочующее меню действия
-        self.toolbar.addActions(
-            (self.action_open_folder, self.action_open_color_dialog, self.action_open_font_dialog)
-        )
+        self.toolbar.addActions((self.action_exit, self.action_help))
 
         action_group_toolbar = QActionGroup(main_widget)  # группа действий для панели режимов
         for action in self.actions_page:
@@ -94,31 +85,18 @@ class _BaseGUI:
         sidepanel.addWidget(tool_btn_lang)
 
         # Menu
+        self.menu_file = QMenu("&File")
+        self.menu_file.addAction(self.action_exit)
+
         self.menu_view = QMenu("&View")
         self.menu_view.addActions(self.actions_page)
+
+        self.menu_help = QMenu("&Help")
+        self.menu_help.addAction(self.action_help)
+
+        menubar.addMenu(self.menu_file)
         menubar.addMenu(self.menu_view)
-
-
-        menu_toggle = menubar.addMenu("&Toggle")
-        menu_toggle.addActions((self.action_enable, self.action_disable))
-        menu_dialog = menubar.addMenu("&Dialog")
-        menu_dialog.addActions(
-            (self.action_open_folder, self.action_open_color_dialog, self.action_open_font_dialog)
-        )
-
-        menu_message_box = menu_dialog.addMenu("&Messages")
-        menu_message_box.addActions(self.actions_message_box)
-        menu_help = menubar.addMenu("&Help")
-        menu_help.addAction(self.action_help)
-        tool_btn_message_box.setMenu(menu_message_box)
-        self.action_enable.setEnabled(False)  # TODO: ?
-
-        # self.fileMenu = QMenu("&Файл" if self.lang == 'RU' else "&File", self)
-        # self.fileMenu.addAction(self.createNewProjectAct)
-        # self.fileMenu.addAction(self.saveProjAsAct)
-        # self.fileMenu.addSeparator()
-        # self.menuBar().addMenu(self.fileMenu)
-        # self.menuBar().addMenu(self.viewMenu)
+        menubar.addMenu(self.menu_help)
 
         # Layout
         for ui in (WidgetsUI, DockUI, FrameUI, MdiUI, IconsUi):
@@ -127,7 +105,7 @@ class _BaseGUI:
             self.stack_widget.addWidget(container)
 
         self.central_window.setCentralWidget(self.stack_widget)
-        # self.central_window.addToolBar(self.toolbar)  # TODO: нужна ли мне эта панель?
+        #self.central_window.addToolBar(self.toolbar)  # пока в ней нет надобности
 
         main_widget.setCentralWidget(self.central_window)
         main_widget.addToolBar(Qt.ToolBarArea.LeftToolBarArea, sidepanel)
@@ -135,16 +113,6 @@ class _BaseGUI:
         main_widget.setStatusBar(statusbar)
 
         statusbar.showMessage('Ready!')
-
-    def create_actions(self):
-        self.actions_page = (
-            QAction(newIcon("glyph_pickaxe"), 'Processing'),
-            QAction(newIcon("glyph_flask"), "Experiments"),
-            QAction(newIcon("glyph_eye"), "View datasets"),
-            QAction(newIcon("glyph_highlight"), "Move to mdi"),
-            QAction(newIcon("glyph_gear"), "Settings")
-        )
-
 
 class BaseGUI(QMainWindow):
     """
@@ -155,20 +123,12 @@ class BaseGUI(QMainWindow):
         super().__init__(parent)
         self.settings = AppSettings()  # настройки программы
         self.setWindowIcon(newIcon('digitalization'))
-        self.width = 900
-        self.height = int(0.628 * self.width)
-        self.setMinimumWidth(300)
-        self.setMinimumHeight(250)
-        self.resize(self.width, self.height)
-        # self.resizeEvent().connect(self.saveWindowPosition)
-
         self._ui = _BaseGUI()  # формируем приватные атрибуты
         self._ui.setup_ui(self)
 
         # Signals
+        self._ui.action_exit.triggered.connect(self.slot_exit)  # выход из программы
         self._ui.action_help.triggered.connect(self.test_slot)
-        self._ui.action_enable.triggered.connect(self.toggle_state)
-        self._ui.action_enable.triggered.connect(self.toggle_state)
         self._ui.action_switch_theme.triggered.connect(self.change_theme)
         for action in self._ui.actions_switch_lang:  # соединяем смену языка
             action.triggered.connect(self.change_lang)
@@ -189,40 +149,39 @@ class BaseGUI(QMainWindow):
         last_lang = self.settings.read_lang()   # загрузка сохранённого языка
         for action in self._ui.actions_switch_lang:
             if action.text() == last_lang: action.trigger()  # меняем язык на сохранённый
+        self.setMinimumWidth(300)
+        self.setMinimumHeight(250)
+
+        position, size, state = self.settings.read_ui_position()
+        #self.settings.write_ui_position(position, size, Qt.WindowNoState)
+        #state = Qt.WindowNoState
+        self.resize(size)
+        self.move(position)
+        self.setWindowState(Qt.WindowState(state))
+        #print(self.windowState())
+        #print(QWindow.windowState(self.windowState()))
+        #
 
 
-    def preload_translations(self):
-        self.menuRecentFiles.clear()
-        recentFiles = []
-        for fname in self.recentFiles:
-            if fname not in self.filename and QtCore.QFile.exists(fname):
-                recentFiles.append(fname)
-        if recentFiles:
-            self.menuRecentFiles.addSeparator()
-            for i, fname in enumerate(recentFiles):
-                action = QtWidgets.QAction("&%d %s" % (i + 1, fname), self)
-                action.setData(QtCore.QVariant(fname))
-                action.triggered.connect(self.loadFile)
-                self.menuRecentFiles.addAction(action)
-        self.menuRecentFiles.addSeparator()
-        self.menuRecentFiles.addAction(
-            QtGui.QIcon(IMAGE_PATH + "button/clear.png"),
-            QtWidgets.QApplication.translate("pychemqt", "Clear"),
-            self.clearRecentFiles)
+    def closeEvent(self, event):
+        self.settings.write_ui_position(self.pos(), self.size(), self.windowState())
 
 
     def _retranslate_ui(self):
         # Перечень всех виджетов и объектов для которых будет выполняться локализация
-        self._ui.action_help.setText(QtWidgets.QApplication.translate('BaseGUI', 'Help'))
         self._ui.actions_page[0].setText(QtWidgets.QApplication.translate('BaseGUI', 'Processing'))
         self._ui.actions_page[1].setText(QtWidgets.QApplication.translate('BaseGUI', 'Experiments'))
         self._ui.actions_page[2].setText(QtWidgets.QApplication.translate('BaseGUI', 'View datasets'))
         self._ui.actions_page[3].setText(QtWidgets.QApplication.translate('BaseGUI', 'Move to mdi'))
         self._ui.actions_page[4].setText(QtWidgets.QApplication.translate('BaseGUI', 'Settings'))
         self._ui.action_switch_theme.setText(QtWidgets.QApplication.translate('BaseGUI', 'Switch theme'))
+        self._ui.action_help.setText(QtWidgets.QApplication.translate('BaseGUI', 'Help'))
+        self._ui.action_exit.setText(QtWidgets.QApplication.translate('BaseGUI', 'Exit'))
 
         # Панель Меню
-        self._ui.menu_view.setTitle(QtWidgets.QApplication.translate('BaseGUI', "View"))
+        self._ui.menu_file.setTitle(QtWidgets.QApplication.translate('BaseGUI', "&File"))
+        self._ui.menu_view.setTitle(QtWidgets.QApplication.translate('BaseGUI', "&View"))
+        self._ui.menu_help.setTitle(QtWidgets.QApplication.translate('BaseGUI', "&Help"))
 
     def changeEvent(self, event):
         if event.type() == qdarktheme.qtpy.QtCore.QEvent.LanguageChange:
@@ -258,10 +217,6 @@ class BaseGUI(QMainWindow):
             self.statusBar().showMessage(action_name)
 
     @Slot()
-    def saveWindowPosition(self, size):
-        pass
-
-    @Slot()
     # Смена темы
     def change_theme(self):
         if self._ui.action_switch_theme.isChecked():
@@ -285,20 +240,12 @@ class BaseGUI(QMainWindow):
             else:
                 self._ui.stack_widget.setCurrentIndex(index)
 
+    def slot_exit(self):
+        self.close()  # вызываем закрытие приложения
 
     @Slot()
     def test_slot(self):  # TODO: temp slot, del at release
         self.statusBar().showMessage(str(self.settings.read_ui_stack_widget_cur_tab()))
-
-    @Slot()
-    def toggle_state(self):  # TODO: delete?
-        # принимаем от объекта пославшего сигнал
-        state: str = self.sender().text()  # type: ignore
-        self._ui.central_window.centralWidget().setEnabled(state == "Enable")
-        self._ui.toolbar.setEnabled(state == "Enable")
-        self._ui.action_enable.setEnabled(state == "Disable")
-        self._ui.action_disable.setEnabled(state == "Enable")
-        self.statusBar().showMessage(state)
 
 
 if __name__ == '__main__':

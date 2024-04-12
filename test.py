@@ -1,91 +1,102 @@
-
-
-#####################################################
-
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-
-# Imports
-# ------------------------------------------------------------------------------
-import sys
-from qdarktheme.qtpy.QtCore import QDir, Qt, Slot, QTranslator
-from qdarktheme.qtpy.QtGui import QAction, QActionGroup, QCursor
-from qdarktheme.qtpy.QtWidgets import QApplication, QGridLayout, QToolBar, QToolButton, QWidget, QMainWindow, \
-    QStackedWidget, QListWidget, \
-    QStatusBar, QMenuBar, QSizePolicy, QMessageBox, QLabel, QMenu
-from utils import config
-from PyQt5 import QtWidgets
-from utils.settings_handler import AppSettings
-import qdarktheme
 from functools import partial
 
-class Person():
-    def __init__(self, name="", age=None):
-        self.name = name
-        self.age = age
 
-    def getName(self):
-        return self.name
-
-# Main Widget
-# ------------------------------------------------------------------------------
-class ExampleWidget(QWidget):
-
-    def __init__(self,):
-        super(ExampleWidget, self).__init__()
-
-        self.initUI()
+def add(x, y):
+    return x + y
 
 
-    def initUI(self):
-        # formatting
-        self.setWindowTitle("Example")
+add_partials = []
+for i in range(1, 10):
+    function = partial(add, i)  # делаем функцию (1+y), (2+y) и т.д. до 10
+    add_partials.append(function)  # добавляем модифицированную функцию к листу add_partials
+    print('Sum of {} and 2 is {}'.format(i, add_partials[i - 1](2))) # вызываем функцию для при y = 2
 
-        # context menu
-        self.main_menu = QMenu()
-
-        self.sub_menu = QMenu("Great")
-        self.main_menu.addMenu(self.sub_menu)
-
-
-        names = ["Joe","Kevin","Amy","Doug","Jenny"]
-
-        # sub-menu
-        for index, name in enumerate(names):
-            fancyName = "%s - %s" % (index, name)
-            action = self.sub_menu.addAction( fancyName )
-            action.setData(Person(name=name))
-            action.triggered.connect(partial(self.menu_action, action))
-
-        # widgets
-        self.factionsList = QListWidget()
-
-        # signal
-        self.factionsList.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.factionsList.customContextMenuRequested.connect(self.on_context_menu_factions)
-
-        # layout
-        self.mainLayout = QGridLayout(self)
-        self.mainLayout.addWidget(self.factionsList, 1, 0)
-        self.show()
-
-    def menu_action(self, item):
-        itmData = item.data()
-        print(itmData.getName())
-
-
-    def on_context_menu_factions(self, pos):
-        self.main_menu.exec_(QCursor.pos() )
-
-
-# Main
-# ------------------------------------------------------------------------------
-if __name__ == "__main__":
-
-    app = QApplication(sys.argv)
-    ex = ExampleWidget()
-    res = app.exec_()
-    sys.exit(res)
+#####################################################
+#
+# #!/usr/bin/python
+# # -*- coding: utf-8 -*-
+#
+# # Imports
+# # ------------------------------------------------------------------------------
+# import sys
+# from qdarktheme.qtpy.QtCore import QDir, Qt, Slot, QTranslator
+# from qdarktheme.qtpy.QtGui import QAction, QActionGroup, QCursor
+# from qdarktheme.qtpy.QtWidgets import QApplication, QGridLayout, QToolBar, QToolButton, QWidget, QMainWindow, \
+#     QStackedWidget, QListWidget, \
+#     QStatusBar, QMenuBar, QSizePolicy, QMessageBox, QLabel, QMenu
+# from utils import config
+# from PyQt5 import QtWidgets
+# from utils.settings_handler import AppSettings
+# import qdarktheme
+# from functools import partial
+#
+# class Person():
+#     def __init__(self, name="", age=None):
+#         self.name = name
+#         self.age = age
+#
+#     def getName(self):
+#         return self.name
+#
+# # Main Widget
+# # ------------------------------------------------------------------------------
+# class ExampleWidget(QWidget):
+#
+#     def __init__(self,):
+#         super(ExampleWidget, self).__init__()
+#
+#         self.initUI()
+#
+#
+#     def initUI(self):
+#         # formatting
+#         self.setWindowTitle("Example")
+#
+#         # context menu
+#         self.main_menu = QMenu()
+#
+#         self.sub_menu = QMenu("Great")
+#         self.main_menu.addMenu(self.sub_menu)
+#
+#
+#         names = ["Joe","Kevin","Amy","Doug","Jenny"]
+#
+#         # sub-menu
+#         for index, name in enumerate(names):
+#             fancyName = "%s - %s" % (index, name)
+#             action = self.sub_menu.addAction( fancyName )
+#             action.setData(Person(name=name))
+#             action.triggered.connect(partial(self.menu_action, action))
+#
+#         # widgets
+#         self.factionsList = QListWidget()
+#
+#         # signal
+#         self.factionsList.setContextMenuPolicy(Qt.CustomContextMenu)
+#         self.factionsList.customContextMenuRequested.connect(self.on_context_menu_factions)
+#
+#         # layout
+#         self.mainLayout = QGridLayout(self)
+#         self.mainLayout.addWidget(self.factionsList, 1, 0)
+#         self.show()
+#
+#     def menu_action(self, item):
+#         itmData = item.data()
+#         print(itmData.getName())
+#
+#
+#     def on_context_menu_factions(self, pos):
+#         self.main_menu.exec_(QCursor.pos() )
+#
+#
+# # Main
+# # ------------------------------------------------------------------------------
+# if __name__ == "__main__":
+#
+#     app = QApplication(sys.argv)
+#     ex = ExampleWidget()
+#     res = app.exec_()
+#     sys.exit(res)
 
 ####################################################################
 

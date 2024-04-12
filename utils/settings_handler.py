@@ -1,4 +1,6 @@
-from PyQt5.QtCore import QSettings
+from PyQt5.QtCore import Qt, QSettings, QPoint, QSize
+from PyQt5.QtGui import QFont
+import screeninfo
 from utils import config
 
 
@@ -6,6 +8,7 @@ class AppSettings:
     """
     Взаимодействие с хранением, записью и сбросом настроек в реестре
     """
+
     def __init__(self):
         self.settings = QSettings(config.ORGANIZATION, config.APPLICATION)
 
@@ -26,3 +29,20 @@ class AppSettings:
 
     def write_ui_theme(self, theme):
         self.settings.setValue('ui/theme', theme)
+
+    def read_ui_position(self):
+        # if len(screeninfo.get_monitors()) == 1: # TODO: что если отключили монитор?
+        position = self.settings.value('ui/base_gui_position', QPoint(250, 250))
+        size = self.settings.value('ui/base_gui_size', QSize(900, 565))
+        state = self.settings.value('ui/base_gui_state', Qt.WindowNoState)  # QWindow
+        return position, size, state
+
+    def write_ui_position(self, position, size, state):
+        self.settings.setValue('ui/base_gui_position', position)
+        self.settings.setValue('ui/base_gui_size', size)
+        self.settings.setValue('ui/base_gui_state', state)
+
+        # self.qt_settings.beginGroup("main_window")
+        # self.qt_settings.setValue("size", size)
+        # self.qt_settings.setValue("pos", pos)
+        # self.qt_settings.endGroup()
