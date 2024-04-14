@@ -15,8 +15,10 @@ from ui import DockUI, SettingsUI, ViewDatasetUI, ExperimentUI, ProcessingUI
 from qdarktheme.widget_gallery._ui.frame_ui import FrameUI
 from qdarktheme.widget_gallery._ui.widgets_ui import WidgetsUI
 from functools import partial
+from qtpy import QtCore
 
 project_folder = os.path.dirname(os.path.abspath(__file__))  # начнём из каталога проекта
+
 
 # TODO: сделать заготовку для настроек
 # TODO: сделать сброс всех настроек по нажатию CTRL+SHIFT+R
@@ -79,7 +81,7 @@ class _BaseGUI:
         sidepanel.addAction(self.action_switch_theme)  # кнопка изменения режима
         sidepanel.addWidget(tool_btn_lang)
 
-        # Menu
+        # Меню
         self.menu_file = QMenu("&File")
         self.menu_file.addAction(self.action_exit)
 
@@ -95,12 +97,12 @@ class _BaseGUI:
 
         # Layout
         for ui in (WidgetsUI, DockUI, FrameUI, WidgetsUI, SettingsUI):
-            container = QWidget()       # создаём виджет...
-            ui().setup_ui(container)    # ...куда помещаем экземпляры классов "Просмотра", "Настроек" и т.д.
+            container = QWidget()  # создаём виджет...
+            ui().setup_ui(container)  # ...куда помещаем экземпляры классов "Просмотра", "Настроек" и т.д.
             self.stack_widget.addWidget(container)  # все размещаем в Stack_widget
 
-        self.central_window.setCentralWidget(self.stack_widget)  # центральный
-        #self.central_window.addToolBar(self.toolbar)  # пока в ней нет надобности
+        self.central_window.setCentralWidget(self.stack_widget)  # центральный содержит QStackedWidget
+        # self.central_window.addToolBar(self.toolbar)  # пока в ней нет надобности
 
         # настраиваем интерфейс
         main_widget.setCentralWidget(self.central_window)
@@ -113,6 +115,7 @@ class BaseGUI(QMainWindow):
     """
     Базовый класс для взаимодействия с пользователем
     """
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.settings = AppSettings()  # настройки программы
@@ -138,9 +141,9 @@ class BaseGUI(QMainWindow):
         self._theme = self.settings.read_ui_theme()  # тема светлая
         qdarktheme.setup_theme(self._theme, 'sharp')  # стиль границ острый, можно и сглаженный: "rounded"
         if self._theme == "light": self._ui.action_switch_theme.setChecked(True)  # кнопка зажата
-        self._ui.stack_widget.setCurrentIndex(self.settings.read_ui_stack_widget_cur_tab())   # загрузка вкладки
+        self._ui.stack_widget.setCurrentIndex(self.settings.read_ui_stack_widget_cur_tab())  # загрузка вкладки
         self._ui.actions_page[self.settings.read_ui_stack_widget_cur_tab()].setChecked(True)  # активация вкладки
-        last_lang = self.settings.read_lang()   # загрузка сохранённого языка
+        last_lang = self.settings.read_lang()  # загрузка сохранённого языка
         for action in self._ui.actions_switch_lang:
             if action.text() == last_lang: action.trigger()  # меняем язык на сохранённый
         self.setMinimumWidth(300)
@@ -171,8 +174,9 @@ class BaseGUI(QMainWindow):
         self._ui.menu_help.setTitle(QtWidgets.QApplication.translate('BaseGUI', "&Help"))
 
     def changeEvent(self, event):
+        # перегружаем функцию для возможности перевода "на лету"
         if event.type() == qdarktheme.qtpy.QtCore.QEvent.LanguageChange:
-            self._retranslate_ui()
+            self._retranslate_ui()  # что именно переводим
         super(BaseGUI, self).changeEvent(event)
 
     def setExampleGUI(self):

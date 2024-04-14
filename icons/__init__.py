@@ -4,9 +4,22 @@
 # gear_orbit: Parzival’ 1997
 # digitalization: Pop Vectors
 # glyph_gear: Abbasi
-# glyph_upload: KP Arts
 # glyph_pickaxe: smashingstocks
 # glyph_black-and-white: Ch.designer
+# glyph_normalization orvipixel
+
+# glyph_upload: KP Arts
+# glyph_add: KP Arts
+# glyph_delete: KP Arts
+# glyph_delete2: KP Arts
+# glyph_delete3: KP Arts
+# glyph_folder: KP Arts
+# glyph_normalization: KP Arts
+# glyph_picture: KP Arts
+# glyph_save: KP Arts
+# glyph_search-file: KP Arts
+# glyph_search-folder: KP Arts
+# glyph_setups: KP Arts
 
 # glyph_eye: Freepik
 # glyph_flask: Freepik

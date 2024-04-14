@@ -1,15 +1,20 @@
-from functools import partial
 
 
-def add(x, y):
-    return x + y
+#####################################################
+# Полезное!
+# tab_widget.setStyleSheet('background: rgb(%d, %d, %d); margin: 1px; font-size: 14px;'
+#                                  % (randint(244, 255), randint(244, 255), randint(244, 255)))
 
+#####################################################
 
-add_partials = []
-for i in range(1, 10):
-    function = partial(add, i)  # делаем функцию (1+y), (2+y) и т.д. до 10
-    add_partials.append(function)  # добавляем модифицированную функцию к листу add_partials
-    print('Sum of {} and 2 is {}'.format(i, add_partials[i - 1](2))) # вызываем функцию для при y = 2
+# from functools import partial
+# def add(x, y):
+#     return x + y
+# add_partials = []
+# for i in range(1, 10):
+#     function = partial(add, i)  # делаем функцию (1+y), (2+y) и т.д. до 10
+#     add_partials.append(function)  # добавляем модифицированную функцию к листу add_partials
+#     print('Sum of {} and 2 is {}'.format(i, add_partials[i - 1](2))) # вызываем функцию для при y = 2
 
 #####################################################
 #

@@ -1,6 +1,5 @@
 from PyQt5.QtCore import Qt, QSettings, QPoint, QSize
 from PyQt5.QtGui import QFont
-import screeninfo
 from utils import config
 
 
