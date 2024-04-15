@@ -98,7 +98,7 @@ class _BaseGUI:
             ui().setup_ui(container)  # ...куда помещаем экземпляры классов "Просмотра", "Настроек" и т.д.
             self.stack_widget.addWidget(container)  # все размещаем в Stack_widget
 
-        self.ui_settings = SettingsUI()
+        self.ui_settings = SettingsUI(self)
         self.stack_widget.addWidget(self.ui_settings)
 
         self.central_window.setCentralWidget(self.stack_widget)  # центральный содержит QStackedWidget
