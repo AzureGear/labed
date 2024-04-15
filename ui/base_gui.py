@@ -18,7 +18,6 @@ from functools import partial
 from qtpy import QtCore
 current_folder = os.path.dirname(os.path.abspath(__file__)) # каталога проекта + /ui/
 
-# TODO: сделать заготовку для настроек
 # TODO: сделать сброс всех настроек по нажатию CTRL+SHIFT+R
 
 
