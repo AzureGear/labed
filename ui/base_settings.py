@@ -14,16 +14,14 @@ class SettingsUI(QWidget):
     """
     Класс настройки
     """
-    def __init__(self, parent=None):
+    def __init__(self, parent):
         super().__init__()
         self.line_default_output_dir = None
         self.line_general_datasets_dir = None
         self.output_dir = QLabel('Default output dir:')
         self.datasets_dir = QLabel('Default datasets directory:')
         self.settings_caption = 'Common settings'
-
-        self.button_line = None
-        self.tab_widget = None
+        self.tab_widget = QTabWidget()  # создаём виджет со вкладками
         self.settings = None
         self.setup_ui()
 
@@ -32,12 +30,12 @@ class SettingsUI(QWidget):
         #  └- layout - основной виджет QVBoxLayout, к которому мы добавляем другие виджеты
         #      ├- tab_widget - виджет со вкладками (страницами)
         #      |   ├- page_common - страница виджета с Общими настройками
-        #      |   |   └- page_common_layout - QFormLayout на котором уже располагаются виджеты с настройками
+        #      |   |   └- page_common_layout - QFormLayout на котором уже располагаются сами виджеты с настройками
         #      |   └- ...еще страница с другими настройками
         #      └- ...еще какой-нибудь еще виджет
 
         self.settings = AppSettings()  # настройки программы
-        self.tab_widget = QTabWidget()  # создаём виджет со вкладками
+
         page_common = QWidget(self.tab_widget)  # создаём страницу
         page_common_layout = QFormLayout()  # страница общих настроек имеет расположение QGrid
         page_common.setLayout(page_common_layout)
@@ -51,7 +49,6 @@ class SettingsUI(QWidget):
 
         layout = QVBoxLayout(self)  # вертикальный класс с расположением элементов интерфейса
         layout.addWidget(self.tab_widget)  # ему добавляем виджет
-        layout.addWidget(QPushButton("HelloWorld"))
         # layout.setContentsMargins(0, 0, 0, 0)  # уменьшаем границу
         # self.tab_widget.setStyleSheet('font-size: 12px; font-weight: bold;')  # применяем стиль
         icons_dir = os.path.join(current_folder, "../icons/")  # каталог к иконкам

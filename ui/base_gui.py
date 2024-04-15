@@ -95,12 +95,15 @@ class _BaseGUI:
         menubar.addMenu(self.menu_help)
 
         # Layout
-        for ui in (WidgetsUI, DockUI, FrameUI, WidgetsUI):
-            container = QWidget()  # создаём виджет...
+        self.ui_processing = ProcessingUI(self)  # виджет обработки
+        self.stack_widget.addWidget(self.ui_processing)
+
+        for ui in (DockUI, FrameUI, WidgetsUI):
+            container = QWidget()  # создаём группу виджетов...
             ui().setup_ui(container)  # ...куда помещаем экземпляры классов "Просмотра", "Настроек" и т.д.
             self.stack_widget.addWidget(container)  # все размещаем в Stack_widget
 
-        self.ui_settings = SettingsUI(self)
+        self.ui_settings = SettingsUI(self)  # виджет настроек
         self.stack_widget.addWidget(self.ui_settings)
 
         self.central_window.setCentralWidget(self.stack_widget)  # центральный содержит QStackedWidget
@@ -180,7 +183,7 @@ class BaseGUI(QMainWindow):
         self._ui.ui_settings.output_dir.setText(QtWidgets.QApplication.translate('BaseGUI', 'Default output dir:'))
         self._ui.ui_settings.datasets_dir.setText(
             QtWidgets.QApplication.translate('BaseGUI', 'Default datasets directory:'))
-        self._ui.ui_settings.settings_caption.translate(QtWidgets.QApplication.translate('BaseGUI', 'Common settings'))
+        self._ui.ui_settings.tab_widget.setTabText(0, QtWidgets.QApplication.translate('BaseGUI', 'Common settings'))
 
     def changeEvent(self, event):
         # перегружаем функцию для возможности перевода "на лету"
