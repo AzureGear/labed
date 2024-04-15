@@ -16,7 +16,9 @@ from qdarktheme.widget_gallery._ui.frame_ui import FrameUI
 from qdarktheme.widget_gallery._ui.widgets_ui import WidgetsUI
 from functools import partial
 from qtpy import QtCore
-current_folder = os.path.dirname(os.path.abspath(__file__)) # каталога проекта + /ui/
+
+current_folder = os.path.dirname(os.path.abspath(__file__))  # каталога проекта + /ui/
+
 
 # TODO: сделать сброс всех настроек по нажатию CTRL+SHIFT+R
 
@@ -173,13 +175,12 @@ class BaseGUI(QMainWindow):
         self._ui.menu_view.setTitle(QtWidgets.QApplication.translate('BaseGUI', "&View"))
         self._ui.menu_help.setTitle(QtWidgets.QApplication.translate('BaseGUI', "&Help"))
 
-        # Панель левых
-        # self._ui.ui_settings.
-        #
-        # self.line_default_output_dir = None
-        # self.output_dir = 'Default output dir:'
-        # self.line_general_datasets_dir = None
-        # self.datasets_dir = 'Default datasets directory:'
+        # QStackWidgets
+        # Settings
+        self._ui.ui_settings.output_dir.setText(QtWidgets.QApplication.translate('BaseGUI', 'Default output dir:'))
+        self._ui.ui_settings.datasets_dir.setText(
+            QtWidgets.QApplication.translate('BaseGUI', 'Default datasets directory:'))
+        self._ui.ui_settings.settings_caption.translate(QtWidgets.QApplication.translate('BaseGUI', 'Common settings'))
 
     def changeEvent(self, event):
         # перегружаем функцию для возможности перевода "на лету"

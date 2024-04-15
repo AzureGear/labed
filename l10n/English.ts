@@ -6,72 +6,72 @@
     <message>
         <location filename="base_gui.py" line="164"/>
         <source>Processing</source>
-        <translation>Обработка датасета</translation>
+        <translation>Processing</translation>
     </message>
     <message>
         <location filename="base_gui.py" line="165"/>
         <source>Experiments</source>
-        <translation>Эксперименты</translation>
+        <translation>Experiments</translation>
     </message>
     <message>
         <location filename="base_gui.py" line="166"/>
         <source>View datasets</source>
-        <translation>Просмотр датасета</translation>
+        <translation>View datasets</translation>
     </message>
     <message>
         <location filename="base_gui.py" line="167"/>
         <source>Move to mdi</source>
-        <translation>Автоматизация (в процессе)</translation>
+        <translation>Automatization</translation>
     </message>
     <message>
         <location filename="base_gui.py" line="168"/>
         <source>Settings</source>
-        <translation>Настройки</translation>
+        <translation>Settings</translation>
     </message>
     <message>
         <location filename="base_gui.py" line="169"/>
         <source>Switch theme</source>
-        <translation>Переключить тему</translation>
+        <translation>Switch theme</translation>
     </message>
     <message>
         <location filename="base_gui.py" line="170"/>
         <source>Help</source>
-        <translation>Помощь</translation>
+        <translation>Help</translation>
     </message>
     <message>
         <location filename="base_gui.py" line="171"/>
         <source>Exit</source>
-        <translation>Выход</translation>
+        <translation>Exit</translation>
     </message>
     <message>
         <location filename="base_gui.py" line="174"/>
         <source>&amp;File</source>
-        <translation>&amp;Файл</translation>
+        <translation>&amp;File</translation>
     </message>
     <message>
         <location filename="base_gui.py" line="175"/>
         <source>&amp;View</source>
-        <translation>&amp;Вид</translation>
+        <translation>&amp;View</translation>
     </message>
     <message>
         <location filename="base_gui.py" line="176"/>
         <source>&amp;Help</source>
-        <translation>&amp;Помощь</translation>
+        <translation>&amp;Help</translation>
     </message>
     <message>
         <location filename="base_gui.py" line="180"/>
         <source>Default output dir:</source>
-        <translation>Выходной каталог по умолчанию:</translation>
+        <translation>Default output dir:</translation>
     </message>
     <message>
         <location filename="base_gui.py" line="181"/>
         <source>Default datasets directory:</source>
-        <translation>Родительский каталог датасетов:</translation>
+        <translation>Default datasets directory:</translation>
     </message>
     <message>
         <location filename="base_gui.py" line="183"/>
         <source>Common settings</source>
-        <translation>Общие настройки</translation>
+        <translation>Common settings</translation>
     </message>
 </context>
 </TS>

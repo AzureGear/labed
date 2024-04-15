@@ -4,7 +4,6 @@ from qdarktheme.qtpy.QtWidgets import QDockWidget, QTabWidget, QMainWindow, QTex
     QToolButton, QApplication, QMessageBox
 from utils.settings_handler import AppSettings
 from ui.base_custom_widgets import ButtonLineEdit
-from ui.base_custom_widgets import EditWithButton
 from random import randint
 import os
 
@@ -18,9 +17,10 @@ class SettingsUI(QWidget):
     def __init__(self, parent=None):
         super().__init__()
         self.line_default_output_dir = None
-        self.output_dir = 'Default output dir:'
         self.line_general_datasets_dir = None
-        self.datasets_dir = 'Default datasets directory:'
+        self.output_dir = QLabel('Default output dir:')
+        self.datasets_dir = QLabel('Default datasets directory:')
+        self.settings_caption = 'Common settings'
 
         self.button_line = None
         self.tab_widget = None
@@ -28,7 +28,7 @@ class SettingsUI(QWidget):
         self.setup_ui()
 
     def setup_ui(self):
-        # win - наш главный родительский контейнер
+        # SettingsUI(QWidget) - наш главный родительский контейнер
         #  └- layout - основной виджет QVBoxLayout, к которому мы добавляем другие виджеты
         #      ├- tab_widget - виджет со вкладками (страницами)
         #      |   ├- page_common - страница виджета с Общими настройками
@@ -41,10 +41,10 @@ class SettingsUI(QWidget):
         page_common = QWidget(self.tab_widget)  # создаём страницу
         page_common_layout = QFormLayout()  # страница общих настроек имеет расположение QGrid
         page_common.setLayout(page_common_layout)
-        self.tab_widget.addTab(page_common, "Common settings")  # добавляем страницу
+        self.tab_widget.addTab(page_common, self.settings_caption)  # добавляем страницу
 
-        font = self.tab_widget.font()
-        font.setBold(True)
+        # font = self.tab_widget.font()
+        # font.setBold(True)
         #
         # self.tab_bar.fonts[0] = font
         # self.tab_bar.update()
