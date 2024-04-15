@@ -16,9 +16,7 @@ from qdarktheme.widget_gallery._ui.frame_ui import FrameUI
 from qdarktheme.widget_gallery._ui.widgets_ui import WidgetsUI
 from functools import partial
 from qtpy import QtCore
-
-project_folder = os.path.dirname(os.path.abspath(__file__))  # начнём из каталога проекта
-
+current_folder = os.path.dirname(os.path.abspath(__file__)) # каталога проекта + /ui/
 
 # TODO: сделать заготовку для настроек
 # TODO: сделать сброс всех настроек по нажатию CTRL+SHIFT+R
@@ -49,7 +47,7 @@ class _BaseGUI:
         tool_btn_lang.setIcon(newIcon('glyph_language'))  # кнопка
         tool_btn_lang.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)  # со всплывающим меню
         self.actions_switch_lang = []  # перечень QActions для доступных переводов (сделаем динамическое меню)
-        for file in os.listdir(os.path.join(project_folder, "../" + config.LOCALIZATION_FOLDER)):
+        for file in os.listdir(os.path.join(current_folder, "../" + config.LOCALIZATION_FOLDER)):
             if file.endswith(".qm"):  # файлы локализаций *.qm
                 only_file_name = os.path.splitext(file)[0]  # удаляем расширение
                 self.actions_switch_lang.append(QAction(text=only_file_name))  # формируем набор QAction для локализаций
@@ -96,10 +94,13 @@ class _BaseGUI:
         menubar.addMenu(self.menu_help)
 
         # Layout
-        for ui in (WidgetsUI, DockUI, FrameUI, WidgetsUI, SettingsUI):
+        for ui in (WidgetsUI, DockUI, FrameUI, WidgetsUI):
             container = QWidget()  # создаём виджет...
             ui().setup_ui(container)  # ...куда помещаем экземпляры классов "Просмотра", "Настроек" и т.д.
             self.stack_widget.addWidget(container)  # все размещаем в Stack_widget
+
+        self.ui_settings = SettingsUI()
+        self.stack_widget.addWidget(self.ui_settings)
 
         self.central_window.setCentralWidget(self.stack_widget)  # центральный содержит QStackedWidget
         # self.central_window.addToolBar(self.toolbar)  # пока в ней нет надобности
@@ -120,7 +121,7 @@ class BaseGUI(QMainWindow):
         super().__init__(parent)
         self.settings = AppSettings()  # настройки программы
         self.setWindowIcon(newIcon('digitalization'))
-        self._ui = _BaseGUI()  # формируем приватные атрибуты
+        self._ui = _BaseGUI()  # настройка интерфейса и создание приватных атрибуты
         self._ui.setup_ui(self)
 
         # Signals
@@ -173,6 +174,14 @@ class BaseGUI(QMainWindow):
         self._ui.menu_view.setTitle(QtWidgets.QApplication.translate('BaseGUI', "&View"))
         self._ui.menu_help.setTitle(QtWidgets.QApplication.translate('BaseGUI', "&Help"))
 
+        # Панель левых
+        # self._ui.ui_settings.
+        #
+        # self.line_default_output_dir = None
+        # self.output_dir = 'Default output dir:'
+        # self.line_general_datasets_dir = None
+        # self.datasets_dir = 'Default datasets directory:'
+
     def changeEvent(self, event):
         # перегружаем функцию для возможности перевода "на лету"
         if event.type() == qdarktheme.qtpy.QtCore.QEvent.LanguageChange:
@@ -201,7 +210,7 @@ class BaseGUI(QMainWindow):
         #     return  # если выбора, как такового не произошло
         # else:
         if action_name:
-            self.trans.load(os.path.join(project_folder, "../", config.LOCALIZATION_FOLDER, action_name))
+            self.trans.load(os.path.join(current_folder, "../", config.LOCALIZATION_FOLDER, action_name))
             # загружаем перевод с таким же именем как и имя QAction
             QtWidgets.QApplication.instance().installTranslator(self.trans)
             self.settings.write_lang(action_name)  # записываем в настройки выбранный язык
