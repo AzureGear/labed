@@ -20,7 +20,10 @@
 # glyph_search-file: KP Arts
 # glyph_search-folder: KP Arts
 # glyph_setups: KP Arts
-
+# glyph_cutter: Aranagraphics
+# glyph_transform: Wahyu Adam
+# glyph_editing: Freepik
+# glyph_merge: Freepik
 # glyph_eye: Freepik
 # glyph_flask: Freepik
 # glyph_flask2: Freepik

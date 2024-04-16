@@ -29,6 +29,11 @@ if __name__ == '__main__':
 #     function = partial(add, i)  # делаем функцию (1+y), (2+y) и т.д. до 10
 #     add_partials.append(function)  # добавляем модифицированную функцию к листу add_partials
 #     print('Sum of {} and 2 is {}'.format(i, add_partials[i - 1](2))) # вызываем функцию для при y = 2
+############################################################
+# colors = ('red', 'green', 'black', 'blue')
+# for i, color in enumerate(colors):
+#     self.tab_widget.addTab(QWidget(), 'Tab #{}'.format(i + 1))
+#     self.tab_widget.tabBar().setTabTextColor(i, QColor(color))
 
 #####################################################
 #

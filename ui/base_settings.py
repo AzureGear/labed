@@ -21,8 +21,6 @@ class SettingsUI(QWidget):
         self.output_dir = QLabel('Default output dir:')
         self.datasets_dir = QLabel('Default datasets directory:')
         self.settings_caption = 'Common settings'
-        self.setStyleSheet("QTabBar::tab: selected { font: bold; background: rgb(245, 245, 245); margin - bottom: -4px; }")
-
         self.tab_widget = QTabWidget()  # создаём виджет со вкладками
         self.settings = None
         self.setup_ui()

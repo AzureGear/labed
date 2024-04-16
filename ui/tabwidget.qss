@@ -1,46 +1,16 @@
-/*
-QTabBar::tab {
-  background: rgb(230, 230, 230);
-  border: 1px solid lightgray;
-}
-
-QTabBar::tab:selected {
-  font: bold;
-  background: rgb(245, 245, 245);
-  margin-bottom: -4px;
-  background: solid darkgray;
-
-}
-
-QTabWidget::pane {
-   background-color: white
-   border: none;
-   colors: solid darkgray, solid lightgray, biege, outset, gray, white
-}
-
-
-
-QTabWidget::tab-bar {
+QTabWidget::tab-bar
+{
     left: 13px;
 }
 
-QTabBar::tab {
-  background: yellow;
-}
-
-QTabWidget::pane {
-   background: ;
-}
-
-*/
 QTabBar::tab:selected
 {
   font: bold;
   border: 1px solid lightgray;
   margin-bottom: -4px;
-  background: #E0E0E0;
 }
 
-QTabBar::tab:!selected {
-    background: solid;
+QTabBar::tab:!selected
+{
+    background: solid darkgrey;
 }
