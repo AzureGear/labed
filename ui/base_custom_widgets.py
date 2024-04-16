@@ -95,11 +95,11 @@ class EditWithButton(QWidget):  ## Реализация Романа Хабар�
 
 # ======================================================================================================================
 
-class ButtonLineEdit(QtWidgets.QLineEdit):  # упрощённая QLineEdit с кнопкой внутри
+class azButtonLineEdit(QtWidgets.QLineEdit):  # упрощённая QLineEdit с кнопкой внутри
 
     def __init__(self, icon_file, caption=None, editable=True, parent=None, dir_only=False,
                  on_button_clicked_callback=None):
-        super(ButtonLineEdit, self).__init__(parent)
+        super(azButtonLineEdit, self).__init__(parent)
         self.settings = AppSettings()  # чтение настроек
         self.last_dir = self.settings.read_last_dir()  # вспоминаем прошлый открытый каталог
         self.button = QtWidgets.QToolButton(self)  # создаём кнопку
@@ -119,7 +119,7 @@ class ButtonLineEdit(QtWidgets.QLineEdit):  # упрощённая QLineEdit с 
         frame_width = self.style().pixelMetric(QtWidgets.QStyle.PM_DefaultFrameWidth)
         self.button.move(self.rect().right() - frame_width - button_size.width(),
                          (self.rect().bottom() - button_size.height() + 1) / 2)
-        super(ButtonLineEdit, self).resizeEvent(event)
+        super(azButtonLineEdit, self).resizeEvent(event)
 
     def on_button_clicked(self):
         if self.dir_only:

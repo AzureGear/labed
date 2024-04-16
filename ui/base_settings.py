@@ -3,7 +3,7 @@ from qdarktheme.qtpy.QtWidgets import QDockWidget, QTabWidget, QMainWindow, QTex
     QWidget, QSlider, QFormLayout, QComboBox, QScrollArea, QPushButton, QGridLayout, QTabBar, QLineEdit, QHBoxLayout, \
     QToolButton, QApplication, QMessageBox
 from utils.settings_handler import AppSettings
-from ui.base_custom_widgets import ButtonLineEdit
+from ui.base_custom_widgets import azButtonLineEdit
 from random import randint
 import os
 
@@ -21,6 +21,8 @@ class SettingsUI(QWidget):
         self.output_dir = QLabel('Default output dir:')
         self.datasets_dir = QLabel('Default datasets directory:')
         self.settings_caption = 'Common settings'
+        self.setStyleSheet("QTabBar::tab: selected { font: bold; background: rgb(245, 245, 245); margin - bottom: -4px; }")
+
         self.tab_widget = QTabWidget()  # создаём виджет со вкладками
         self.settings = None
         self.setup_ui()
@@ -41,20 +43,13 @@ class SettingsUI(QWidget):
         page_common.setLayout(page_common_layout)
         self.tab_widget.addTab(page_common, self.settings_caption)  # добавляем страницу
 
-        # font = self.tab_widget.font()
-        # font.setBold(True)
-        #
-        # self.tab_bar.fonts[0] = font
-        # self.tab_bar.update()
-
         layout = QVBoxLayout(self)  # вертикальный класс с расположением элементов интерфейса
         layout.addWidget(self.tab_widget)  # ему добавляем виджет
-        # layout.setContentsMargins(0, 0, 0, 0)  # уменьшаем границу
         # self.tab_widget.setStyleSheet('font-size: 12px; font-weight: bold;')  # применяем стиль
         icons_dir = os.path.join(current_folder, "../icons/")  # каталог к иконкам
 
         # QLineEdit для хранения "верхнего каталога" датасетов
-        self.line_general_datasets_dir = ButtonLineEdit(icons_dir + "glyph_folder.png",
+        self.line_general_datasets_dir = azButtonLineEdit(icons_dir + "glyph_folder.png",
                                                         caption="Select general directory for datasets",
                                                         editable=True, dir_only=True)
         self.line_general_datasets_dir.setText(self.settings.read_datasets_dir())  # устанавливаем сохраненное значение
@@ -63,7 +58,7 @@ class SettingsUI(QWidget):
         page_common_layout.addRow(self.output_dir, self.line_general_datasets_dir)  # добавляем виджет
 
         # QLineEdit для хранения выходных результатов
-        self.line_default_output_dir = ButtonLineEdit(icons_dir + "glyph_folder.png",
+        self.line_default_output_dir = azButtonLineEdit(icons_dir + "glyph_folder.png",
                                                       caption="Select default output directory",
                                                       editable=True, dir_only=True)
         self.line_default_output_dir.setText(self.settings.read_default_output_dir())

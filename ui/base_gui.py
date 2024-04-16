@@ -164,26 +164,28 @@ class BaseGUI(QMainWindow):
 
     def _retranslate_ui(self):
         # Перечень всех виджетов и объектов для которых будет выполняться локализация
-        self._ui.actions_page[0].setText(QtWidgets.QApplication.translate('BaseGUI', 'Processing'))
-        self._ui.actions_page[1].setText(QtWidgets.QApplication.translate('BaseGUI', 'Experiments'))
-        self._ui.actions_page[2].setText(QtWidgets.QApplication.translate('BaseGUI', 'View datasets'))
-        self._ui.actions_page[3].setText(QtWidgets.QApplication.translate('BaseGUI', 'Move to mdi'))
-        self._ui.actions_page[4].setText(QtWidgets.QApplication.translate('BaseGUI', 'Settings'))
-        self._ui.action_switch_theme.setText(QtWidgets.QApplication.translate('BaseGUI', 'Switch theme'))
-        self._ui.action_help.setText(QtWidgets.QApplication.translate('BaseGUI', 'Help'))
-        self._ui.action_exit.setText(QtWidgets.QApplication.translate('BaseGUI', 'Exit'))
+        _tr = QApplication.translate
+        self._ui.actions_page[0].setText(_tr('BaseGUI', 'Processing'))
+        self._ui.actions_page[1].setText(_tr('BaseGUI', 'Experiments'))
+        self._ui.actions_page[2].setText(_tr('BaseGUI', 'View datasets'))
+        self._ui.actions_page[3].setText(_tr('BaseGUI', 'Move to mdi'))
+        self._ui.actions_page[4].setText(_tr('BaseGUI', 'Settings'))
+        self._ui.action_switch_theme.setText(_tr('BaseGUI', 'Switch theme'))
+        self._ui.action_help.setText(_tr('BaseGUI', 'Help'))
+        self._ui.action_exit.setText(_tr('BaseGUI', 'Exit'))
 
         # Панель Меню
-        self._ui.menu_file.setTitle(QtWidgets.QApplication.translate('BaseGUI', "&File"))
-        self._ui.menu_view.setTitle(QtWidgets.QApplication.translate('BaseGUI', "&View"))
-        self._ui.menu_help.setTitle(QtWidgets.QApplication.translate('BaseGUI', "&Help"))
+        self._ui.menu_file.setTitle(_tr('BaseGUI', "&File"))
+        self._ui.menu_view.setTitle(_tr('BaseGUI', "&View"))
+        self._ui.menu_help.setTitle(_tr('BaseGUI', "&Help"))
 
         # QStackWidgets
+        # Processing
+
         # Settings
-        self._ui.ui_settings.output_dir.setText(QtWidgets.QApplication.translate('BaseGUI', 'Default output dir:'))
-        self._ui.ui_settings.datasets_dir.setText(
-            QtWidgets.QApplication.translate('BaseGUI', 'Default datasets directory:'))
-        self._ui.ui_settings.tab_widget.setTabText(0, QtWidgets.QApplication.translate('BaseGUI', 'Common settings'))
+        self._ui.ui_settings.output_dir.setText(_tr('BaseGUI', 'Default output dir:'))
+        self._ui.ui_settings.datasets_dir.setText(_tr('BaseGUI', 'Default datasets directory:'))
+        self._ui.ui_settings.tab_widget.setTabText(0, _tr('BaseGUI', 'Common settings'))
 
     def changeEvent(self, event):
         # перегружаем функцию для возможности перевода "на лету"
