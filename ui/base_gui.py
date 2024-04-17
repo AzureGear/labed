@@ -1,7 +1,5 @@
-# from PyQt5.QtWidgets import QApplication, QTabWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel
-from PyQt5.QtGui import QPixmap
 from qdarktheme.qtpy.QtCore import QDir, Qt, Slot, QTranslator
-from qdarktheme.qtpy.QtGui import QAction, QActionGroup, QWindow
+from qdarktheme.qtpy.QtGui import QAction, QActionGroup, QWindow, QColor, QPixmap, QIcon
 from qdarktheme.qtpy.QtWidgets import QApplication, QToolBar, QToolButton, QWidget, QMainWindow, QStackedWidget, \
     QStatusBar, QMenuBar, QSizePolicy, QMessageBox, QLabel, QMenu
 from utils import config
@@ -16,8 +14,28 @@ from qdarktheme.widget_gallery._ui.frame_ui import FrameUI
 from qdarktheme.widget_gallery._ui.widgets_ui import WidgetsUI
 from functools import partial
 from qtpy import QtCore
+from ui.base_custom_widgets import AzAction
 
 current_folder = os.path.dirname(os.path.abspath(__file__))  # каталога проекта + /ui/
+
+qss = """
+QTabWidget::tab-bar {
+    left: 5px;
+}
+
+QTabBar {  
+    font-weight: bold;  
+}
+
+QTabBar::tab:!selected { 
+    font-weight: normal; 
+    margin-bottom: -4px;
+}
+
+QTabBar::tab:selected {
+    font: bold 12px;
+}
+"""
 
 
 # TODO: сделать сброс всех настроек по нажатию CTRL+SHIFT+R
@@ -26,15 +44,16 @@ current_folder = os.path.dirname(os.path.abspath(__file__))  # каталога 
 class _BaseGUI:
     def setup_ui(self, main_widget: QMainWindow):
         # Actions для боковой панели
-        self.actions_page = (
-            QAction(newIcon("glyph_pickaxe"), 'Processing'),
-            QAction(newIcon("glyph_flask"), "Experiments"),
-            QAction(newIcon("glyph_eye"), "View datasets"),
-            QAction(newIcon("glyph_highlight"), "Move to mdi"),
-            QAction(newIcon("glyph_gear"), "Settings")
+        sidepanel_items_color = "dodgerblue"
+        self.actions_page_side_panel = (
+            AzAction("Processing", "glyph_pickaxe", "purple", sidepanel_items_color),
+            AzAction("Experiments", "glyph_flask", "blue", sidepanel_items_color),
+            AzAction("View datasets", "glyph_eye", "green", sidepanel_items_color),
+            AzAction("Move to mdi", "glyph_highlight", "red", sidepanel_items_color),
+            AzAction("Settings", "glyph_gear", "cyan", sidepanel_items_color)
         )
-        self.action_switch_theme = QAction(newIcon("glyph_black-and-white"), "Switch theme")
-        self.action_switch_theme.setCheckable(True)
+        self.action_switch_theme = AzAction("Switch theme", "glyph_black-and-white", sidepanel_items_color,
+                                            sidepanel_items_color)
 
         # Actions для меню
         self.action_exit = QAction("Exit")
@@ -43,6 +62,7 @@ class _BaseGUI:
 
         # Создаем кнопки
         tool_btn_lang, tool_btn_theme = (QToolButton() for _ in range(2))  # создаем кнопки
+        sidepanel_items = "dodgerblue"
 
         # Выбор языка
         tool_btn_lang.setIcon(newIcon('glyph_language'))  # кнопка
@@ -53,7 +73,6 @@ class _BaseGUI:
                 only_file_name = os.path.splitext(file)[0]  # удаляем расширение
                 self.actions_switch_lang.append(QAction(text=only_file_name))  # формируем набор QAction для локализаций
         tool_btn_lang.addActions(self.actions_switch_lang)  # передаем его кнопке
-
         # Группировка виджетов
         self.central_window = QMainWindow()  # главный виджет
         self.stack_widget = QStackedWidget()  # виджет с переменой окон
@@ -62,20 +81,20 @@ class _BaseGUI:
         statusbar = QStatusBar()  # статусная строка
         menubar = QMenuBar()  # панель меню
 
-        # Добавляем в кочующее меню действия
+        # Добавляем в кочующее меню действия *ОТКЛЮЧЕНО!
         self.toolbar.addActions((self.action_exit, self.action_help))
 
         action_group_toolbar = QActionGroup(main_widget)  # группа действий для панели режимов
-        for action in self.actions_page:
+        for action in self.actions_page_side_panel:
             action.setCheckable(True)
-            action_group_toolbar.addAction(action)
+            action_group_toolbar.addAction(action)  # соединяем действия боковой панели в группу
 
         spacer = QToolButton()  # пустая растяжка между иконками
         spacer.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
         spacer.setEnabled(False)
         # настройки панели режимов
         sidepanel.setMovable(False)
-        sidepanel.addActions(self.actions_page)
+        sidepanel.addActions(self.actions_page_side_panel)
         sidepanel.addWidget(spacer)
         sidepanel.addAction(self.action_switch_theme)  # кнопка изменения режима
         sidepanel.addWidget(tool_btn_lang)
@@ -85,7 +104,7 @@ class _BaseGUI:
         self.menu_file.addAction(self.action_exit)
 
         self.menu_view = QMenu("&View")
-        self.menu_view.addActions(self.actions_page)
+        self.menu_view.addActions(self.actions_page_side_panel)
 
         self.menu_help = QMenu("&Help")
         self.menu_help.addAction(self.action_help)
@@ -134,7 +153,7 @@ class BaseGUI(QMainWindow):
         self._ui.action_switch_theme.triggered.connect(self.change_theme)
         for action in self._ui.actions_switch_lang:  # соединяем смену языка
             action.triggered.connect(self.change_lang)
-        for i, action in enumerate(self._ui.actions_page):
+        for i, action in enumerate(self._ui.actions_page_side_panel):
             action.setData(i)
             action.triggered.connect(self.change_page)
 
@@ -144,10 +163,13 @@ class BaseGUI(QMainWindow):
 
         # Настройки по умолчанию и сохранённые настройки
         self._theme = self.settings.read_ui_theme()  # тема светлая
-        qdarktheme.setup_theme(self._theme, 'sharp')  # стиль границ острый, можно и сглаженный: "rounded"
+
+        qdarktheme.setup_theme(self._theme, 'sharp',
+                               additional_qss=qss)  # стиль границ острый, можно и сглаженный: "rounded"
         if self._theme == "light": self._ui.action_switch_theme.setChecked(True)  # кнопка зажата
         self._ui.stack_widget.setCurrentIndex(self.settings.read_ui_stack_widget_cur_tab())  # загрузка вкладки
-        self._ui.actions_page[self.settings.read_ui_stack_widget_cur_tab()].setChecked(True)  # активация вкладки
+        # активация сохранённой по нумеру вкладки
+        self._ui.actions_page_side_panel[self.settings.read_ui_stack_widget_cur_tab()].setChecked(True)
         last_lang = self.settings.read_lang()  # загрузка сохранённого языка
         for action in self._ui.actions_switch_lang:
             if action.text() == last_lang: action.trigger()  # меняем язык на сохранённый
@@ -165,11 +187,11 @@ class BaseGUI(QMainWindow):
     def _retranslate_ui(self):
         # Перечень всех виджетов и объектов для которых будет выполняться локализация
         _tr = QApplication.translate
-        self._ui.actions_page[0].setText(_tr('BaseGUI', 'Processing'))
-        self._ui.actions_page[1].setText(_tr('BaseGUI', 'Experiments'))
-        self._ui.actions_page[2].setText(_tr('BaseGUI', 'View datasets'))
-        self._ui.actions_page[3].setText(_tr('BaseGUI', 'Move to mdi'))
-        self._ui.actions_page[4].setText(_tr('BaseGUI', 'Settings'))
+        self._ui.actions_page_side_panel[0].setText(_tr('BaseGUI', 'Processing'))
+        self._ui.actions_page_side_panel[1].setText(_tr('BaseGUI', 'Experiments'))
+        self._ui.actions_page_side_panel[2].setText(_tr('BaseGUI', 'View datasets'))
+        self._ui.actions_page_side_panel[3].setText(_tr('BaseGUI', 'Move to mdi'))
+        self._ui.actions_page_side_panel[4].setText(_tr('BaseGUI', 'Settings'))
         self._ui.action_switch_theme.setText(_tr('BaseGUI', 'Switch theme'))
         self._ui.action_help.setText(_tr('BaseGUI', 'Help'))
         self._ui.action_exit.setText(_tr('BaseGUI', 'Exit'))
@@ -228,7 +250,7 @@ class BaseGUI(QMainWindow):
             self._theme = self._ui.actions_theme[1].text()  # зажатая кнопка темы
         else:
             self._theme = self._ui.actions_theme[0].text()  # неактивная кнопка темы
-        qdarktheme.setup_theme(self._theme, "sharp")
+        qdarktheme.setup_theme(self._theme, "sharp", additional_qss=qss)
         self.settings.write_ui_theme(self._theme)  # сохраняем настройки темы
         self.statusBar().showMessage(self._theme)  # извещаем пользователя
 

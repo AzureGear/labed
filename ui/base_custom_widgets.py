@@ -1,13 +1,12 @@
-from PyQt5 import QtCore
-from PyQt5 import QtGui
-from PyQt5 import QtWidgets
-
 import os
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon
+from PyQt5 import QtCore
+from PyQt5 import QtGui
+from PyQt5.QtGui import QIcon, QPixmap, QColor
+from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QPushButton, QFileDialog, QLineEdit
 from utils.settings_handler import AppSettings
+from ui import newIcon, newPixmap
 
 
 class EditWithButton(QWidget):  ## Реализация Романа Хабарова
@@ -23,7 +22,7 @@ class EditWithButton(QWidget):  ## Реализация Романа Хабар�
         last_dir = self.settings.read_last_dir()
 
         if in_separate_window:
-            self.setWindowFlag(Qt.Tool)
+            self.setWindowFlag(QtCore.Qt.Tool)
 
         if title:
             self.setWindowTitle(title)
@@ -95,11 +94,11 @@ class EditWithButton(QWidget):  ## Реализация Романа Хабар�
 
 # ======================================================================================================================
 
-class azButtonLineEdit(QtWidgets.QLineEdit):  # упрощённая QLineEdit с кнопкой внутри
+class AzButtonLineEdit(QtWidgets.QLineEdit):  # упрощённая QLineEdit с кнопкой внутри
 
     def __init__(self, icon_file, caption=None, editable=True, parent=None, dir_only=False,
                  on_button_clicked_callback=None):
-        super(azButtonLineEdit, self).__init__(parent)
+        super(AzButtonLineEdit, self).__init__(parent)
         self.settings = AppSettings()  # чтение настроек
         self.last_dir = self.settings.read_last_dir()  # вспоминаем прошлый открытый каталог
         self.button = QtWidgets.QToolButton(self)  # создаём кнопку
@@ -119,7 +118,7 @@ class azButtonLineEdit(QtWidgets.QLineEdit):  # упрощённая QLineEdit �
         frame_width = self.style().pixelMetric(QtWidgets.QStyle.PM_DefaultFrameWidth)
         self.button.move(self.rect().right() - frame_width - button_size.width(),
                          (self.rect().bottom() - button_size.height() + 1) / 2)
-        super(azButtonLineEdit, self).resizeEvent(event)
+        super(AzButtonLineEdit, self).resizeEvent(event)
 
     def on_button_clicked(self):
         if self.dir_only:
@@ -129,3 +128,31 @@ class azButtonLineEdit(QtWidgets.QLineEdit):  # упрощённая QLineEdit �
                 self.setText(select_dir)
                 if self.on_button_clicked_callback:
                     self.on_button_clicked_callback()
+
+
+# ======================================================================================================================
+
+def coloring_icon(path, color):
+    pixmap = newPixmap(path)  # иконка, которую будем перекрашивать
+    mask = pixmap.createMaskFromColor(QColor('black'), QtCore.Qt.MaskOutColor)  # по умолчанию цвет иконок черный
+    pixmap.fill(QColor(color))  # меняем цвет иконки...
+    pixmap.setMask(mask)  # ...по маске
+    return QIcon(pixmap)
+
+
+class AzAction(QtWidgets.QAction):  # действие с переменой цвета иконки, когда она активна
+    def __init__(self, text, path, color_active, color_base="black", parent=None):
+        self.icon_default = coloring_icon(path, color_base)
+        self.icon_activate = coloring_icon(path, color_active)
+        super().__init__(self.icon_default, text, parent)
+        self.setCheckable(True)
+        self.toggled.connect(self.tog1)
+
+    def toggle(self):
+        pass
+
+    def tog1(self):
+        if self.isChecked():
+            self.setIcon(self.icon_activate)
+        else:
+            self.setIcon(self.icon_default)

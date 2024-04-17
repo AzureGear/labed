@@ -4,12 +4,9 @@ ORGANIZATION = 'azura'
 APPLICATION = 'lab_ed'
 
 LOCALIZATION_FOLDER = 'l10n'
-
-# main
-DATABASE = {
-    'name': 'test',
-    'port': 5432,
-    'host': 'localhost',
+UI = {
+    "sidepanel_items": "dodgerblue"
+    ""
 }
 
 # ui
@@ -17,4 +14,3 @@ UI = {
     'theme': 'light',
     'language': 'ru',
 }
-

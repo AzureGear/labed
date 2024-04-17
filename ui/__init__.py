@@ -1,4 +1,5 @@
 from .qt import newIcon
+from .qt import newPixmap
 from .qt import newButton
 from .qt import labelValidator
 from .qt import struct

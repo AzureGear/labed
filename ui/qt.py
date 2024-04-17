@@ -3,14 +3,17 @@ from qtpy import QtCore
 from qtpy import QtGui
 from qtpy import QtWidgets
 
-
 here = osp.dirname(osp.abspath(__file__))
-
 
 
 def newIcon(icon):
     icons_dir = osp.join(here, "../icons")
     return QtGui.QIcon(osp.join(":/", icons_dir, "%s.png" % icon))
+
+
+def newPixmap(path):
+    icons_dir = osp.join(here, "../icons")
+    return QtGui.QPixmap(osp.join(":/", icons_dir, "%s.png" % path))
 
 
 def newButton(text, icon=None, slot=None):
@@ -29,4 +32,3 @@ def labelValidator():
 class struct(object):
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
-

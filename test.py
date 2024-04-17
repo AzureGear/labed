@@ -1,23 +1,62 @@
+# class AzAction(QtWidgets.QAction):  # действие с переменой цвета иконки, когда она активна
+#     def __init__(self, text, icon, icon_checked, parent=None):
+#         super().__init__(newIcon(icon), text, parent)
+#         self.icon_default = newIcon(icon)
+#         self.icon_activate = newIcon(icon_checked)
+#         self.setCheckable(True)
+#         self.toggled.connect(self.tog1)
+#
+#     def toggle(self):
+#         pass
+#
+#     def tog1(self):
+#         if self.isChecked():
+#             self.setIcon(self.icon_activate)
+#         else:
+#             self.setIcon(self.icon_default)
 
-if __name__ == '__main__':
-    import sys
+# /*QTabWidget::tab-bar {
+#     left: 13px;
+# }
+#
+# QTabBar::tab {
+#   background: rgb(230, 230, 230);
+#   border: 1px solid lightgray;
+# }
+#
+# QTabBar::tab:selected {
+#   font: bold;
+#   background: rgb(245, 245, 245);
+#   margin-bottom: -4px;
+# }
+#
+# QTabWidget::pane {
+#    border: none;
+# }*/
 
-    app = QtWidgets.QApplication(sys.argv)
-    toolBox = AnimatedToolBox()
-    for i in range(8):
-        container = QtWidgets.QWidget()
-        layout = QtWidgets.QVBoxLayout(container)
-        for b in range((i + 1) * 2):
-            layout.addWidget(QtWidgets.QPushButton('Button {}'.format(b + 1)))
-        layout.addStretch()
-        toolBox.addItem(container, 'Box {}'.format(i + 1))
-    toolBox.show()
-    sys.exit(app.exec())
+
+# if __name__ == '__main__':
+#     import sys
+#
+#     app = QtWidgets.QApplication(sys.argv)
+#     toolBox = AnimatedToolBox()
+#     for i in range(8):
+#         container = QtWidgets.QWidget()
+#         layout = QtWidgets.QVBoxLayout(container)
+#         for b in range((i + 1) * 2):
+#             layout.addWidget(QtWidgets.QPushButton('Button {}'.format(b + 1)))
+#         layout.addStretch()
+#         toolBox.addItem(container, 'Box {}'.format(i + 1))
+#     toolBox.show()
+#     sys.exit(app.exec())
 
 #####################################################
 # Полезное!
 # tab_widget.setStyleSheet('background: rgb(%d, %d, %d); margin: 1px; font-size: 14px;'
 #                                  % (randint(244, 255), randint(244, 255), randint(244, 255)))
+# style = current_folder + "/tabwidget.qss"
+# with open(style, "r") as fh:
+#     self.setStyleSheet(fh.read())
 
 #####################################################
 
