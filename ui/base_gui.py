@@ -4,17 +4,17 @@ from qdarktheme.qtpy.QtWidgets import QApplication, QToolBar, QToolButton, QWidg
     QStatusBar, QMenuBar, QSizePolicy, QMessageBox, QLabel, QMenu
 from utils import config
 from PyQt5 import QtWidgets
-from utils.settings_handler import AppSettings
 import qdarktheme
 import sys
 import os
 from ui import newIcon
-from ui import DockUI, SettingsUI, ViewDatasetUI, ExperimentUI, ProcessingUI
+from ui import DockUI, SettingsUI, ViewDatasetUI, ExperimentUI, ProcessingUI, AutomationUI
 from qdarktheme.widget_gallery._ui.frame_ui import FrameUI
-from qdarktheme.widget_gallery._ui.widgets_ui import WidgetsUI
-from functools import partial
-from qtpy import QtCore
-from ui.base_custom_widgets import AzAction
+from utils import UI_COLORS, AppSettings
+from ui import AzAction, coloring_icon
+
+# from qdarktheme.widget_gallery._ui.widgets_ui import WidgetsUI
+the_colors = UI_COLORS.get("sidepanel_color")
 
 current_folder = os.path.dirname(os.path.abspath(__file__))  # каталога проекта + /ui/
 
@@ -46,12 +46,13 @@ class _BaseGUI:
         # Actions для боковой панели
         sidepanel_items_color = "dodgerblue"
         self.actions_page_side_panel = (
-            AzAction("Processing", "glyph_pickaxe", "purple", sidepanel_items_color),
-            AzAction("Experiments", "glyph_flask", "blue", sidepanel_items_color),
-            AzAction("View datasets", "glyph_eye", "green", sidepanel_items_color),
-            AzAction("Move to mdi", "glyph_highlight", "red", sidepanel_items_color),
-            AzAction("Settings", "glyph_gear", "cyan", sidepanel_items_color)
+            AzAction("Processing", "glyph_pickaxe", UI_COLORS.get("processing_color"), the_colors),
+            AzAction("Experiments", "glyph_flask", UI_COLORS.get("experiments_color"), the_colors),
+            AzAction("View datasets", "glyph_eye", UI_COLORS.get("datasets_color"), the_colors),
+            AzAction("Automation", "glyph_highlight", UI_COLORS.get("automation_color"), the_colors),
+            AzAction("Settings", "glyph_gear", UI_COLORS.get("settings_color"), the_colors)
         )
+
         self.action_switch_theme = AzAction("Switch theme", "glyph_black-and-white", sidepanel_items_color,
                                             sidepanel_items_color)
 
@@ -65,7 +66,7 @@ class _BaseGUI:
         sidepanel_items = "dodgerblue"
 
         # Выбор языка
-        tool_btn_lang.setIcon(newIcon('glyph_language'))  # кнопка
+        tool_btn_lang.setIcon(coloring_icon('glyph_language', sidepanel_items_color))  # кнопка выбора языка
         tool_btn_lang.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)  # со всплывающим меню
         self.actions_switch_lang = []  # перечень QActions для доступных переводов (сделаем динамическое меню)
         for file in os.listdir(os.path.join(current_folder, "../" + config.LOCALIZATION_FOLDER)):
@@ -73,6 +74,7 @@ class _BaseGUI:
                 only_file_name = os.path.splitext(file)[0]  # удаляем расширение
                 self.actions_switch_lang.append(QAction(text=only_file_name))  # формируем набор QAction для локализаций
         tool_btn_lang.addActions(self.actions_switch_lang)  # передаем его кнопке
+
         # Группировка виджетов
         self.central_window = QMainWindow()  # главный виджет
         self.stack_widget = QStackedWidget()  # виджет с переменой окон
@@ -117,10 +119,15 @@ class _BaseGUI:
         self.ui_processing = ProcessingUI(self)  # виджет обработки
         self.stack_widget.addWidget(self.ui_processing)
 
-        for ui in (DockUI, FrameUI, WidgetsUI):
+        # uis = []
+        # uis.append(self.ui_processing, self )
+        for ui in (DockUI, FrameUI):  # ViewDatasetUI, ExperimentUI,
             container = QWidget()  # создаём группу виджетов...
             ui().setup_ui(container)  # ...куда помещаем экземпляры классов "Просмотра", "Настроек" и т.д.
             self.stack_widget.addWidget(container)  # все размещаем в Stack_widget
+
+        self.ui_automation = AutomationUI(self)  # виджет автоматизации
+        self.stack_widget.addWidget(self.ui_automation)
 
         self.ui_settings = SettingsUI(self)  # виджет настроек
         self.stack_widget.addWidget(self.ui_settings)
@@ -203,6 +210,10 @@ class BaseGUI(QMainWindow):
 
         # QStackWidgets
         # Processing
+        self._ui.ui_processing.tab_widget.setTabText(0, _tr('BaseGUI', "Merge"))
+        self._ui.ui_processing.tab_widget.setTabText(0, _tr('BaseGUI', "Slicing"))
+        self._ui.ui_processing.tab_widget.setTabText(0, _tr('BaseGUI', "Attributes"))
+        self._ui.ui_processing.tab_widget.setTabText(0, _tr('BaseGUI', "Geometry"))
 
         # Settings
         self._ui.ui_settings.output_dir.setText(_tr('BaseGUI', 'Default output dir:'))

@@ -3,8 +3,10 @@ from qdarktheme.qtpy.QtWidgets import QDockWidget, QMainWindow, QTextEdit, QVBox
     QLabel, QSpacerItem, QSizePolicy, QPushButton, QFormLayout, QToolButton
 from qdarktheme.qtpy.QtGui import QColor, QIcon, QPixmap
 from utils.settings_handler import AppSettings
-from ui import newIcon
+from ui import newIcon, coloring_icon
+from utils import UI_COLORS
 import os
+the_colors = UI_COLORS.get("processing_color")
 
 current_folder = os.path.dirname(os.path.abspath(__file__))
 
@@ -15,7 +17,7 @@ current_folder = os.path.dirname(os.path.abspath(__file__))
 
 class ProcessingUI(QWidget):
     """
-    Класс обработки датасетов
+    Класс виджета обработки датасетов
     """
 
     def __init__(self, parent):
@@ -37,26 +39,14 @@ class ProcessingUI(QWidget):
         layout = QVBoxLayout(self)  # вертикальный класс с расположением элементов интерфейса
         layout.setContentsMargins(5, 0, 5, 5)  # уменьшаем границу
         self.tab_widget = QTabWidget()  # виджет со вкладками-страницами обработки
-        self.tab_widget.addTab(self.ui_merge, newIcon(ui_summ[0][0]), ui_summ[0][1])
+        self.tab_widget.addTab(self.ui_merge,
+                               coloring_icon(ui_summ[0][1], the_colors), (ui_summ[0][0]))
         self.ui_merge.layout.addWidget(QPushButton("Hello"))
         self.ui_merge.layout.addWidget(QPushButton("Goodbye"))
 
-        pixmap = QPixmap("d:/data_prj/labed/labed/icons/glyph_merge.png")
-        mask = pixmap.createMaskFromColor(QColor('black'), QtCore.Qt.MaskOutColor)
-        pixmap.fill(QColor("red"))
-        pixmap.setMask(mask)
-        btNew = QPushButton("test")
-        test2 = QPixmap(100, 100);
-        test2.fill(QColor("red"));
-        redIcon = QIcon(test2);
-        btNew.setIcon(QIcon(pixmap))
-
-        self.ui_merge.layout.addWidget(btNew)
-
-
         for i, elem in enumerate(ui_summ):
             # print(elem[1])
-            self.tab_widget.addTab(QWidget(), newIcon(elem[1]), elem[0])
+            self.tab_widget.addTab(QWidget(), coloring_icon(elem[1], the_colors), elem[0])
             self.tab_widget.setTabToolTip(i, elem[2])
         self.tab_widget.setIconSize(QtCore.QSize(24, 24))
         self.tab_widget.currentChanged.connect(self.changeTab)

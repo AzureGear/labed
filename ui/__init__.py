@@ -3,8 +3,12 @@ from .qt import newPixmap
 from .qt import newButton
 from .qt import labelValidator
 from .qt import struct
+from .base_custom_widgets import AzButtonLineEdit
+from .base_custom_widgets import AzAction
+from .base_custom_widgets import coloring_icon
 from .processing_gui import DockUI
 from .base_experiments import ExperimentUI
 from .base_settings import SettingsUI
 from .base_view import ViewDatasetUI
 from .base_processing import ProcessingUI
+from .base_automation import AutomationUI

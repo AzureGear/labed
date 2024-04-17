@@ -1,15 +1,13 @@
-import os
-
 from PyQt5 import QtCore
-from PyQt5 import QtGui
-from PyQt5.QtGui import QIcon, QPixmap, QColor
+from PyQt5.QtGui import QIcon, QColor
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QPushButton, QFileDialog, QLineEdit
-from utils.settings_handler import AppSettings
-from ui import newIcon, newPixmap
+from utils import AppSettings
+from ui import newPixmap
+import os
 
 
-class EditWithButton(QWidget):  ## Реализация Романа Хабарова
+class EditWithButton(QWidget):  # Реализация Романа Хабарова
     def __init__(self, parent, in_separate_window=False, on_button_clicked_callback=None,
                  is_dir=False, file_type='txt',
                  dialog_text='Открытие файла', placeholder=None, title=None,
@@ -94,15 +92,17 @@ class EditWithButton(QWidget):  ## Реализация Романа Хабар�
 
 # ======================================================================================================================
 
-class AzButtonLineEdit(QtWidgets.QLineEdit):  # упрощённая QLineEdit с кнопкой внутри
-
-    def __init__(self, icon_file, caption=None, editable=True, parent=None, dir_only=False,
+class AzButtonLineEdit(QtWidgets.QLineEdit):
+    """
+    Упрощённая QLineEdit с кнопкой внутри
+    """
+    def __init__(self, icon_name, color="Black", caption=None, editable=True, parent=None, dir_only=False,
                  on_button_clicked_callback=None):
         super(AzButtonLineEdit, self).__init__(parent)
         self.settings = AppSettings()  # чтение настроек
         self.last_dir = self.settings.read_last_dir()  # вспоминаем прошлый открытый каталог
         self.button = QtWidgets.QToolButton(self)  # создаём кнопку
-        self.button.setIcon(QtGui.QIcon(icon_file))  # устанавливаем иконку
+        self.button.setIcon(coloring_icon(icon_name, color))  # устанавливаем иконку
         # принимаем и устанавливаем атрибуты:
         self.on_button_clicked_callback = on_button_clicked_callback
         self.dir_only = dir_only
@@ -133,6 +133,10 @@ class AzButtonLineEdit(QtWidgets.QLineEdit):  # упрощённая QLineEdit �
 # ======================================================================================================================
 
 def coloring_icon(path, color):
+    """
+    Перекрашивает иконку в заданный цвет, возвращает QIcon
+    return: QIcon
+    """
     pixmap = newPixmap(path)  # иконка, которую будем перекрашивать
     mask = pixmap.createMaskFromColor(QColor('black'), QtCore.Qt.MaskOutColor)  # по умолчанию цвет иконок черный
     pixmap.fill(QColor(color))  # меняем цвет иконки...
@@ -140,7 +144,11 @@ def coloring_icon(path, color):
     return QIcon(pixmap)
 
 
-class AzAction(QtWidgets.QAction):  # действие с переменой цвета иконки, когда она активна
+class AzAction(QtWidgets.QAction):
+    """
+    Кастомизация QAction, в виде зажимаемой кнопки с переменой цвета иконки, когда она активна
+    return: QAction
+    """
     def __init__(self, text, path, color_active, color_base="black", parent=None):
         self.icon_default = coloring_icon(path, color_base)
         self.icon_activate = coloring_icon(path, color_active)
