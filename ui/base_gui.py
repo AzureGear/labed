@@ -13,7 +13,7 @@ from qdarktheme.widget_gallery._ui.frame_ui import FrameUI
 from utils import UI_COLORS, AppSettings
 from ui import AzAction, coloring_icon
 
-# from qdarktheme.widget_gallery._ui.widgets_ui import WidgetsUI
+from qdarktheme.widget_gallery._ui.widgets_ui import WidgetsUI
 the_colors = UI_COLORS.get("sidepanel_color")
 
 current_folder = os.path.dirname(os.path.abspath(__file__))  # каталога проекта + /ui/
@@ -44,7 +44,6 @@ QTabBar::tab:selected {
 class _BaseGUI:
     def setup_ui(self, main_widget: QMainWindow):
         # Actions для боковой панели
-        sidepanel_items_color = "dodgerblue"
         self.actions_page_side_panel = (
             AzAction("Processing", "glyph_pickaxe", UI_COLORS.get("processing_color"), the_colors),
             AzAction("Experiments", "glyph_flask", UI_COLORS.get("experiments_color"), the_colors),
@@ -53,8 +52,7 @@ class _BaseGUI:
             AzAction("Settings", "glyph_gear", UI_COLORS.get("settings_color"), the_colors)
         )
 
-        self.action_switch_theme = AzAction("Switch theme", "glyph_black-and-white", sidepanel_items_color,
-                                            sidepanel_items_color)
+        self.action_switch_theme = AzAction("Switch theme", "glyph_black-and-white", the_colors, the_colors)
 
         # Actions для меню
         self.action_exit = QAction("Exit")
@@ -63,10 +61,9 @@ class _BaseGUI:
 
         # Создаем кнопки
         tool_btn_lang, tool_btn_theme = (QToolButton() for _ in range(2))  # создаем кнопки
-        sidepanel_items = "dodgerblue"
 
         # Выбор языка
-        tool_btn_lang.setIcon(coloring_icon('glyph_language', sidepanel_items_color))  # кнопка выбора языка
+        tool_btn_lang.setIcon(coloring_icon('glyph_language', the_colors))  # кнопка выбора языка
         tool_btn_lang.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)  # со всплывающим меню
         self.actions_switch_lang = []  # перечень QActions для доступных переводов (сделаем динамическое меню)
         for file in os.listdir(os.path.join(current_folder, "../" + config.LOCALIZATION_FOLDER)):
@@ -100,6 +97,7 @@ class _BaseGUI:
         sidepanel.addWidget(spacer)
         sidepanel.addAction(self.action_switch_theme)  # кнопка изменения режима
         sidepanel.addWidget(tool_btn_lang)
+        sidepanel.toggleViewAction().setVisible(False)
 
         # Меню
         self.menu_file = QMenu("&File")
@@ -117,23 +115,15 @@ class _BaseGUI:
 
         # Layout
         self.ui_processing = ProcessingUI(self)  # виджет обработки
-        self.stack_widget.addWidget(self.ui_processing)
-
-        # uis = []
-        # uis.append(self.ui_processing, self )
-        for ui in (DockUI, FrameUI):  # ViewDatasetUI, ExperimentUI,
-            container = QWidget()  # создаём группу виджетов...
-            ui().setup_ui(container)  # ...куда помещаем экземпляры классов "Просмотра", "Настроек" и т.д.
-            self.stack_widget.addWidget(container)  # все размещаем в Stack_widget
-
+        self.ui_experiment = ExperimentUI(self)  # виджет экспериментов
+        self.ui_viewdataset = ViewDatasetUI(self)  # виджет просмотра датасетов
         self.ui_automation = AutomationUI(self)  # виджет автоматизации
-        self.stack_widget.addWidget(self.ui_automation)
-
         self.ui_settings = SettingsUI(self)  # виджет настроек
-        self.stack_widget.addWidget(self.ui_settings)
-
+        # создаём группу виджетов
+        uis = [self.ui_processing, self.ui_experiment, self.ui_viewdataset, self.ui_automation, self.ui_settings]
+        for ui in uis:
+            self.stack_widget.addWidget(ui)  # все размещаем в Stack_widget
         self.central_window.setCentralWidget(self.stack_widget)  # центральный содержит QStackedWidget
-        # self.central_window.addToolBar(self.toolbar)  # пока в ней нет надобности
 
         # настраиваем интерфейс
         main_widget.setCentralWidget(self.central_window)

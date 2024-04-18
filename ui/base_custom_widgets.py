@@ -7,6 +7,58 @@ from ui import newPixmap
 import os
 
 
+class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Романа Хабарова
+    """
+    Виджет для отображения изображений *.jpg, *.png и т.д.
+    """
+
+    def __init__(self, parent=None, active_color=None, fat_point_color=None, on_rubber_band_mode=None):
+        """
+        active_color - цвет активного полигона, по умолчанию config.ACTIVE_COLOR
+        fat_point_color - цвет узлов активного полигона, по умолчанию config.FAT_POINT_COLOR
+        """
+
+        super().__init__(parent)
+        scene = QtWidgets.QGraphicsScene(self)
+        self.setScene(scene)
+
+        self._pixmap_item = QtWidgets.QGraphicsPixmapItem()
+        scene.addItem(self._pixmap_item)
+
+    @property
+    def pixmap_item(self):
+        return self._pixmap_item
+
+    def setPixmap(self, pixmap):
+        """
+        Задать новую картинку
+        """
+        # scene = QtWidgets.QGraphicsScene(self)
+        # self.setScene(scene)
+        # self.scene().clear()
+
+        self._pixmap_item = QtWidgets.QGraphicsPixmapItem()
+        self.scene().addItem(self._pixmap_item)
+        self.pixmap_item.setPixmap(pixmap)
+        #
+        # self.init_objects_and_params()
+        #
+        # self.set_fat_width()
+        # self.set_pens()
+        # self.remove_fat_point_from_scene()
+        # self.clear_ai_points()
+        #
+        # self.active_group = ActiveHandler([])
+        # self.active_group.set_brush_pen_line_width(self.active_brush, self.active_pen, self.line_width)
+        #
+        # # Ruler items clear:
+        # self.on_ruler_mode_off()
+        #
+        # if self.view_state == ViewState.rubber_band:
+        #     self.on_rb_mode_change(False)
+
+
+# ======================================================================================================================
 class EditWithButton(QWidget):  # Реализация Романа Хабарова
     def __init__(self, parent, in_separate_window=False, on_button_clicked_callback=None,
                  is_dir=False, file_type='txt',
@@ -96,6 +148,7 @@ class AzButtonLineEdit(QtWidgets.QLineEdit):
     """
     Упрощённая QLineEdit с кнопкой внутри
     """
+
     def __init__(self, icon_name, color="Black", caption=None, editable=True, parent=None, dir_only=False,
                  on_button_clicked_callback=None):
         super(AzButtonLineEdit, self).__init__(parent)
@@ -143,12 +196,14 @@ def coloring_icon(path, color):
     pixmap.setMask(mask)  # ...по маске
     return QIcon(pixmap)
 
+# ======================================================================================================================
 
 class AzAction(QtWidgets.QAction):
     """
     Кастомизация QAction, в виде зажимаемой кнопки с переменой цвета иконки, когда она активна
     return: QAction
     """
+
     def __init__(self, text, path, color_active, color_base="black", parent=None):
         self.icon_default = coloring_icon(path, color_base)
         self.icon_activate = coloring_icon(path, color_active)

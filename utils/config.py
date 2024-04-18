@@ -12,6 +12,10 @@ UI_COLORS = {
     "processing_color": "deeppink",
     "experiments_color": "forestgreen",
     "datasets_color": "darkorange",
+    "datasets_change_color": "goldenrod",
     "automation_color": "red",
     "settings_color": "deepskyblue",
+
 }
+
+# (dark) c:\venvs\lab-ed\Lib\site-packages>python -m qdarktheme.widget_gallery

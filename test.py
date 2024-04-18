@@ -1,3 +1,19 @@
+def divide(x, y):
+    result = x / y
+    return result
+# Вызов функции divide с передачей ей x=5 и y=0
+try:
+    result = divide(4, 0)
+    print(f"Result of dividing: {result}")
+except ZeroDivisionError:
+    print("Cannot divide by zero.")
+
+# ================================================================================================
+# try:
+#  обычный код
+# except KeyboardInterrupt:
+#  код при завершении програмы через ctrl + c
+
 # class AzAction(QtWidgets.QAction):  # действие с переменой цвета иконки, когда она активна
 #     def __init__(self, text, icon, icon_checked, parent=None):
 #         super().__init__(newIcon(icon), text, parent)

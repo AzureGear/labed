@@ -31,11 +31,11 @@ class AutomationUI(QWidget):
             """
         text = QTextEdit()
         text.setText(txt)
-        button = QPushButton("Нажми")
+        button = QPushButton("Не надо")
         main_win.setCentralWidget(text)
         layout.addWidget(main_win)
         layout.addWidget(button)
-        button.clicked.connect(self.rapple)
+        button.clicked.connect(self.turtle)
 
     def turtle(self):
         import turtle as t
@@ -43,6 +43,7 @@ class AutomationUI(QWidget):
         t.mode("logo"), t.bgcolor(0, 0, 0)
         t.hideturtle()
         step, angle = 6, 30
+        t.tracer(2, 500)
 
         def f(t, l):
             if l >= step:

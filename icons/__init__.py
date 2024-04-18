@@ -1,12 +1,15 @@
 # icon pack https://www.flaticon.com/free-icons/machine-learning/30  NOQA
 # icon https://uxwing.com/category/computers-mobile-hardware/
+# Thanks you, designers! Большое спасибо за ваш труд!
 
-# gear_orbit: Parzival’ 1997
+# gear_orbit: Parzival'1997
 # digitalization: Pop Vectors
 # glyph_gear: Abbasi
 # glyph_pickaxe: smashingstocks
 # glyph_black-and-white: Ch.designer
 # glyph_normalization orvipixel
+# glyph_cutter: Aranagraphics
+# glyph_transform: Wahyu Adam
 
 # glyph_upload: KP Arts
 # glyph_add: KP Arts
@@ -20,8 +23,8 @@
 # glyph_search-file: KP Arts
 # glyph_search-folder: KP Arts
 # glyph_setups: KP Arts
-# glyph_cutter: Aranagraphics
-# glyph_transform: Wahyu Adam
+
+
 # glyph_editing: Freepik
 # glyph_merge: Freepik
 # glyph_eye: Freepik

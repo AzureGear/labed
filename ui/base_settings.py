@@ -17,7 +17,6 @@ class SettingsUI(QWidget):
     """
     Класс виджета настройки
     """
-
     def __init__(self, parent):
         super().__init__()
         self.line_default_output_dir = None
