@@ -1,4 +1,4 @@
-from qdarktheme.qtpy.QtCore import QDir, Qt, Slot, QTranslator
+from qdarktheme.qtpy.QtCore import QDir, Qt, Slot, QTranslator, QEvent
 from qdarktheme.qtpy.QtGui import QAction, QActionGroup, QWindow, QColor, QPixmap, QIcon
 from qdarktheme.qtpy.QtWidgets import QApplication, QToolBar, QToolButton, QWidget, QMainWindow, QStackedWidget, \
     QStatusBar, QMenuBar, QSizePolicy, QMessageBox, QLabel, QMenu
@@ -18,6 +18,7 @@ the_color = UI_COLORS.get("sidepanel_color")
 
 current_folder = os.path.dirname(os.path.abspath(__file__))  # каталога проекта + /ui/
 
+# стиль некоторых виджетов для темной темы
 qss_dark = """
 QTabWidget::tab-bar {
     left: 5px;
@@ -43,6 +44,7 @@ QToolTip {
 }
 """
 
+# стиль некоторых виджетов для светлой темы
 qss_light = """
 QTabWidget::tab-bar {
     left: 5px;
@@ -103,13 +105,9 @@ class _BaseGUI:
         # Группировка виджетов
         self.central_window = QMainWindow()  # главный виджет
         self.stack_widget = QStackedWidget()  # виджет с переменой окон
-        self.toolbar = QToolBar("Панель инструментов")  # панель инструментов, кочующая между режимами
         sidepanel = QToolBar("Панель режимов")  # левая панель режимов, всегда активная
         statusbar = QStatusBar()  # статусная строка
         menubar = QMenuBar()  # панель меню
-
-        # Добавляем в кочующее меню действия *ОТКЛЮЧЕНО!
-        self.toolbar.addActions((self.action_exit, self.action_help))
 
         action_group_toolbar = QActionGroup(main_widget)  # группа действий для панели режимов
         for action in self.actions_page_side_panel:
@@ -241,7 +239,7 @@ class BaseGUI(QMainWindow):
 
     def changeEvent(self, event):
         # перегружаем функцию для возможности перевода "на лету"
-        if event.type() == qdarktheme.qtpy.QtCore.QEvent.LanguageChange:
+        if event.type() == QEvent.LanguageChange:
             self._retranslate_ui()  # что именно переводим
         super(BaseGUI, self).changeEvent(event)
 
