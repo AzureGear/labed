@@ -2,18 +2,13 @@ from qdarktheme.qtpy import QtCore
 from qdarktheme.qtpy.QtWidgets import QDockWidget, QMainWindow, QTextEdit, QVBoxLayout, QWidget, QToolBox, QTabWidget, \
     QLabel, QSpacerItem, QSizePolicy, QPushButton, QFormLayout, QToolButton
 from qdarktheme.qtpy.QtGui import QColor, QIcon, QPixmap
-from utils.settings_handler import AppSettings
+from utils import AppSettings, UI_COLORS
 from ui import newIcon, coloring_icon
-from utils import UI_COLORS
 import os
-the_colors = UI_COLORS.get("processing_color")
 
+the_colors = UI_COLORS.get("processing_color")
 current_folder = os.path.dirname(os.path.abspath(__file__))
 
-
-# TODO проверить возвращаются ли для перевода виджеты
-#        self.vertical_spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
-#        self.ui_merge.layout.addItem(self.vertical_spacer)
 
 class ProcessingUI(QWidget):
     """

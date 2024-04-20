@@ -1,7 +1,6 @@
 from qdarktheme.qtpy.QtCore import Qt, QSize
-from qdarktheme.qtpy.QtWidgets import QDockWidget, QTabWidget, QMainWindow, QTextEdit, QGroupBox, QVBoxLayout, QLabel, \
-    QWidget, QSlider, QFormLayout, QComboBox, QScrollArea, QPushButton, QGridLayout, QTabBar, QLineEdit, QHBoxLayout, \
-    QToolButton, QApplication, QMessageBox
+from qdarktheme.qtpy.QtWidgets import QTabWidget, QVBoxLayout, QLabel, QWidget, QFormLayout, QCheckBox, \
+    QHBoxLayout, QPushButton, QSpacerItem, QSizePolicy
 from qdarktheme.qtpy.QtGui import QIcon
 from utils import AppSettings
 from ui import AzButtonLineEdit, coloring_icon
@@ -19,11 +18,11 @@ class SettingsUI(QWidget):
     """
     def __init__(self, parent):
         super().__init__()
-        self.line_default_output_dir = None
         self.line_general_datasets_dir = None
+        self.line_default_output_dir = None
         self.output_dir = QLabel('Default output dir:')
         self.datasets_dir = QLabel('Default datasets directory:')
-        self.settings_caption = 'Common settings'
+        self.chk_load_sub_dirs = QCheckBox('Load subdirectories, when use "Load image dir"')
         self.tab_widget = QTabWidget()  # создаём виджет со вкладками
         self.settings = None
         self.setup_ui()
@@ -46,7 +45,7 @@ class SettingsUI(QWidget):
         page_common_layout = QFormLayout()  # страница общих настроек имеет расположение QGrid
         page_common.setLayout(page_common_layout)
         self.tab_widget.addTab(page_common, QIcon(coloring_icon("glyph_setups", the_colors)),
-                               self.settings_caption)  # добавляем страницу
+                               "Common settings")  # добавляем страницу
         layout = QVBoxLayout(self)  # вертикальный класс с расположением элементов интерфейса
         layout.addWidget(self.tab_widget)  # ему добавляем виджет
         layout.setContentsMargins(5, 0, 5, 5)  # уменьшаем границу
@@ -68,3 +67,12 @@ class SettingsUI(QWidget):
         self.line_default_output_dir.textChanged.connect(
             lambda: self.settings.write_default_output_dir(self.line_default_output_dir.text()))
         page_common_layout.addRow(self.datasets_dir, self.line_default_output_dir)
+
+        # QCheckBox загружать ли подкаталоги при загрузке директории в Просмотре датасета
+        self.chk_load_sub_dirs.setChecked(bool(self.settings.read_load_sub_dir()))
+        self.chk_load_sub_dirs.stateChanged.connect(
+            lambda: self.settings.write_load_sub_dir(int(self.chk_load_sub_dirs.isChecked())))
+        hlayout = QHBoxLayout()
+        hlayout.addWidget(self.chk_load_sub_dirs)
+        page_common_layout.addRow(hlayout)
+

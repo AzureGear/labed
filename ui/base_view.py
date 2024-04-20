@@ -1,14 +1,15 @@
-from qdarktheme.qtpy.QtCore import Qt, QSize, pyqtSignal
+from qdarktheme.qtpy.QtCore import Qt, QSize, pyqtSignal, Slot
 from qdarktheme.qtpy.QtWidgets import QDockWidget, QTabWidget, QMainWindow, QTextEdit, QGroupBox, QVBoxLayout, QLabel, \
     QWidget, QSlider, QFormLayout, QComboBox, QScrollArea, QPushButton, QGridLayout, QTabBar, QLineEdit, QHBoxLayout, \
-    QToolButton, QApplication, QMessageBox, QToolBar
+    QToolButton, QApplication, QMessageBox, QToolBar, QGraphicsScene, QGraphicsView, QGraphicsPixmapItem, \
+    QGraphicsSimpleTextItem, QAction, QListWidget
 from qdarktheme.qtpy.QtGui import QPixmap
-from utils import AppSettings, UI_COLORS
+from utils import AppSettings, UI_COLORS, UI_BASE_VIEW
 from ui import AzButtonLineEdit, AzImageViewer, AzAction, coloring_icon
 import os
 
-the_colors = UI_COLORS.get("datasets_color")
-the_colors2 = UI_COLORS.get("datasets_change_color")
+the_color = UI_COLORS.get("datasets_color")
+the_color2 = UI_COLORS.get("datasets_change_color")
 current_folder = os.path.dirname(os.path.abspath(__file__))  # каталога проекта + /ui/
 
 
@@ -16,76 +17,132 @@ class ViewDatasetUI(QWidget):
     """
     Класс виджета просмотра датасетов
     """
-    mySignal = pyqtSignal(str)
 
     def __init__(self, parent):
         super().__init__()
         self.settings = AppSettings()  # настройки программы
-        self.actions_tool_bar = (
-            AzAction("Load image", "glyph_pickaxe", the_colors2, the_colors),
-            AzAction("Load dir", "glyph_flask", the_colors2, the_colors),
-            AzAction("Load preset dataset", "glyph_eye", the_colors2, the_colors),
-            AzAction("Automation", "glyph_highlight", the_colors2, the_colors),
-            AzAction("Settings", "glyph_gear", the_colors2, the_colors)
-        )
+        self.setup_actions()  # настраиваем QActions
+        self.setup_toolbar()  # настраиваем Toolbar
+        self.setup_files_and_labels()  # Настраиваем левую область: файлы, л
 
-        layout = QVBoxLayout(self)
-        # layout.setContentsMargins(5, 5, 5, 5)  # уменьшаем границу
+        main_win = QMainWindow()  # главное окно виджетов
+
+        self.image_viewer = AzImageViewer()  # класс QGraphicView, который предназначен для отрисовки графической сцены
+        self.top_dock = QDockWidget("")  # контейнер для информации о датасете
+        self.top_dock.setWidget(self.label_info)  # устанавливаем в контейнер QLabel
+        self.tb_info_dataset.clicked.connect(self.show_info)
+
+        button = QPushButton("Сделай хорошо")
+
+        features = QDockWidget.DockWidgetFeatures()  # features для док-виджетов
+        for dock in ["top_dock", "files_dock"]:
+            dock_settings = UI_BASE_VIEW.get(dock)  # храним их описание в config.py
+            if not dock_settings[0]:  # 0 - show
+                getattr(self, dock).setVisible(False)  # устанавливаем атрибуты напрямую
+            if dock_settings[1]:  # 1 - closable
+                features = features | QDockWidget.DockWidgetClosable
+            if dock_settings[2]:  # 2 - movable
+                features = features | QDockWidget.DockWidgetMovable
+            if dock_settings[3]:  # 3 - floatable
+                features = features | QDockWidget.DockWidgetFloatable
+            if dock_settings[4]:  # 4 - no_caption
+                getattr(self, dock).setTitleBarWidget(QWidget())
+            if dock_settings[5]:  # 5 - no_actions - "close"
+                getattr(self, dock).toggleViewAction().setVisible(False)
+            getattr(self, dock).setFeatures(features)  # применяем настроенные атрибуты [1-3]
+
+        main_win.addDockWidget(Qt.DockWidgetArea.TopDockWidgetArea, self.top_dock)
+        main_win.addToolBar(self.toolbar)
+        main_win.setCentralWidget(self.image_viewer)
+        main_win.addDockWidget(Qt.RightDockWidgetArea, self.files_dock)
+
+        layout = QVBoxLayout(self) # главный QLayout на виджете
+        layout.setContentsMargins(4, 4, 4, 4)  # визуально граница на 1 пиксель меньше для состыковки с другими
+        layout.addWidget(main_win)  # добавляем наш QMainWindow
+        layout.addWidget(button)    # test button
+
+        test_img = os.path.join(current_folder, "..", "test.jpg")
+        #self.image_viewer.set_pixmap(QPixmap(test_img))  # создаём QPixmap и устанавливаем в QGraphicView
+
+        layout.addWidget(button)
+
+        # настройки по умолчанию
+        self.top_dock.setHidden(True)
+
+    @Slot()
+    def show_info(self):
+        print("triggered")
+        if self.tb_info_dataset.isChecked():
+            self.top_dock.setHidden(False)
+        else:
+            self.top_dock.setHidden(True)
+
+    def open_image(self, image_name):  # загрузить изображение
+        self.image_viewer.set_pixmap(QPixmap(image_name))
+        self.image_viewer.fitInView(self.image_viewer.pixmap_item, Qt.KeepAspectRatio)
+
+    def setup_files_and_labels(self):
+        # Настройка правого (по умолчанию) виджета для отображения перечня файлов датасета
+        self.files_list = QListWidget()
+        self.files_search = QLineEdit()  # строка поиска файлов
+        self.files_search.setPlaceholderText("Search files")
+        # self.fileSearch.textChanged.connect(self.fileSearchChanged)
+        right_layout = QVBoxLayout()
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(0)
+        # right_layout.addWidget(QLabel("Dataset/dir files:"))
+        right_layout.addWidget(self.files_search)
+        right_layout.addWidget(self.files_list)
+        file_list_widget = QWidget()
+        file_list_widget.setLayout(right_layout)
+        self.files_dock = QDockWidget("Files List")  # Контейнер для виджета QListWidget
+        self.files_dock.setWidget(file_list_widget)  # устанавливаем виджет перечня файлов
+
+        # self.fileListWidget.itemSelectionChanged.connect(self.fileSelectionChanged)
+        # fileListLayout = QtWidgets.QVBoxLayout()
+        #
+
+    def setup_toolbar(self):
+        # Настройка Toolbar'a
         self.toolbar = QToolBar("Dataset viewer instruments")  # панель инструментов для просмотра датасетов
         self.toolbar.setFloatable(False)
         self.toolbar.toggleViewAction().setVisible(False)  # чтобы панель случайно не отключали
-        self.toolbar.addWidget(QLabel("Current dataset"))
+        self.toolbar.addWidget(self.tb_info_dataset)
+        self.toolbar.addSeparator()
+        self.toolbar.addActions(self.actions_load)
+        self.toolbar.addWidget(self.tb_load_preset)
         self.toolbar.addSeparator()
 
-        self.toolbtn = QToolButton()
-        self.image_viewer = AzImageViewer()
-        self.toolbar.addActions(self.actions_tool_bar)
-        main_win = QMainWindow()
-        button = QPushButton("Не надо")
-        main_win.setCentralWidget(self.image_viewer)
-        main_win.addToolBar(self.toolbar)
-        layout.addWidget(main_win)
-        layout.addWidget(button)
-        # open_image(self"F:/data_prj/labed/labed/test.jpg"
-        button.clicked.connect(self.hello)
-        self.mySignal.connect(self.printrr)
-        test_img = "F:/data_prj/labed/labed/test.jpg"
+        self.label_info = QLabel("Dataset information:")  # за отображение информации будет отвечать QLable
+        self.label_info.setWordWrap(True)  # устанавливаем перенос по словам
 
+    def setup_actions(self):
+        # Actions
+        self.act_info = AzAction("Dataset information", "glyph_info", the_color2, the_color)  # информация о датасете
 
+        # Действия для загрузки данных
+        self.actions_load = (QAction(coloring_icon("glyph_folder_recent", the_color), "Load last data"),
+                             QAction(coloring_icon("glyph_folder_clear", the_color), "Load dir"),
+                             QAction(coloring_icon("glyph_folder_dataset", the_color), "Load dataset"))
+        self.action_load_presets = QAction(coloring_icon("glyph_folder_preset", the_color), "Load preset dataset")
+        self.tb_load_preset = QToolButton()  # кнопка загрузки предустановленных датасетов
+        self.tb_load_preset.setText("Load preset dataset")
+        self.tb_load_preset.setIcon(coloring_icon('glyph_folder_preset', the_color))
+        self.tb_load_preset.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)  # со всплывающим меню
 
-        self.image_viewer.setPixmap(QPixmap(test_img))
+        self.tb_info_dataset = QToolButton()  # кнопка информации о датасете
+        self.tb_info_dataset.setText(" Info")
+        self.tb_info_dataset.setIcon(coloring_icon("glyph_info", the_color))
+        self.tb_info_dataset.setCheckable(True)
+        # self.tb_info_dataset.addAction(self.act_info)
 
+        self.tb_info_dataset.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        # self.tb_load_preset.addActions(self.actions_load)
 
-
-    def hello(self):
-        self.mySignal.emit("Exercises from w3resource!")
-
-    def printrr(self, str):
-        print(str)
-
-    def open_image(self, image_name):
-        self.image_viewer.setPixmap(QPixmap(image_name))
-        self.image_viewer.fitInView(self.image_viewer.pixmap_item, Qt.KeepAspectRatio)
 
 #######################################################################
 
 """Module setting up ui of mdi window."""
-# from qdarktheme.qtpy.QtWidgets import (
-#     QHBoxLayout,
-#     QLabel,
-#     QMdiArea,
-#     QMdiSubWindow,
-#     QPushButton,
-#     QSplitter,
-#     QTextEdit,
-#     QVBoxLayout,
-#     QWidget,
-# )
-
-#
-# class MdiUI:
-#     """The ui class of mdi window."""
-
 # def _make_mdi_area_test_widget(self, enable_tab_mode=False):
 #     # Widgets
 #     container = QWidget()
@@ -145,3 +202,23 @@ class ViewDatasetUI(QWidget):
 #
 #     main_layout = QVBoxLayout(win)
 #     main_layout.addWidget(splitter)
+
+
+# Отображение картинок, текста и проч. - было добавлено в init
+# test_img = os.path.join(current_folder, "..", "test.jpg")
+# scene = QGraphicsScene()  # Создание графической сцены
+# graphicView = QGraphicsView(scene)  # Создание инструмента для отрисовки графической сцены
+# graphicView.setGeometry(200, 220, 400, 400)  # Задание местоположения и размера графической сцены
+# picture = QPixmap(test_img)  # Создание объекта QPixmap
+# image_container = QGraphicsPixmapItem()  # Создание "пустого" объекта QGraphicsPixmapItem
+# image_container.setPixmap(picture)  # Задание изображения в объект QGraphicsPixmapItem
+# image_container.setOffset(0, 0)  # Позиция объекта QGraphicsPixmapItem
+# # Добавление объекта QGraphicsPixmapItem на сцену
+# scene.addItem(image_container)
+#
+# # Создание объекта QGraphicsSimpleTextItem
+# text = QGraphicsSimpleTextItem('Пример текста')
+# # text.setX(0) # Задание позиции текста
+# # text.setY(200)
+# scene.addItem(text)  # Добавление текста на сцену
+# layout.addWidget(graphicView)

@@ -14,11 +14,11 @@ from utils import UI_COLORS, AppSettings
 from ui import AzAction, coloring_icon
 
 from qdarktheme.widget_gallery._ui.widgets_ui import WidgetsUI
-the_colors = UI_COLORS.get("sidepanel_color")
+the_color = UI_COLORS.get("sidepanel_color")
 
 current_folder = os.path.dirname(os.path.abspath(__file__))  # каталога проекта + /ui/
 
-qss = """
+qss_dark = """
 QTabWidget::tab-bar {
     left: 5px;
 }
@@ -35,24 +35,52 @@ QTabBar::tab:!selected {
 QTabBar::tab:selected {
     font: bold 12px;
 }
+
+QToolTip { 
+    background-color: whitesmoke; 
+    color: black; 
+    border: lavender solid 1px;
+}
 """
 
+qss_light = """
+QTabWidget::tab-bar {
+    left: 5px;
+}
 
-# TODO: сделать сброс всех настроек по нажатию CTRL+SHIFT+R
+QTabBar {  
+    font-weight: bold;  
+}
+
+QTabBar::tab:!selected { 
+    font-weight: normal; 
+    margin-bottom: -4px;
+}
+
+QTabBar::tab:selected {
+    font: bold 12px;
+}
+
+QToolTip { 
+    background-color: rgb(50,50,50); 
+    color: whitesmoke; 
+    border: black solid 1px;
+}
+"""
 
 
 class _BaseGUI:
     def setup_ui(self, main_widget: QMainWindow):
         # Actions для боковой панели
         self.actions_page_side_panel = (
-            AzAction("Processing", "glyph_pickaxe", UI_COLORS.get("processing_color"), the_colors),
-            AzAction("Experiments", "glyph_flask", UI_COLORS.get("experiments_color"), the_colors),
-            AzAction("View datasets", "glyph_eye", UI_COLORS.get("datasets_color"), the_colors),
-            AzAction("Automation", "glyph_highlight", UI_COLORS.get("automation_color"), the_colors),
-            AzAction("Settings", "glyph_gear", UI_COLORS.get("settings_color"), the_colors)
+            AzAction("Processing", "glyph_pickaxe", UI_COLORS.get("processing_color"), the_color),
+            AzAction("Experiments", "glyph_flask", UI_COLORS.get("experiments_color"), the_color),
+            AzAction("View datasets", "glyph_eye", UI_COLORS.get("datasets_color"), the_color),
+            AzAction("Automation", "glyph_highlight", UI_COLORS.get("automation_color"), the_color),
+            AzAction("Settings", "glyph_gear", UI_COLORS.get("settings_color"), the_color)
         )
 
-        self.action_switch_theme = AzAction("Switch theme", "glyph_black-and-white", the_colors, the_colors)
+        self.action_switch_theme = AzAction("Switch theme", "glyph_black-and-white", the_color, the_color)
 
         # Actions для меню
         self.action_exit = QAction("Exit")
@@ -60,10 +88,10 @@ class _BaseGUI:
         self.action_help = (QAction("Help"))
 
         # Создаем кнопки
-        tool_btn_lang, tool_btn_theme = (QToolButton() for _ in range(2))  # создаем кнопки
+        tool_btn_lang = QToolButton()  # создаем кнопки
 
         # Выбор языка
-        tool_btn_lang.setIcon(coloring_icon('glyph_language', the_colors))  # кнопка выбора языка
+        tool_btn_lang.setIcon(coloring_icon('glyph_language', the_color))  # кнопка выбора языка
         tool_btn_lang.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)  # со всплывающим меню
         self.actions_switch_lang = []  # перечень QActions для доступных переводов (сделаем динамическое меню)
         for file in os.listdir(os.path.join(current_folder, "../" + config.LOCALIZATION_FOLDER)):
@@ -161,8 +189,9 @@ class BaseGUI(QMainWindow):
         # Настройки по умолчанию и сохранённые настройки
         self._theme = self.settings.read_ui_theme()  # тема светлая
 
+        # стиль границ острый, можно и сглаженный: "rounded"
         qdarktheme.setup_theme(self._theme, 'sharp',
-                               additional_qss=qss)  # стиль границ острый, можно и сглаженный: "rounded"
+                               additional_qss=qss_light if self._theme == "dark" else qss_dark)
         if self._theme == "light": self._ui.action_switch_theme.setChecked(True)  # кнопка зажата
         self._ui.stack_widget.setCurrentIndex(self.settings.read_ui_stack_widget_cur_tab())  # загрузка вкладки
         # активация сохранённой по нумеру вкладки
@@ -251,7 +280,7 @@ class BaseGUI(QMainWindow):
             self._theme = self._ui.actions_theme[1].text()  # зажатая кнопка темы
         else:
             self._theme = self._ui.actions_theme[0].text()  # неактивная кнопка темы
-        qdarktheme.setup_theme(self._theme, "sharp", additional_qss=qss)
+        qdarktheme.setup_theme(self._theme, "sharp", additional_qss=qss_light if self._theme == "dark"else qss_dark)
         self.settings.write_ui_theme(self._theme)  # сохраняем настройки темы
         self.statusBar().showMessage(self._theme)  # извещаем пользователя
 

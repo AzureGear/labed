@@ -4,30 +4,36 @@ from datetime import datetime
 import sys
 import traceback
 
+TESTING_MODE = True  # на этапе отладки желательно держать включённым
 log_file_name = 'labed.log'  # имя файла ведения лога при ошибках
+
+
+# TODO проверить возвращаются ли для перевода виджеты
+# TODO: сохранение настроек При открытии каталогов загружать вложенные
+# TODO: сделать сброс всех настроек по нажатию CTRL+SHIFT+R
 
 
 # Ловчий ошибок
 def excepthook_catcher(t, v, tb):
     with open(log_file_name, 'w') as file:
-        file.write("\n-------------- Errors --------------\n")
-        file.write("Time = %s\n" % datetime.now().strftime("%d.%m.%Y"))
+        file.write("\n-------------- Errors log --------------\n")
+        file.write("Time = %s\n" % datetime.now().strftime("%Y.%m.%d  %H:%M:%S"))
         traceback.print_exception(t, v, tb, file=file)
 
 
-# Стандартная инициализация
-class MyWindow(BaseGUI):
+class MyWindow(BaseGUI):  # класс интерфейса
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Label Dataset Editor")
 
 
+# Стандартная инициализация
 if __name__ == '__main__':
-    try:
+    try:  # открываем, если имеется, в противном случае создаем новый файл
         file = open(log_file_name, 'r+')
     except IOError:
         file = open(log_file_name, 'w+')
-    sys.excepthook = excepthook_catcher
+    if not TESTING_MODE: sys.excepthook = excepthook_catcher  # включение логирования
     app = QtWidgets.QApplication(sys.argv)
     w = MyWindow()
     w.show()

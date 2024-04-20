@@ -39,6 +39,12 @@ class AppSettings:
         self.settings.setValue('ui/base_gui_size', size)
         self.settings.setValue('ui/base_gui_state', state)
 
+    def read_last_load_data(self):  # последние загружаемые данные (каталог/датасет) [r]
+        return self.settings.value('common/last_load_data', '')
+
+    def write_last_load_data(self, data):  # последние загружаемые данные (каталог/датасет) [w]
+        self.settings.setValue('common/last_load_data', data)
+
     def read_last_dir(self):  # последняя открытая директория [r]
         return self.settings.value('common/last_dir', '')
 
@@ -56,3 +62,9 @@ class AppSettings:
 
     def write_default_output_dir(self, path):  # директория по умолчанию для выходных данных [w]
         self.settings.setValue('common/output_dir', path)
+
+    def read_load_sub_dir(self):  # загружать ли подкаталоги, когда загружаешь каталог [r]
+        return self.settings.value('common/with_sub_dirs', False)
+
+    def write_load_sub_dir(self, b):    # загружать ли подкаталоги, когда загружаешь каталог [w]
+        self.settings.setValue('common/with_sub_dirs', b)

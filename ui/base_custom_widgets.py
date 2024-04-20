@@ -29,7 +29,7 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
     def pixmap_item(self):
         return self._pixmap_item
 
-    def setPixmap(self, pixmap):
+    def set_pixmap(self, pixmap):
         """
         Задать новую картинку
         """

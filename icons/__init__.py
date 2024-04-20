@@ -10,6 +10,14 @@
 # glyph_normalization orvipixel
 # glyph_cutter: Aranagraphics
 # glyph_transform: Wahyu Adam
+# glyph_info: afif fudin
+
+
+# glyph_folder_clear: Pixel perfect
+# glyph_folder_dataset: Pixel perfect
+# glyph_folder_more: Pixel perfect
+# glyph_folder_preset: Pixel perfect
+# glyph_folder_recent: Pixel perfect
 
 # glyph_upload: KP Arts
 # glyph_add: KP Arts
