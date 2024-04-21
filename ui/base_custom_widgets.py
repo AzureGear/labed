@@ -144,7 +144,15 @@ class EditWithButton(QWidget):  # Реализация Романа Хабаро
 
 # ======================================================================================================================
 
-class AzButtonLineEdit(QtWidgets.QLineEdit):
+#@staticmethod
+def AzFileDialog(self, caption=None, last_dir=None, dir_only=False, parent=None):
+    if dir_only:
+        select_dir = QFileDialog.getExistingDirectory(self, caption, last_dir)
+        if select_dir:
+            return select_dir
+
+
+class AzButtonLineEdit(QLineEdit):
     """
     Упрощённая QLineEdit с кнопкой внутри
     """

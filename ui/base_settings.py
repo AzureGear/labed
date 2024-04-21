@@ -37,8 +37,6 @@ class SettingsUI(QWidget):
         #      └- ...еще какой-нибудь еще виджет
 
         self.settings = AppSettings()  # настройки программы
-        icons_dir = os.path.join(current_folder, "../icons/")  # каталог к иконкам
-
         # Layout and Widgets
         page_common = QWidget(self.tab_widget)  # создаём страницу
         self.tab_widget.setIconSize(QSize(24, 24))

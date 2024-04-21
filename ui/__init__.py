@@ -7,6 +7,7 @@ from .base_custom_widgets import AzButtonLineEdit
 from .base_custom_widgets import AzImageViewer
 from .base_custom_widgets import AzAction
 from .base_custom_widgets import coloring_icon
+from .base_custom_widgets import AzFileDialog
 from .processing_gui import DockUI
 from .base_experiments import ExperimentUI
 from .base_settings import SettingsUI

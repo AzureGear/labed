@@ -11,6 +11,9 @@
 # glyph_cutter: Aranagraphics
 # glyph_transform: Wahyu Adam
 # glyph_info: afif fudin
+# glyph_dice: Smashicons
+# glyph_signature: Andrejs Kirma
+# glyph_label: Iconjam
 
 # glyph_add_image: Pixel perfect
 # glyph_image: Pixel perfect
