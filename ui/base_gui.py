@@ -1,4 +1,4 @@
-from qdarktheme.qtpy.QtCore import QDir, Qt, Slot, QTranslator, QEvent
+from qdarktheme.qtpy.QtCore import QDir, Qt, Slot, pyqtSlot, pyqtSignal, QTranslator, QEvent
 from qdarktheme.qtpy.QtGui import QAction, QActionGroup, QWindow, QColor, QPixmap, QIcon
 from qdarktheme.qtpy.QtWidgets import QApplication, QToolBar, QToolButton, QWidget, QMainWindow, QStackedWidget, \
     QStatusBar, QMenuBar, QSizePolicy, QMessageBox, QLabel, QMenu
@@ -162,7 +162,6 @@ class BaseGUI(QMainWindow):
     """
     Базовый класс для взаимодействия с пользователем
     """
-
     def __init__(self, parent=None):
         super().__init__(parent)
         self.settings = AppSettings()  # настройки программы
@@ -174,6 +173,7 @@ class BaseGUI(QMainWindow):
         self._ui.action_exit.triggered.connect(self.slot_exit)  # выход из программы
         self._ui.action_help.triggered.connect(self.test_slot)
         self._ui.action_switch_theme.triggered.connect(self.change_theme)
+        self._ui.ui_viewdataset.signal_message.connect(self.show_statusbar_msg)
         for action in self._ui.actions_switch_lang:  # соединяем смену языка
             action.triggered.connect(self.change_lang)
         for i, action in enumerate(self._ui.actions_page_side_panel):
@@ -236,6 +236,9 @@ class BaseGUI(QMainWindow):
         self._ui.ui_settings.output_dir.setText(_tr('BaseGUI', 'Default output dir:'))
         self._ui.ui_settings.datasets_dir.setText(_tr('BaseGUI', 'Default datasets directory:'))
         self._ui.ui_settings.tab_widget.setTabText(0, _tr('BaseGUI', 'Common settings'))
+
+    def show_statusbar_msg(self, msg):
+        self.statusBar().showMessage(msg)
 
     def changeEvent(self, event):
         # перегружаем функцию для возможности перевода "на лету"

@@ -7,7 +7,7 @@ import traceback
 TESTING_MODE = False  # на этапе отладки желательно держать включённым
 log_file_name = 'labed.log'  # имя файла ведения лога при ошибках
 
-
+# TODO: сделать загрузку предустановленных датасетов self.tb_load_preset.addActions
 # TODO проверить возвращаются ли для перевода виджеты
 # TODO: сохранение настроек При открытии каталогов загружать вложенные
 # TODO: сделать сброс всех настроек по нажатию CTRL+SHIFT+R
@@ -33,7 +33,8 @@ if __name__ == '__main__':
         file = open(log_file_name, 'a+')
     except IOError:
         file = open(log_file_name, 'w+')
-    if not TESTING_MODE: sys.excepthook = excepthook_catcher  # включение логирования
+    if not TESTING_MODE:
+        sys.excepthook = excepthook_catcher  # включение логирования
     app = QtWidgets.QApplication(sys.argv)
     w = MyWindow()
     w.show()

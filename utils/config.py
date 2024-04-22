@@ -12,9 +12,9 @@ UI_COLORS = {
     "sidepanel_color": "dodgerblue",
     "processing_color": "deeppink",
     "experiments_color": "forestgreen",
-    "datasets_color": "darkorange",
+    "datasets_color": "mediumorchid",
     "datasets_change_color": "goldenrod",
-    "automation_color": "red",
+    "automation_color": "darkorange",
     "settings_color": "deepskyblue",
 }
 

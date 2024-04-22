@@ -14,6 +14,8 @@
 # glyph_dice: Smashicons
 # glyph_signature: Andrejs Kirma
 # glyph_label: Iconjam
+# glyph_arrow_left: Flowicon
+# glyph_arrow_right: Flowicon
 
 # glyph_add_image: Pixel perfect
 # glyph_image: Pixel perfect
