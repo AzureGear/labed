@@ -20,8 +20,8 @@ UI_COLORS = {
 
 # настройки Интерфейса
 # base_view
-# dock_widget : ( "widget_name":
-# 0 - show, 1 - closable, 2 - movable, 3 - floatable, 4 - no_caption, 5 - no_actions)
+# dock_widget : { "widget_name":
+# 0 - show, 1 - closable, 2 - movable, 3 - floatable, 4 - no_caption, 5 - no_actions }
 UI_BASE_VIEW = {
     "top_dock": [False, False, False, False, True, True],
     "files_dock": [True, True, True, False, False, False]

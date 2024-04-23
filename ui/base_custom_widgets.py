@@ -144,7 +144,7 @@ class EditWithButton(QWidget):  # Реализация Романа Хабаро
 
 # ======================================================================================================================
 
-#@staticmethod
+# @staticmethod
 def AzFileDialog(self, caption=None, last_dir=None, dir_only=False, parent=None):
     if dir_only:
         select_dir = QFileDialog.getExistingDirectory(self, caption, last_dir)
@@ -193,16 +193,18 @@ class AzButtonLineEdit(QLineEdit):
 
 # ======================================================================================================================
 
-def coloring_icon(path, color):
+def coloring_icon(path, color):  # здесь следует учесть, что метод работает с иконками с заливкой черным цветом
     """
     Перекрашивает иконку в заданный цвет, возвращает QIcon
-    return: QIcon
+    return: QIcon;
+    Работа с svg не проверена
     """
     pixmap = newPixmap(path)  # иконка, которую будем перекрашивать
     mask = pixmap.createMaskFromColor(QColor('black'), QtCore.Qt.MaskOutColor)  # по умолчанию цвет иконок черный
     pixmap.fill(QColor(color))  # меняем цвет иконки...
     pixmap.setMask(mask)  # ...по маске
     return QIcon(pixmap)
+
 
 # ======================================================================================================================
 

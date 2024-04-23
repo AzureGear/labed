@@ -3,8 +3,8 @@ from qdarktheme.qtpy.QtWidgets import QDockWidget, QTabWidget, QMainWindow, QTex
     QWidget, QSlider, QFormLayout, QComboBox, QScrollArea, QPushButton, QGridLayout, QTabBar, QLineEdit, QHBoxLayout, \
     QToolButton, QApplication, QMessageBox, QToolBar, QGraphicsScene, QGraphicsView, QGraphicsPixmapItem, \
     QGraphicsSimpleTextItem, QAction, QListWidget, QMdiArea, QMdiSubWindow, QActionGroup, QListWidgetItem, \
-    QSizePolicy, QFileDialog
-from qdarktheme.qtpy.QtGui import QPixmap, QImageReader
+    QSizePolicy, QFileDialog, QAbstractItemView
+from qdarktheme.qtpy.QtGui import QPixmap, QImageReader, QImage
 from utils import AppSettings, UI_COLORS, UI_BASE_VIEW
 from ui import AzImageViewer, AzAction, coloring_icon, AzFileDialog
 import os
@@ -29,8 +29,9 @@ class ViewDatasetUI(QWidget):
         self.setup_actions()  # настраиваем QActions
         self.setup_toolbar()  # настраиваем Toolbar
         self.setup_files_and_labels()  # Настраиваем левую область: файлы, метки
-        self.count = 0
-        self.current_data = ""
+        self.current_data_list = []
+        self.current_data_dir = ""
+        self.current_file = None
 
         main_win = QMainWindow()  # главное окно виджетов
         self.image_viewer = AzImageViewer()  # класс QGraphicView, который предназначен для отрисовки графической сцены
@@ -70,11 +71,6 @@ class ViewDatasetUI(QWidget):
         main_win.addToolBar(self.toolbar)
         main_win.addDockWidget(Qt.RightDockWidgetArea, self.files_dock)
 
-        # self.top_dock.setFeatures(QDockWidget.DockWidgetFeature.NoDockWidgetFeatures)
-
-        # self.label_info.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        # main_win.resizeDocks(self.top_dock, [150], Qt.Orientation.Vertical)  # THIS!
-
         self.mdi = QMdiArea()  # класс для данных (изображения, подписи, графики и т.п.)
         # self.mdi.tileSubWindows()   # по умолчанию ставим tileSubWi
         main_win.setCentralWidget(self.mdi)
@@ -106,7 +102,7 @@ class ViewDatasetUI(QWidget):
         self.files_list = QListWidget()
         self.files_search = QLineEdit()  # строка поиска файлов
         self.files_search.setPlaceholderText("Search files")
-        # self.fileSearch.textChanged.connect(self.fileSearchChanged)
+        self.files_search.textChanged.connect(self.file_search_changed)
         right_layout = QVBoxLayout()
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(0)
@@ -117,12 +113,11 @@ class ViewDatasetUI(QWidget):
         file_list_widget.setLayout(right_layout)
         self.files_dock = QDockWidget("Files List")  # Контейнер для виджета QListWidget
         self.files_dock.setWidget(file_list_widget)  # устанавливаем виджет перечня файлов
-
         self.files_list.itemSelectionChanged.connect(self.file_selection_changed)  # выбора файла в QWidgetList
         # fileListLayout = QtWidgets.QVBoxLayout()
 
     def toggle_instruments(self):  # включить/выключить инструменты при загрузке данных
-        if self.current_data and self.files_list.count() > 0:
+        if self.current_data_dir and self.files_list.count() > 0:
             self.set_instrument(self.tb_info_dataset, True)
             self.set_instrument(self.actions_show_data, True)
             self.set_instrument(self.actions_labels, True)
@@ -142,7 +137,12 @@ class ViewDatasetUI(QWidget):
             for obj in item:
                 self.set_instrument(obj, b)
 
-    def open_project(self):
+    def open_project(self):  # загрузить датасет
+        # classic
+        students = ["Abid", "Natasha", "Nick", "Matthew", "Greetings", "Kramola", "Poeben"]
+        pattern = "i."  # "N.*"
+        filtered_students = [x for x in students if re.findall(pattern, x, re.IGNORECASE)]
+        print(filtered_students)
         pass
         # os.scandir(folderPath)
         #
@@ -156,12 +156,11 @@ class ViewDatasetUI(QWidget):
 
     def open_last_data(self):  # загрузка последних использованных данных
         last_data = self.settings.read_last_load_data()
-        if self.current_data == last_data:
+        if self.current_data_dir == last_data:
             self.signal_message.emit("Текущие данные являются последними использованными")
             return
         if last_data and os.path.exists(last_data):
             self.open_dir(dir_path=last_data, no_dialog=True)  # загружаем данные без диалогов
-            self.toggle_instruments()  # включаем/выключаем доступ к инструментам
         else:
             self.signal_message.emit("Использованные ранее данные отсутствуют")
 
@@ -179,10 +178,22 @@ class ViewDatasetUI(QWidget):
         if sel_dir:
             self.settings.write_last_dir(sel_dir)  # сохраняем последний добавленный каталог
             self.settings.write_last_load_data(sel_dir)  # сохраняем последние добавленные данные
+            self.prepear_for_load()  # подготавливаем: закрываем SubWindows, очищаем все
             self.import_dir_images(sel_dir)  # импортируем изображения
-            self.current_data = sel_dir
+            self.current_data_dir = sel_dir  # устанавливаем текущие данные
             self.set_dataset_info(sel_dir)  # обновляем информацию о датасете
+            self.files_list.setCurrentRow(0)  # если первый раз открыли датасет - загружаем первое изображение
+            self.mdi_add_window()  # добавляем окно
             self.toggle_instruments()  # включаем/выключаем доступ к инструментам
+            # self.show_image()
+
+    def prepear_for_load(self):
+        self.files_search.clear()  # очищаем поисковую строку
+        self.current_data_list.clear()
+        self.current_file = None  # устанавливаем текущий файл
+        self.current_data_dir = None
+        self.mdi.closeAllSubWindows()  # закрываем все предыдущие окна
+        self.files_list.clear()  # очищаем перечень файлов
 
     def set_dataset_info(self, path):
         # str = "%s - %s" % (index, name)
@@ -190,18 +201,16 @@ class ViewDatasetUI(QWidget):
         # print('Sum of {} and 2 is {}'.format(i, add_partials[i - 1](2)))
         self.label_info.setText(str_info)
 
-    def import_dir_images(self, path, pattern=None, load=True):
-        # self.actions.openNextImg.setEnabled(True)
-        # self.actions.openPrevImg.setEnabled(True)
-        # if not self.mayContinue() or not path:
-        #     return
-        # self.lastOpenDir = path
-        # self.filename = None
-        self.files_list.clear()  # очищаем перечень файлов
-        filenames = self.search_for_images(path)
-        for filename in filenames:
+    def import_dir_images(self, path):
+        filenames = self.search_for_images(path)  # получаем перечень всех доступных изображений
+        self.current_data_list = filenames  # сохраняем его в памяти
+        self.fill_files_list(filenames)
+
+    def fill_files_list(self, filenames):
+        for filename in filenames:  # заполняем QListWidget объектами
             item = QListWidgetItem(filename)
             self.files_list.addItem(item)
+
         # if pattern:
         #     try:
         #         filenames = [f for f in filenames if re.search(pattern, f)]
@@ -236,28 +245,35 @@ class ViewDatasetUI(QWidget):
         # images = natsort.os_sorted(images)
         return images
 
+    def file_search_changed(self):
+        self.files_list.clear()  # очищаем список
+        self.files_list.clearSelection()  # убираем выделение
+        if len(self.current_data_list) <= 0:  # в датасете нет данных
+            return
+        if len(self.files_search.text()) <= 0:  # если текста нет возвращаем исходный список
+            self.fill_files_list(self.current_data_list)
+            return
+        pattern = self.files_search.text()  # устанавливаем шаблон поиска
+        filtered = [s for s in self.current_data_list if re.findall(pattern, s, re.IGNORECASE)]  # отфильтровываем
+        if len(filtered) > 0:  # если найденных результатов
+            self.fill_files_list(filtered)  # заполняем виджет
+
+    def files_step_image(self, move_forward: bool = True):
+        if move_forward:  # движемся вперед...
+            index = self.files_list.moveCursor(QAbstractItemView.MoveDown, Qt.NoModifier)
+        else:  # ...или назад по списку
+            index = self.files_list.moveCursor(QAbstractItemView.MoveUp, Qt.NoModifier)
+        if index.isValid():  # проверяем валидность индекса
+            self.files_list.setCurrentIndex(index)
+
     def file_selection_changed(self):  # метод смены файла
         items = self.files_list.selectedItems()
         if not items:
-            return
-        item = items[0]
-
-        # if not self.mayContinue():
-        #     return
-
-        # currIndex = self.imageList.index(str(item.text()))
-        # if currIndex < len(self.imageList):
-        #     filename = self.imageList[currIndex]
-        #     if filename:
-        #         self.loadFile(filename)
-
-    @property
-    def image_list(self):  # перечень объектов в file_list (делаем методы класса доступными как атрибуты: @property)
-        lst = []
-        for i in range(self.files_list.count()):
-            item = self.files_list.item(i)
-            lst.append(item.text())
-        return lst
+            return  # снимков не выбрано, выделение сброшено
+        item = items[0]  # первый выделенный элемент
+        index = self.current_data_list.index(str(item.text()))  # загрузку производим из current_data_list (!)
+        file_to_load = self.current_data_list[index]
+        self.load_file(file_to_load)
 
     def setup_toolbar(self):
         # Настройка Toolbar'a
@@ -294,14 +310,17 @@ class ViewDatasetUI(QWidget):
         self.mdi_add_window()  # если открытых нет
 
     def mdi_add_window(self):
-        self.count = self.count + 1
+        if self.current_file is None:
+            self.signal_message.emit("Ошибка загрузки файла")
         sub = QMdiSubWindow()
         sub.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)  # удалять окна при их закрытии
-        sub.setWidget(QTextEdit())
-        sub.setWindowTitle("subwindow" + str(self.count))
+        image_viewer = AzImageViewer()  # формируем контейнер
+        image_viewer.set_pixmap(QPixmap(self.current_file))  # помещаем туда изображение
+        sub.setWidget(image_viewer)  # добавляем контейнер в окно QMdiSubWindow()
+        sub.setWindowTitle(str(self.current_file))  # заголовок окна
         self.mdi.addSubWindow(sub)
         sub.show()
-        self.mdi_show_sub_windows()
+        self.mdi_show_sub_windows()  # выравниваем
 
     def mdi_windows_4x(self):
         self.mdi_set_windows(4)
@@ -340,24 +359,34 @@ class ViewDatasetUI(QWidget):
         elif self.actions_adjust[1].isChecked():  # установлен режим Cascade
             self.mdi.cascadeSubWindows()
 
-    def move_image(self, to_right: bool = True):
-        if self.files_list.count() <= 1:
-            return
-        index = self.files_list.index(self.files_list)
-        if not to_right:
-            if index - 1 >= 0:
-                filename = self.files_list[index - 1]
-        else:
-            if index + 1 < len(self.files_list):
-                filename = self.files_list[index + 1]
-        print("load!")
-        self.loadFile(filename)
+        # return
+        # index = None
+        # if len(self.image_list) <= 0:  # если в списке оригинальных изображений 0 шт.
+        #     return
+        # if self.current_file is None:  # ни разу после загрузки датасета не выбирался файл
+        #     # filename = self.image_list[0]  # значит ставим первый
+        #     index = 0
+        # else:
+        #     if self.files_list.count() < 1:
+        #         return  # в перечне файлов (с учётом фильтра) отсутствуют данные
+        #     items = self.files_list.selectedItems()  # выбранные в перечне files_list объекты
+        #     if not items:  # если не выбрано (с учётом фильтра), то выбираем первый отфильтрованный
+        #         index = 0
+        #     else:  # иначе пытаемся отобразить следующий/предыдущий
+        #         if move_forward:  # движемся вперед...
+        #             s_index = self.files_list.moveCursor(QAbstractItemView.MoveDown, Qt.NoModifier)
+        #         else:  # ...или назад по списку
+        #             s_index = self.files_list.moveCursor(QAbstractItemView.MoveUp, Qt.NoModifier)
+        #         if s_index.isValid():  # проверяем валидность индекса
+        #             self.files_list.setCurrentIndex(s_index)
+        #             return
+        # self.files_list.setCurrentRow(index)
 
     def move_image_right(self):
-        self.move_image(True)
+        self.files_step_image(True)
 
     def move_image_left(self):
-        self.move_image(False)
+        self.files_step_image(False)
 
     def setup_actions(self):
         # Actions
@@ -383,7 +412,7 @@ class ViewDatasetUI(QWidget):
         self.tb_info_dataset.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         # self.tb_load_preset.addActions(self.actions_load)
 
-        # Действия для отображения загруженных данных из датасетов (картинок)
+        # Действия для отображения загруженных данных из датасетов (картинок) в окнах QMdiSubWindow()
         self.actions_show_data = (
             QAction(coloring_icon("glyph_image", the_color), "One window", triggered=self.mdi_windows_1x),
             QAction(coloring_icon("glyph_add_image", the_color), "Add window", triggered=self.mdi_add_window),
@@ -399,7 +428,7 @@ class ViewDatasetUI(QWidget):
         action_group_adjust = QActionGroup(self)  # объединяем в группу для расположения каскадом, мозаикой или выкл.
         for action in self.actions_adjust:
             action.setCheckable(True)
-            action_group_adjust.addAction(action)  # соединяем действия боковой панели в группу
+            action_group_adjust.addAction(action)
         self.actions_adjust[0].setChecked(True)  # включаем по умолчанию каскадом
 
         # Действия для меток и имён
@@ -416,21 +445,145 @@ class ViewDatasetUI(QWidget):
         self.action_shuffle_data = QAction(coloring_icon("glyph_dice", the_color), "Shuffle data",
                                            triggered=self.mdi_shuffle)  # отображаемые данные
 
-# Отображение картинок, текста и проч. - было добавлено в init
-# test_img = os.path.join(current_folder, "..", "test.jpg")
-# scene = QGraphicsScene()  # Создание графической сцены
-# graphicView = QGraphicsView(scene)  # Создание инструмента для отрисовки графической сцены
-# graphicView.setGeometry(200, 220, 400, 400)  # Задание местоположения и размера графической сцены
-# picture = QPixmap(test_img)  # Создание объекта QPixmap
-# image_container = QGraphicsPixmapItem()  # Создание "пустого" объекта QGraphicsPixmapItem
-# image_container.setPixmap(picture)  # Задание изображения в объект QGraphicsPixmapItem
-# image_container.setOffset(0, 0)  # Позиция объекта QGraphicsPixmapItem
-# # Добавление объекта QGraphicsPixmapItem на сцену
-# scene.addItem(image_container)
-#
-# # Создание объекта QGraphicsSimpleTextItem
-# text = QGraphicsSimpleTextItem('Пример текста')
-# # text.setX(0) # Задание позиции текста
-# # text.setY(200)
-# scene.addItem(text)  # Добавление текста на сцену
-# layout.addWidget(graphicView)
+    def load_file(self, filename=None):  # загрузить для отображения новый графический файл
+        """Load the specified file, or the last opened file if None."""
+        # changing fileListWidget loads file
+        if filename is None:
+            return
+        self.current_file = filename
+        active_mdi = self.mdi.activeSubWindow()
+
+        curr_filename = self.files_list.item(self.files_list.currentRow()).text()   # выбранный в окне файлов объект
+        if filename == self.current_file:
+
+
+            and (active_mdi.windowTitle() !=):
+        if len(self.mdi.subWindowList()) <= 0:
+
+            # TODO: проверка не загружен ли он в текущее окно?
+            if filename in self.current_data_list and (
+                    self.files_list.currentRow() != self.current_data_list.index(filename)):
+        self.files_list.setCurrentRow(self.current_data_list.index(filename))
+        self.files_list.repaint()
+        return
+
+    # print(filename)
+    return
+    # self.resetState()
+    # self.canvas.setEnabled(False)
+    # if filename is None:
+    #     filename = self.settings.value("filename", "")
+    # filename = str(filename)
+    # if not QFile.exists(filename):
+    #     self.errorMessage(
+    #         self.tr("Error opening file"),
+    #         self.tr("No such file: <b>%s</b>") % filename,
+    #     )
+    #     return False
+    # # assumes same name, but json extension
+    # self.status(str(self.tr("Loading %s...")) % os.path.basename(str(filename)))
+    # label_file = os.path.splitext(filename)[0] + ".json"
+    # if self.output_dir:
+    #     label_file_without_path = os.path.basename(label_file)
+    #     label_file = os.path.join(self.output_dir, label_file_without_path)
+    # if QFile.exists(label_file) and LabelFile.is_label_file(label_file):
+    #     try:
+    #         self.labelFile = LabelFile(label_file)
+    #     except LabelFileError as e:
+    #         self.errorMessage(
+    #             self.tr("Error opening file"),
+    #             self.tr(
+    #                 "<p><b>%s</b></p>"
+    #                 "<p>Make sure <i>%s</i> is a valid label file."
+    #             )
+    #             % (e, label_file),
+    #         )
+    #         self.status(self.tr("Error reading %s") % label_file)
+    #         return False
+    #     self.imageData = self.labelFile.imageData
+    #     self.imagePath = os.path.join(
+    #         os.path.dirname(label_file),
+    #         self.labelFile.imagePath,
+    #     )
+    #     self.otherData = self.labelFile.otherData
+    # else:
+    #     self.imageData = LabelFile.load_image_file(filename)
+    #     if self.imageData:
+    #         self.imagePath = filename
+    #     self.labelFile = None
+    # image = QImage.fromData(self.imageData)
+    #
+    # if image.isNull():
+    #     formats = [
+    #         "*.{}".format(fmt.data().decode())
+    #         for fmt in QtGui.QImageReader.supportedImageFormats()
+    #     ]
+    #     self.errorMessage(
+    #         self.tr("Error opening file"),
+    #         self.tr(
+    #             "<p>Make sure <i>{0}</i> is a valid image file.<br/>"
+    #             "Supported image formats: {1}</p>"
+    #         ).format(filename, ",".join(formats)),
+    #     )
+    #     self.status(self.tr("Error reading %s") % filename)
+    #     return False
+    # self.image = image
+    # self.filename = filename
+    # if self._config["keep_prev"]:
+    #     prev_shapes = self.canvas.shapes
+    # self.canvas.loadPixmap(QPixmap.fromImage(image))
+    # flags = {k: False for k in self._config["flags"] or []}
+    # if self.labelFile:
+    #     self.loadLabels(self.labelFile.shapes)
+    #     if self.labelFile.flags is not None:
+    #         flags.update(self.labelFile.flags)
+    # self.loadFlags(flags)
+    # if self._config["keep_prev"] and self.noShapes():
+    #     self.loadShapes(prev_shapes, replace=False)
+    #     self.setDirty()
+    # else:
+    #     self.setClean()
+    # self.canvas.setEnabled(True)
+    # # set zoom values
+    # is_initial_load = not self.zoom_values
+    # if self.filename in self.zoom_values:
+    #     self.zoomMode = self.zoom_values[self.filename][0]
+    #     self.setZoom(self.zoom_values[self.filename][1])
+    # elif is_initial_load or not self._config["keep_prev_scale"]:
+    #     self.adjustScale(initial=True)
+    # # set scroll values
+    # for orientation in self.scroll_values:
+    #     if self.filename in self.scroll_values[orientation]:
+    #         self.setScroll(
+    #             orientation, self.scroll_values[orientation][self.filename]
+    #         )
+    # # set brightness contrast values
+    # dialog = BrightnessContrastDialog(
+    #     utils.img_data_to_pil(self.imageData),
+    #     self.onNewBrightnessContrast,
+    #     parent=self,
+    # )
+    # brightness, contrast = self.brightnessContrast_values.get(
+    #     self.filename, (None, None)
+    # )
+    # if self._config["keep_prev_brightness"] and self.recentFiles:
+    #     brightness, _ = self.brightnessContrast_values.get(
+    #         self.recentFiles[0], (None, None)
+    #     )
+    # if self._config["keep_prev_contrast"] and self.recentFiles:
+    #     _, contrast = self.brightnessContrast_values.get(
+    #         self.recentFiles[0], (None, None)
+    #     )
+    # if brightness is not None:
+    #     dialog.slider_brightness.setValue(brightness)
+    # if contrast is not None:
+    #     dialog.slider_contrast.setValue(contrast)
+    # self.brightnessContrast_values[self.filename] = (brightness, contrast)
+    # if brightness is not None or contrast is not None:
+    #     dialog.onNewValue(None)
+    # self.paintCanvas()
+    # self.addRecentFile(self.filename)
+    # self.toggleActions(True)
+    # self.canvas.setFocus()
+    # self.status(str(self.tr("Loaded %s")) % os.path.basename(str(filename)))
+    # return True

@@ -1,3 +1,40 @@
+# Отображение картинок, текста и проч. - было добавлено в init
+# test_img = os.path.join(current_folder, "..", "test.jpg")
+# scene = QGraphicsScene()  # Создание графической сцены
+# graphicView = QGraphicsView(scene)  # Создание инструмента для отрисовки графической сцены
+# graphicView.setGeometry(200, 220, 400, 400)  # Задание местоположения и размера графической сцены
+# picture = QPixmap(test_img)  # Создание объекта QPixmap
+# image_container = QGraphicsPixmapItem()  # Создание "пустого" объекта QGraphicsPixmapItem
+# image_container.setPixmap(picture)  # Задание изображения в объект QGraphicsPixmapItem
+# image_container.setOffset(0, 0)  # Позиция объекта QGraphicsPixmapItem
+# # Добавление объекта QGraphicsPixmapItem на сцену
+# scene.addItem(image_container)
+#
+# # Создание объекта QGraphicsSimpleTextItem
+# text = QGraphicsSimpleTextItem('Пример текста')
+# # text.setX(0) # Задание позиции текста
+# # text.setY(200)
+# scene.addItem(text)  # Добавление текста на сцену
+# layout.addWidget(graphicView)
+# ----------------------------------------------------------------------
+#
+# def show_image(self, to_right: bool = True):
+#     filename = None
+#     if len(self.image_list) <= 0:
+#         return
+#     if self.current_file is None:  # ни разу после загрузки датасета не выбирался файл
+#         filename = self.image_list[0]  # значит ставим первый
+#     else:
+#         index = self.image_list.index(self.current_file)
+#         if not to_right:
+#             if index - 1 >= 0:
+#                 filename = self.image_list[index - 1]
+#         else:
+#             if index + 1 < len(self.image_list):
+#                 filename = self.image_list[index + 1]
+#         self.files_list.setCurrentRow()
+# ------------------------------------
+
 import sys
 from PyQt5.Qt import *
 
