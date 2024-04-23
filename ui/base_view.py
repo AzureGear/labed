@@ -453,12 +453,12 @@ class ViewDatasetUI(QWidget):
         self.current_file = filename
         active_mdi = self.mdi.activeSubWindow()
 
-        curr_filename = self.files_list.item(self.files_list.currentRow()).text()   # выбранный в окне файлов объект
-        if filename == self.current_file:
-
-
+        curr_filename = self.files_list.item(self.files_list.currentRow()).text()  # выбранный в окне файлов объект
+        if curr_filename == self.current_file:  # файл выбранный имеет имя такое же как и текущий файл в листе
+            if len(self.mdi.subWindowList()) <= 0:  # если у нас только
+                self.mdi_add_window()
+            return
             and (active_mdi.windowTitle() !=):
-        if len(self.mdi.subWindowList()) <= 0:
 
             # TODO: проверка не загружен ли он в текущее окно?
             if filename in self.current_data_list and (
