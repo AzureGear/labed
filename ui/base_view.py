@@ -9,6 +9,8 @@ from utils import AppSettings, UI_COLORS, UI_BASE_VIEW
 from ui import AzImageViewer, AzAction, coloring_icon, AzFileDialog
 import os
 import re
+import random
+
 
 # import natsort
 
@@ -202,33 +204,21 @@ class ViewDatasetUI(QWidget):
         self.label_info.setText(str_info)
 
     def import_dir_images(self, path):
-        filenames = self.search_for_images(path)  # получаем перечень всех доступных изображений
-        self.current_data_list = filenames  # сохраняем его в памяти
-        self.fill_files_list(filenames)
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        try:
+            filenames = self.search_for_images(path)  # получаем перечень всех доступных изображений
+            self.current_data_list = filenames  # сохраняем его в памяти
+            self.fill_files_list(filenames)
+        except Exception as e:
+            raise e
+            print("Error {}".format(e.args[0]))
+        finally:
+            QApplication.restoreOverrideCursor()
 
-    def fill_files_list(self, filenames):
-        for filename in filenames:  # заполняем QListWidget объектами
+    def fill_files_list(self, filenames):  # формируем перечень из list'а для QListWidget
+        for filename in filenames:
             item = QListWidgetItem(filename)
             self.files_list.addItem(item)
-
-        # if pattern:
-        #     try:
-        #         filenames = [f for f in filenames if re.search(pattern, f)]
-        #     except re.error:
-        #         pass
-        # for filename in filenames:
-        #     # label_file = os.path.splitext(filename)[0] + ".json"
-        #     # if self.output_dir:
-        #     #    label_file_without_path = os.path.basename(label_file)
-        #     #    label_file = os.path.join(self.output_dir, label_file_without_path)
-        #     item = QListWidgetItem(filename)
-        #     item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
-        #     # if QFile.exists(label_file) and LabelFile.is_label_file(label_file):
-        #     #     item.setCheckState(Qt.Checked)
-        #     # else:
-        #     item.setCheckState(Qt.Unchecked)
-        #     self.files_list.addItem(item)
-        # self.openNextImg(load=load)
 
     def search_for_images(self, path):  # формирование перечня загружаемых изображений
         deep = self.settings.read_load_sub_dir()
@@ -314,13 +304,23 @@ class ViewDatasetUI(QWidget):
             self.signal_message.emit("Ошибка загрузки файла")
         sub = QMdiSubWindow()
         sub.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)  # удалять окна при их закрытии
-        image_viewer = AzImageViewer()  # формируем контейнер
-        image_viewer.set_pixmap(QPixmap(self.current_file))  # помещаем туда изображение
-        sub.setWidget(image_viewer)  # добавляем контейнер в окно QMdiSubWindow()
-        sub.setWindowTitle(str(self.current_file))  # заголовок окна
+        self.mdi_window_set_image(sub, self.current_file)
         self.mdi.addSubWindow(sub)
         sub.show()
         self.mdi_show_sub_windows()  # выравниваем
+
+    def mdi_window_set_image(self, subwindow, image):  # загрузка снимка для отображения
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        try:
+            image_viewer = AzImageViewer()  # формируем контейнер
+            image_viewer.set_pixmap(QPixmap(image))  # помещаем туда изображение
+            subwindow.setWidget(image_viewer)  # добавляем контейнер в окно QMdiSubWindow()
+            subwindow.setWindowTitle(str(image))  # заголовок окна
+        except Exception as e:
+            raise e
+            print("Error {}".format(e.args[0]))
+        finally:
+            QApplication.restoreOverrideCursor()
 
     def mdi_windows_4x(self):
         self.mdi_set_windows(4)
@@ -348,8 +348,19 @@ class ViewDatasetUI(QWidget):
     def mdi_tiled(self):
         self.mdi.tileSubWindows()
 
-    def mdi_shuffle(self):
-        pass
+    def mdi_shuffle(self):  # загрузить случайные данные (перемешать)
+        if len(self.mdi.subWindowList()) <= 0 or len(self.current_data_list) <= 0:
+            return
+        list_subs = self.mdi.subWindowList()
+        for sub in list_subs:
+            random_filename = random.choice(self.current_data_list)
+            self.mdi_window_set_image(sub, random_filename)
+        active_mdi = self.mdi.activeSubWindow()
+        items = self.files_list.findItems(active_mdi.windowTitle(), Qt.MatchFlag.MatchExactly)
+        if len(items) > 0:
+            self.files_list.setCurrentItem(items[0])
+
+
 
     def mdi_show_sub_windows(self):
         if self.actions_adjust[2].isChecked():  # не следить за расположением
@@ -452,23 +463,19 @@ class ViewDatasetUI(QWidget):
             return
         self.current_file = filename
         active_mdi = self.mdi.activeSubWindow()
-
         curr_filename = self.files_list.item(self.files_list.currentRow()).text()  # выбранный в окне файлов объект
-        if curr_filename == self.current_file:  # файл выбранный имеет имя такое же как и текущий файл в листе
-            if len(self.mdi.subWindowList()) <= 0:  # если у нас только
-                self.mdi_add_window()
-            return
-            and (active_mdi.windowTitle() !=):
+        # if curr_filename != self.current_file:  # переданный для загрузки файл имеет такое же имя
+        #     # как и текущий файл в листе
+        #     return
 
-            # TODO: проверка не загружен ли он в текущее окно?
-            if filename in self.current_data_list and (
-                    self.files_list.currentRow() != self.current_data_list.index(filename)):
-        self.files_list.setCurrentRow(self.current_data_list.index(filename))
-        self.files_list.repaint()
-        return
+        # выбранный в окне файлов объект не загружен в активное окно и открыто хотя бы одно окно
+        if active_mdi.windowTitle() != filename and len(self.mdi.subWindowList()) > 0:
+            self.mdi_window_set_image(active_mdi, filename)
+        # self.files_list.repaint()
+        # return
 
     # print(filename)
-    return
+    # return
     # self.resetState()
     # self.canvas.setEnabled(False)
     # if filename is None:
