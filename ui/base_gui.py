@@ -227,15 +227,41 @@ class BaseGUI(QMainWindow):
 
         # QStackWidgets
         # Processing
-        self._ui.ui_processing.tab_widget.setTabText(0, _tr('BaseGUI', "Merge"))
-        self._ui.ui_processing.tab_widget.setTabText(0, _tr('BaseGUI', "Slicing"))
-        self._ui.ui_processing.tab_widget.setTabText(0, _tr('BaseGUI', "Attributes"))
-        self._ui.ui_processing.tab_widget.setTabText(0, _tr('BaseGUI', "Geometry"))
+        pc = self._ui.ui_processing
+        pc.tab_widget.setTabText(0, _tr('BaseGUI', "Merge"))
+        pc.tab_widget.setTabText(1, _tr('BaseGUI', "Slicing"))
+        pc.tab_widget.setTabText(2, _tr('BaseGUI', "Attributes"))
+        pc.tab_widget.setTabText(3, _tr('BaseGUI', "Geometry"))
+
+        # Baseview
+        bv = self._ui.ui_viewdataset
+        bv.tb_info_dataset.setText(_tr('BaseGUI', ' Info'))
+        bv.tb_load_preset.setText(_tr('BaseGUI', 'Load preset dataset'))
+        bv.actions_load[0].setText(_tr('BaseGUI', 'Load last data'))
+        bv.actions_load[1].setText(_tr('BaseGUI', 'Load dir'))
+        bv.actions_load[2].setText(_tr('BaseGUI', 'Load dataset'))
+        bv.action_load_presets.setText(_tr('BaseGUI', 'Load preset dataset'))
+        bv.actions_show_data[0].setText(_tr('BaseGUI', 'One window'))
+        bv.actions_show_data[1].setText(_tr('BaseGUI', 'Add window'))
+        bv.actions_show_data[2].setText(_tr('BaseGUI', '4x windows'))
+        bv.actions_show_data[3].setText(_tr('BaseGUI', '16x windows'))
+        bv.actions_adjust[0].setText(_tr('BaseGUI', 'Tiled'))
+        bv.actions_adjust[1].setText(_tr('BaseGUI', 'Cascade'))
+        bv.actions_adjust[2].setText(_tr('BaseGUI', 'Disable layout'))
+        bv.actions_labels[0].setText(_tr('BaseGUI', 'Show labels'))
+        bv.actions_labels[1].setText(_tr('BaseGUI', 'Show filenames'))
+        bv.actions_control_images[0].setText(_tr('BaseGUI', 'Preview'))
+        bv.actions_control_images[1].setText(_tr('BaseGUI', 'Next'))
+        bv.action_shuffle_data.setText(_tr('BaseGUI', 'Shuffle data'))
+        bv.files_search.setPlaceholderText(_tr('BaseGUI', 'Filter files'))
+        bv.files_list.setWindowTitle(_tr('BaseGUI', 'Files List'))
 
         # Settings
-        self._ui.ui_settings.output_dir.setText(_tr('BaseGUI', 'Default output dir:'))
-        self._ui.ui_settings.datasets_dir.setText(_tr('BaseGUI', 'Default datasets directory:'))
-        self._ui.ui_settings.tab_widget.setTabText(0, _tr('BaseGUI', 'Common settings'))
+        st = self._ui.ui_settings
+        st.output_dir.setText(_tr('BaseGUI', 'Default output dir:'))
+        st.datasets_dir.setText(_tr('BaseGUI', 'Default datasets directory:'))
+        st.tab_widget.setTabText(0, _tr('BaseGUI', 'Common settings'))
+        st.chk_load_sub_dirs.setText(_tr('BaseGUI', 'Load subdirectories, when use "Load image dir"'))
 
     def show_statusbar_msg(self, msg):
         self.statusBar().showMessage(msg)

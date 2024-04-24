@@ -51,7 +51,7 @@ class SettingsUI(QWidget):
         # QLineEdit для хранения "верхнего каталога" датасетов
         self.line_general_datasets_dir = AzButtonLineEdit("glyph_folder", the_colors,
                                                           caption="Select general directory for datasets",
-                                                          editable=True, dir_only=True)
+                                                          read_only=True, dir_only=True)
         self.line_general_datasets_dir.setText(self.settings.read_datasets_dir())  # устанавливаем сохраненное значение
         self.line_general_datasets_dir.textChanged.connect(
             lambda: self.settings.write_datasets_dir(self.line_general_datasets_dir.text()))  # автосохранение
@@ -60,7 +60,7 @@ class SettingsUI(QWidget):
         # QLineEdit для хранения выходных результатов
         self.line_default_output_dir = AzButtonLineEdit("glyph_folder", the_colors,
                                                         caption="Select default output directory",
-                                                        editable=True, dir_only=True)
+                                                        read_only=True, dir_only=True)
         self.line_default_output_dir.setText(self.settings.read_default_output_dir())
         self.line_default_output_dir.textChanged.connect(
             lambda: self.settings.write_default_output_dir(self.line_default_output_dir.text()))

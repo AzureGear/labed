@@ -157,7 +157,7 @@ class AzButtonLineEdit(QLineEdit):
     Упрощённая QLineEdit с кнопкой внутри
     """
 
-    def __init__(self, icon_name, color="Black", caption=None, editable=True, parent=None, dir_only=False,
+    def __init__(self, icon_name, color="Black", caption=None, read_only=True, parent=None, dir_only=False,
                  on_button_clicked_callback=None):
         super(AzButtonLineEdit, self).__init__(parent)
         self.settings = AppSettings()  # чтение настроек
@@ -168,7 +168,7 @@ class AzButtonLineEdit(QLineEdit):
         self.on_button_clicked_callback = on_button_clicked_callback
         self.dir_only = dir_only
         self.caption = caption
-        self.setReadOnly(editable)
+        self.setReadOnly(read_only)
         self.button.clicked.connect(self.on_button_clicked)  # соединяем сигнал щелчка
         # self.button.setStyleSheet('border: 0px; padding: 0px;')  # убираем границу и отступы
         self.button.setCursor(QtCore.Qt.PointingHandCursor)  # курсор при наведении на иконку

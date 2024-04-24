@@ -11,7 +11,6 @@ import os
 import re
 import random
 
-
 # import natsort
 
 the_color = UI_COLORS.get("datasets_color")
@@ -44,9 +43,7 @@ class ViewDatasetUI(QWidget):
         self.top_dock = QDockWidget("")  # контейнер для информации о датасете
         self.top_dock.setWidget(self.label_info)  # устанавливаем в контейнер QLabel
         self.tb_info_dataset.clicked.connect(self.show_info)  # соединяем с выводом инфо о датасете
-
         self.toggle_instruments()
-        button = QPushButton("Сделай хорошо")
 
         # Настроим все QDockWidgets для нашего main_win
         features = QDockWidget.DockWidgetFeatures()  # features для док-виджетов
@@ -67,26 +64,17 @@ class ViewDatasetUI(QWidget):
             getattr(self, dock).setFeatures(features)  # применяем настроенные атрибуты [1-3]
 
         self.top_dock.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.MinimumExpanding)
-        self.top_dock.setMaximumHeight(28)
-        self.top_dock.setMinimumHeight(28)
+        self.top_dock.setMaximumHeight(28)  # делаем "инфо о датасете"...
+        self.top_dock.setMinimumHeight(28)  # ...без границ
         main_win.addDockWidget(Qt.DockWidgetArea.TopDockWidgetArea, self.top_dock)
         main_win.addToolBar(self.toolbar)
         main_win.addDockWidget(Qt.RightDockWidgetArea, self.files_dock)
 
         self.mdi = QMdiArea()  # класс для данных (изображения, подписи, графики и т.п.)
-        # self.mdi.tileSubWindows()   # по умолчанию ставим tileSubWi
         main_win.setCentralWidget(self.mdi)
-
-        # main_win.setCentralWidget(self.image_viewer)
         layout = QVBoxLayout(self)  # главный QLayout на виджете
         layout.setContentsMargins(4, 4, 4, 4)  # визуально граница на 1 пиксель меньше для состыковки с другими
         layout.addWidget(main_win)  # добавляем наш QMainWindow
-        layout.addWidget(button)  # test button
-
-        test_img = os.path.join(current_folder, "..", "test.jpg")
-        self.image_viewer.set_pixmap(QPixmap(test_img))  # создаём QPixmap и устанавливаем в QGraphicView
-
-        layout.addWidget(button)
 
     @Slot()
     def show_info(self):
@@ -103,7 +91,7 @@ class ViewDatasetUI(QWidget):
         # Настройка правого (по умолчанию) виджета для отображения перечня файлов датасета
         self.files_list = QListWidget()
         self.files_search = QLineEdit()  # строка поиска файлов
-        self.files_search.setPlaceholderText("Search files")
+        self.files_search.setPlaceholderText("Filter files")
         self.files_search.textChanged.connect(self.file_search_changed)
         right_layout = QVBoxLayout()
         right_layout.setContentsMargins(0, 0, 0, 0)
@@ -140,11 +128,6 @@ class ViewDatasetUI(QWidget):
                 self.set_instrument(obj, b)
 
     def open_project(self):  # загрузить датасет
-        # classic
-        students = ["Abid", "Natasha", "Nick", "Matthew", "Greetings", "Kramola", "Poeben"]
-        pattern = "i."  # "N.*"
-        filtered_students = [x for x in students if re.findall(pattern, x, re.IGNORECASE)]
-        print(filtered_students)
         pass
         # os.scandir(folderPath)
         #
@@ -187,7 +170,6 @@ class ViewDatasetUI(QWidget):
             self.files_list.setCurrentRow(0)  # если первый раз открыли датасет - загружаем первое изображение
             self.mdi_add_window()  # добавляем окно
             self.toggle_instruments()  # включаем/выключаем доступ к инструментам
-            # self.show_image()
 
     def prepear_for_load(self):
         self.files_search.clear()  # очищаем поисковую строку
@@ -360,8 +342,6 @@ class ViewDatasetUI(QWidget):
         if len(items) > 0:
             self.files_list.setCurrentItem(items[0])
 
-
-
     def mdi_show_sub_windows(self):
         if self.actions_adjust[2].isChecked():  # не следить за расположением
             return
@@ -369,29 +349,6 @@ class ViewDatasetUI(QWidget):
             self.mdi.tileSubWindows()
         elif self.actions_adjust[1].isChecked():  # установлен режим Cascade
             self.mdi.cascadeSubWindows()
-
-        # return
-        # index = None
-        # if len(self.image_list) <= 0:  # если в списке оригинальных изображений 0 шт.
-        #     return
-        # if self.current_file is None:  # ни разу после загрузки датасета не выбирался файл
-        #     # filename = self.image_list[0]  # значит ставим первый
-        #     index = 0
-        # else:
-        #     if self.files_list.count() < 1:
-        #         return  # в перечне файлов (с учётом фильтра) отсутствуют данные
-        #     items = self.files_list.selectedItems()  # выбранные в перечне files_list объекты
-        #     if not items:  # если не выбрано (с учётом фильтра), то выбираем первый отфильтрованный
-        #         index = 0
-        #     else:  # иначе пытаемся отобразить следующий/предыдущий
-        #         if move_forward:  # движемся вперед...
-        #             s_index = self.files_list.moveCursor(QAbstractItemView.MoveDown, Qt.NoModifier)
-        #         else:  # ...или назад по списку
-        #             s_index = self.files_list.moveCursor(QAbstractItemView.MoveUp, Qt.NoModifier)
-        #         if s_index.isValid():  # проверяем валидность индекса
-        #             self.files_list.setCurrentIndex(s_index)
-        #             return
-        # self.files_list.setCurrentRow(index)
 
     def move_image_right(self):
         self.files_step_image(True)
@@ -401,9 +358,7 @@ class ViewDatasetUI(QWidget):
 
     def setup_actions(self):
         # Actions
-        self.act_info = AzAction("Dataset information", "glyph_info", the_color2, the_color)  # информация о датасете
-
-        # Действия для загрузки данных
+         # Действия для загрузки данных
         self.actions_load = (
             QAction(coloring_icon("glyph_folder_recent", the_color), "Load last data", triggered=self.open_last_data),
             QAction(coloring_icon("glyph_folder_clear", the_color), "Load dir", triggered=self.open_dir),
@@ -457,140 +412,15 @@ class ViewDatasetUI(QWidget):
                                            triggered=self.mdi_shuffle)  # отображаемые данные
 
     def load_file(self, filename=None):  # загрузить для отображения новый графический файл
-        """Load the specified file, or the last opened file if None."""
-        # changing fileListWidget loads file
-        if filename is None:
+        if filename is None:  # файла нет
             return
-        self.current_file = filename
-        active_mdi = self.mdi.activeSubWindow()
-        curr_filename = self.files_list.item(self.files_list.currentRow()).text()  # выбранный в окне файлов объект
-        # if curr_filename != self.current_file:  # переданный для загрузки файл имеет такое же имя
-        #     # как и текущий файл в листе
-        #     return
+        self.current_file = filename  # устанавливаем свойство текущего файла
 
+        if len(self.mdi.subWindowList()) <= 0:  # активного окна для загрузки файла нет
+            return
         # выбранный в окне файлов объект не загружен в активное окно и открыто хотя бы одно окно
+        active_mdi = self.mdi.activeSubWindow()
         if active_mdi.windowTitle() != filename and len(self.mdi.subWindowList()) > 0:
             self.mdi_window_set_image(active_mdi, filename)
         # self.files_list.repaint()
         # return
-
-    # print(filename)
-    # return
-    # self.resetState()
-    # self.canvas.setEnabled(False)
-    # if filename is None:
-    #     filename = self.settings.value("filename", "")
-    # filename = str(filename)
-    # if not QFile.exists(filename):
-    #     self.errorMessage(
-    #         self.tr("Error opening file"),
-    #         self.tr("No such file: <b>%s</b>") % filename,
-    #     )
-    #     return False
-    # # assumes same name, but json extension
-    # self.status(str(self.tr("Loading %s...")) % os.path.basename(str(filename)))
-    # label_file = os.path.splitext(filename)[0] + ".json"
-    # if self.output_dir:
-    #     label_file_without_path = os.path.basename(label_file)
-    #     label_file = os.path.join(self.output_dir, label_file_without_path)
-    # if QFile.exists(label_file) and LabelFile.is_label_file(label_file):
-    #     try:
-    #         self.labelFile = LabelFile(label_file)
-    #     except LabelFileError as e:
-    #         self.errorMessage(
-    #             self.tr("Error opening file"),
-    #             self.tr(
-    #                 "<p><b>%s</b></p>"
-    #                 "<p>Make sure <i>%s</i> is a valid label file."
-    #             )
-    #             % (e, label_file),
-    #         )
-    #         self.status(self.tr("Error reading %s") % label_file)
-    #         return False
-    #     self.imageData = self.labelFile.imageData
-    #     self.imagePath = os.path.join(
-    #         os.path.dirname(label_file),
-    #         self.labelFile.imagePath,
-    #     )
-    #     self.otherData = self.labelFile.otherData
-    # else:
-    #     self.imageData = LabelFile.load_image_file(filename)
-    #     if self.imageData:
-    #         self.imagePath = filename
-    #     self.labelFile = None
-    # image = QImage.fromData(self.imageData)
-    #
-    # if image.isNull():
-    #     formats = [
-    #         "*.{}".format(fmt.data().decode())
-    #         for fmt in QtGui.QImageReader.supportedImageFormats()
-    #     ]
-    #     self.errorMessage(
-    #         self.tr("Error opening file"),
-    #         self.tr(
-    #             "<p>Make sure <i>{0}</i> is a valid image file.<br/>"
-    #             "Supported image formats: {1}</p>"
-    #         ).format(filename, ",".join(formats)),
-    #     )
-    #     self.status(self.tr("Error reading %s") % filename)
-    #     return False
-    # self.image = image
-    # self.filename = filename
-    # if self._config["keep_prev"]:
-    #     prev_shapes = self.canvas.shapes
-    # self.canvas.loadPixmap(QPixmap.fromImage(image))
-    # flags = {k: False for k in self._config["flags"] or []}
-    # if self.labelFile:
-    #     self.loadLabels(self.labelFile.shapes)
-    #     if self.labelFile.flags is not None:
-    #         flags.update(self.labelFile.flags)
-    # self.loadFlags(flags)
-    # if self._config["keep_prev"] and self.noShapes():
-    #     self.loadShapes(prev_shapes, replace=False)
-    #     self.setDirty()
-    # else:
-    #     self.setClean()
-    # self.canvas.setEnabled(True)
-    # # set zoom values
-    # is_initial_load = not self.zoom_values
-    # if self.filename in self.zoom_values:
-    #     self.zoomMode = self.zoom_values[self.filename][0]
-    #     self.setZoom(self.zoom_values[self.filename][1])
-    # elif is_initial_load or not self._config["keep_prev_scale"]:
-    #     self.adjustScale(initial=True)
-    # # set scroll values
-    # for orientation in self.scroll_values:
-    #     if self.filename in self.scroll_values[orientation]:
-    #         self.setScroll(
-    #             orientation, self.scroll_values[orientation][self.filename]
-    #         )
-    # # set brightness contrast values
-    # dialog = BrightnessContrastDialog(
-    #     utils.img_data_to_pil(self.imageData),
-    #     self.onNewBrightnessContrast,
-    #     parent=self,
-    # )
-    # brightness, contrast = self.brightnessContrast_values.get(
-    #     self.filename, (None, None)
-    # )
-    # if self._config["keep_prev_brightness"] and self.recentFiles:
-    #     brightness, _ = self.brightnessContrast_values.get(
-    #         self.recentFiles[0], (None, None)
-    #     )
-    # if self._config["keep_prev_contrast"] and self.recentFiles:
-    #     _, contrast = self.brightnessContrast_values.get(
-    #         self.recentFiles[0], (None, None)
-    #     )
-    # if brightness is not None:
-    #     dialog.slider_brightness.setValue(brightness)
-    # if contrast is not None:
-    #     dialog.slider_contrast.setValue(contrast)
-    # self.brightnessContrast_values[self.filename] = (brightness, contrast)
-    # if brightness is not None or contrast is not None:
-    #     dialog.onNewValue(None)
-    # self.paintCanvas()
-    # self.addRecentFile(self.filename)
-    # self.toggleActions(True)
-    # self.canvas.setFocus()
-    # self.status(str(self.tr("Loaded %s")) % os.path.basename(str(filename)))
-    # return True

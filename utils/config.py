@@ -27,5 +27,7 @@ UI_BASE_VIEW = {
     "files_dock": [True, True, True, False, False, False]
 }
 
+UI_OUTPUT_TYPES = ["SAMA.json"]
+
 
 # (dark) c:\venvs\lab-ed\Lib\site-packages>python -m qdarktheme.widget_gallery
