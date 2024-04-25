@@ -8,7 +8,7 @@ import qdarktheme
 import sys
 import os
 from ui import newIcon
-from ui import DockUI, SettingsUI, ViewDatasetUI, ExperimentUI, ProcessingUI, AutomationUI
+from ui import SettingsUI, ViewDatasetUI, ExperimentUI, ProcessingUI, AutomationUI
 from qdarktheme.widget_gallery._ui.frame_ui import FrameUI
 from utils import UI_COLORS, AppSettings
 from ui import AzAction, coloring_icon
