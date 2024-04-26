@@ -15,6 +15,7 @@ class ProcessingUI(QtWidgets.QWidget):
     """
     Класс виджета обработки датасетов
     """
+    signal_message = QtCore.pyqtSignal(str)
 
     def __init__(self, parent):
         super().__init__()
@@ -52,13 +53,13 @@ class ProcessingUI(QtWidgets.QWidget):
         self.ui_tab_merge = self.tab_basic_setup(complex=True)  # создаём "сложный" виджет
         # Действия для страницы
         self.merge_actions = (
-            QtGui.QAction(coloring_icon("glyph_add", the_color), "Add project files", triggered=self.merge_add_files),
-            QtGui.QAction(coloring_icon("glyph_delete3", the_color), "Remove project files",
+            QtGui.QAction(coloring_icon("glyph_add", the_color), "Add files", triggered=self.merge_add_files),
+            QtGui.QAction(coloring_icon("glyph_delete3", the_color), "Remove files",
                           triggered=self.merge_remove_files),
             QtGui.QAction(coloring_icon("glyph_delete2", the_color), "Clear list", triggered=self.merge_clear),
             QtGui.QAction(coloring_icon("glyph_merge", the_color), "Merge selected files",
                           triggered=self.merge_combine),
-            QtGui.QAction(coloring_icon("glyph_folder_more", the_color), "Open output dir",
+            QtGui.QAction(coloring_icon("glyph_folder", the_color), "Open output dir",
                           triggered=self.merge_open_output))
         self.merge_output_label = QtWidgets.QLabel("Output type:")
         self.merge_output_list = QtWidgets.QComboBox()  # список выходных данных
@@ -72,21 +73,15 @@ class ProcessingUI(QtWidgets.QWidget):
         split.addWidget(self.merge_files_list)  # куда помещаем перечень файлов...
         split.addWidget(self.merge_preview_data)  # ...и просмоторщик этих файлов
         split.setChildrenCollapsible(False)  # отключаем полное сворачивание виджетов внутри разделителя
-
-        self.merge_cust_path_box = QtWidgets.QGroupBox("Use different from default dir for output")
-        self.merge_cust_path_box.setCheckable(True)
-        self.merge_output_line = AzButtonLineEdit("glyph_folder", the_color, caption="Select output dir",
-                                                  read_only=False, dir_only=False)
-        self.merge_cust_path_box.toggled.connect(self.merge_cust_path_box_toggled)
-        self.merge_cust_path_box.setChecked(False)
         self.merge_files_list.itemSelectionChanged.connect(self.merge_selection_files_change)
 
-        layout_in = QtWidgets.QHBoxLayout()
-        layout_in.addWidget(self.merge_output_line)
-        self.merge_cust_path_box.setLayout(layout_in)
-
-        widg = QtWidgets.QWidget()
-        widg.setLayout(layout_in)
+        self.merge_default_output_text = ["Default output catalog:", "User output catalog:"]
+        self.merge_output_tb = QtWidgets.QToolButton()  # выходной путь; по нажатии меняется на выбранный пользователем
+        self.merge_output_tb.setCheckable(True)  # кнопка "нажимательная"
+        self.merge_output_tb.setText(self.merge_default_output_text[0] + "\n" + self.settings.read_default_output_dir())
+        self.merge_output_tb.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonTextOnly)  # только текст от кнопки
+        self.merge_output_tb.toggled.connect(self.merge_output_tb_toggled)  # связываем с методом смены каталога
+        self.merge_output_dir = self.settings.read_default_output_dir()  # устанавливаем выходной каталог
 
         # Настройка панели инструментов
         self.merge_toolbar = QtWidgets.QToolBar("Toolbar for merging project files")  # панель инструментов для слияния
@@ -103,18 +98,13 @@ class ProcessingUI(QtWidgets.QWidget):
         self.merge_toolbar.addSeparator()
         self.merge_toolbar.addAction(self.merge_actions[3])  # объединить проекты и конвертировать
         self.merge_toolbar.addSeparator()
-        self.merge_toolbar.addWidget(widg)
-        # self.merge_toolbar.addWidget(self.merge_output_line)
+        self.merge_toolbar.addWidget(self.merge_output_tb)
         self.merge_toolbar.addAction(self.merge_actions[4])  # открыть выходной каталог
 
-        # line_layout = QtWidgets.QVBoxLayout()
-        # line_layout.addWidget(self.merge_output_line)
-
         vlayout = QtWidgets.QVBoxLayout()  # контейнер QVBoxLayout()
-        # vlayout.addWidget(self.merge_cust_path_box)
         vlayout.addWidget(split)  # добавляем область с разделением
         wid = QtWidgets.QWidget()  # создаём виджет-контейнер...
-        wid.setLayout(vlayout)  # куда помещаем vlayout (поскольку Central Widget может быть только QWidget)
+        wid.setLayout(vlayout)  # ...куда помещаем vlayout (поскольку Central Widget может быть только QWidget)
         self.ui_tab_merge.addToolBar(self.merge_toolbar)  # добавляем панель меню
         self.ui_tab_merge.setCentralWidget(wid)  # устанавливаем главный виджет старицы "Слияние"
         self.merge_toggle_instruments()
@@ -126,7 +116,7 @@ class ProcessingUI(QtWidgets.QWidget):
     def merge_selection_files_change(self):
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)
         try:
-            print("hello!")
+            pass
             # filenames = self.search_for_images(path)  # получаем перечень всех доступных изображений
             # self.current_data_list = filenames  # сохраняем его в памяти
             # self.fill_files_list(filenames)
@@ -135,6 +125,7 @@ class ProcessingUI(QtWidgets.QWidget):
             print("Error {}".format(e.args[0]))
         finally:
             QtWidgets.QApplication.restoreOverrideCursor()
+            self.merge_toggle_instruments()
         pass
 
     def tab_slicing_setup(self):  # настройка страницы "Нарезка"
@@ -147,14 +138,16 @@ class ProcessingUI(QtWidgets.QWidget):
         self.ui_tab_geometry = self.tab_basic_setup()
 
     def merge_toggle_instruments(self):  # включает/отключает инструменты
-        enable = False
-        self.merge_actions[3].setEnabled(enable)  # по умолчанию объединение выключим
+        # сначала всё отключим по умолчанию
+        self.merge_actions[1].setEnabled(False)
+        self.merge_actions[2].setEnabled(False)
+        self.merge_actions[3].setEnabled(False)
         if self.merge_files_list.count() > 0:
-            enable = True
-        self.merge_actions[1].setEnabled(enable)
-        self.merge_actions[2].setEnabled(enable)
-        if len(self.merge_files_list.selectedItems()) > 0:  # файлы выбраны, можно попробовать объединить
-            self.merge_actions[3].setEnabled(True)
+            self.merge_actions[2].setEnabled(True)  # включаем кнопку "очистить список"
+        if len(self.merge_files_list.selectedItems()) > 0:  # имеются выбранные файлы
+            self.merge_actions[1].setEnabled(True)  # включаем кнопку "удалить выбранные"
+            if len(self.merge_files_list.selectedItems()) > 1:  # выбрано более 2х файлов
+                self.merge_actions[3].setEnabled(True)
 
     def tab_basic_setup(self, complex=False):  # базовая настройка каждой страницы QTabWidget
         if complex:
@@ -167,7 +160,6 @@ class ProcessingUI(QtWidgets.QWidget):
     def merge_add_files(self):
         sel_files = AzFileDialog(self, "Select project files to add", self.settings.read_last_dir(), False,
                                  filter="LabelMe projects (*.json)", initial_filter="json (*.json)")
-        print(sel_files)
         if sel_files:
             self.merge_fill_files(sel_files)
             self.merge_toggle_instruments()
@@ -178,22 +170,37 @@ class ProcessingUI(QtWidgets.QWidget):
             self.merge_files_list.addItem(item)
 
     def merge_remove_files(self):
-        if self.merge_files_list.count() <= 0:
-            return
         sel_items = self.merge_files_list.selectedItems()
         if len(sel_items) <= 0:
             return
         for item in sel_items:
-            self.merge_files_list.removeItemWidget(item)
-        self.merge_toggle_instruments
+            self.merge_files_list.takeItem(self.merge_files_list.row(item))  # удаляем выделенные объекты
+        self.merge_toggle_instruments()
 
     def merge_clear(self):
         self.merge_files_list.clear()
-        self.merge_toggle_instruments
+        self.merge_toggle_instruments()
 
     def merge_combine(self):
         self.merge_files_list.clearSelection()
-        # TODO: сигнал об успехе
+        # метод возвращающий True|False в зависимости от успеха
+        self.signal_message.emit("Файлы успешно объединены и конвертированы")
 
     def merge_open_output(self):
-        pass
+        os.startfile(self.merge_output_dir)  # открываем каталог средствами системы
+
+    def merge_output_tb_toggled(self):  # настройка выходных данных
+        if not self.merge_output_tb.isChecked():  # кнопка не нажата - значит каталог по умолчанию
+            self.merge_output_dir = self.settings.read_default_output_dir()
+            self.merge_output_tb.setText(
+                self.merge_default_output_text[0] + "\n" + self.settings.read_default_output_dir())
+        else:  # кнопка нажата - пробуем установить каталог пользователя
+            last_dir = self.settings.read_default_output_dir()  # последний открытый каталог
+            if not os.path.exists(last_dir):
+                last_dir = ""
+            out_path = AzFileDialog(self, "Select directory for files to be merged", last_dir, True)  # диалог
+            if out_path:
+                self.merge_output_tb.setText(self.merge_default_output_text[1] + "\n" + out_path)
+                self.merge_output_dir = out_path
+            else:
+                self.merge_output_tb.setChecked(False)  # если новый путь не выбран, возвращаем кнопку по умолчанию

@@ -161,15 +161,15 @@ class ViewDatasetUI(QWidget):
             # каталог с данными получаем через диалог
             sel_dir = AzFileDialog(self, "Select directory to load images", using_folder, True)
         if sel_dir:
-            self.settings.write_last_dir(sel_dir)  # сохраняем последний добавленный каталог
             self.settings.write_last_load_data(sel_dir)  # сохраняем последние добавленные данные
             self.prepear_for_load()  # подготавливаем: закрываем SubWindows, очищаем все
             self.import_dir_images(sel_dir)  # импортируем изображения
-            self.current_data_dir = sel_dir  # устанавливаем текущие данные
+            self.current_data_dir = sel_dir  # устанавливаем текущий каталог
             self.set_dataset_info(sel_dir)  # обновляем информацию о датасете
-            self.files_list.setCurrentRow(0)  # если первый раз открыли датасет - загружаем первое изображение
+            if self.files_list.count() > 0:  # в датасете хотя бы 1 изображение
+                self.files_list.setCurrentRow(0)  # если первый раз открыли датасет - загружаем первое изображение
             self.mdi_add_window()  # добавляем окно
-            self.toggle_instruments()  # включаем/выключаем доступ к инструментам
+            self.toggle_instruments()  # обновляем доступ к инструментам
 
     def prepear_for_load(self):
         self.files_search.clear()  # очищаем поисковую строку
@@ -358,7 +358,7 @@ class ViewDatasetUI(QWidget):
 
     def setup_actions(self):
         # Actions
-         # Действия для загрузки данных
+        # Действия для загрузки данных
         self.actions_load = (
             QAction(coloring_icon("glyph_folder_recent", the_color), "Load last data", triggered=self.open_last_data),
             QAction(coloring_icon("glyph_folder_clear", the_color), "Load dir", triggered=self.open_dir),

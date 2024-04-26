@@ -232,6 +232,17 @@ class BaseGUI(QMainWindow):
         pc.tab_widget.setTabText(1, _tr('BaseGUI', "Slicing"))
         pc.tab_widget.setTabText(2, _tr('BaseGUI', "Attributes"))
         pc.tab_widget.setTabText(3, _tr('BaseGUI', "Geometry"))
+        # Processing - Merge
+        pc.merge_actions[0].setText(_tr('BaseGUI', "Add files"))
+        pc.merge_actions[1].setText(_tr('BaseGUI', "Remove files"))
+        pc.merge_actions[2].setText(_tr('BaseGUI', "Clear list"))
+        pc.merge_actions[3].setText(_tr('BaseGUI', "Merge selected files"))
+        pc.merge_output_label.setText(_tr('BaseGUI', "Output type:"))
+        pc.merge_default_output_text[0] = _tr('BaseGUI', "Default output catalog:")
+        pc.merge_default_output_text[1] = _tr('BaseGUI', "User output catalog:")
+        pc.merge_toolbar.setWindowTitle(_tr('BaseGUI', "Toolbar for merging project files"))
+        pc.merge_actions[0].setText(_tr('BaseGUI', ""))
+        pc.merge_actions[0].setText(_tr('BaseGUI', ""))
 
         # Baseview
         bv = self._ui.ui_viewdataset

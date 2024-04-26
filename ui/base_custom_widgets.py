@@ -148,18 +148,21 @@ class EditWithButton(QWidget):  # Реализация Романа Хабаро
 def AzFileDialog(self, caption=None, last_dir=None, dir_only=False, filter=None, initial_filter=None,
                  save_dir=True, parent=None):
     settings = AppSettings()  # чтение настроек
-    save_dir = self.settings.read_last_dir()  # вспоминаем прошлый открытый каталог
-
+    save_dir = settings.read_last_dir()  # вспоминаем прошлый открытый каталог
     if dir_only:
         select_dir = QFileDialog.getExistingDirectory(self, caption, last_dir)
         if select_dir:
-            settings.write_last_dir(select_dir)
+            if save_dir:
+                settings.write_last_dir(select_dir)
             return select_dir
     else:
+        print("try...")
         arr = QFileDialog.getOpenFileNames(self, caption, last_dir, filter, initial_filter)
-        if arr:
-            select_files = arr[0]
-            settings.write_last_dir(os.path.dirname(select_files[0]))
+        print("good")
+        select_files = arr[0]
+        if len(arr[0]) > 0:
+            if save_dir:
+                settings.write_last_dir(os.path.dirname(select_files[0]))
             return select_files
 
 
