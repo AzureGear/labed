@@ -14,6 +14,7 @@ from utils import UI_COLORS, AppSettings
 from ui import AzAction, coloring_icon
 
 from qdarktheme.widget_gallery._ui.widgets_ui import WidgetsUI
+
 the_color = UI_COLORS.get("sidepanel_color")
 
 current_folder = os.path.dirname(os.path.abspath(__file__))  # каталога проекта + /ui/
@@ -162,6 +163,7 @@ class BaseGUI(QMainWindow):
     """
     Базовый класс для взаимодействия с пользователем
     """
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.settings = AppSettings()  # настройки программы
@@ -173,7 +175,8 @@ class BaseGUI(QMainWindow):
         self._ui.action_exit.triggered.connect(self.slot_exit)  # выход из программы
         self._ui.action_help.triggered.connect(self.test_slot)
         self._ui.action_switch_theme.triggered.connect(self.change_theme)
-        self._ui.ui_viewdataset.signal_message.connect(self.show_statusbar_msg)
+        self._ui.ui_processing.signal_message.connect(self.show_statusbar_msg)  # вкладка Обработка
+        self._ui.ui_viewdataset.signal_message.connect(self.show_statusbar_msg)  # вкладка Просмотр данных
         for action in self._ui.actions_switch_lang:  # соединяем смену языка
             action.triggered.connect(self.change_lang)
         for i, action in enumerate(self._ui.actions_page_side_panel):
@@ -211,68 +214,69 @@ class BaseGUI(QMainWindow):
     def _retranslate_ui(self):
         # Перечень всех виджетов и объектов для которых будет выполняться локализация
         _tr = QApplication.translate
-        self._ui.actions_page_side_panel[0].setText(_tr('BaseGUI', 'Processing'))
-        self._ui.actions_page_side_panel[1].setText(_tr('BaseGUI', 'Experiments'))
-        self._ui.actions_page_side_panel[2].setText(_tr('BaseGUI', 'View datasets'))
-        self._ui.actions_page_side_panel[3].setText(_tr('BaseGUI', 'Move to mdi'))
-        self._ui.actions_page_side_panel[4].setText(_tr('BaseGUI', 'Settings'))
-        self._ui.action_switch_theme.setText(_tr('BaseGUI', 'Switch theme'))
-        self._ui.action_help.setText(_tr('BaseGUI', 'Help'))
-        self._ui.action_exit.setText(_tr('BaseGUI', 'Exit'))
+        self._ui.actions_page_side_panel[0].setText(QApplication.translate('BaseGUI', 'Processing'))
+        self._ui.actions_page_side_panel[1].setText(QApplication.translate('BaseGUI', 'Experiments'))
+        self._ui.actions_page_side_panel[2].setText(QApplication.translate('BaseGUI', 'View datasets'))
+        self._ui.actions_page_side_panel[3].setText(QApplication.translate('BaseGUI', 'Move to mdi'))
+        self._ui.actions_page_side_panel[4].setText(QApplication.translate('BaseGUI', 'Settings'))
+        self._ui.action_switch_theme.setText(QApplication.translate('BaseGUI', 'Switch theme'))
+        self._ui.action_help.setText(QApplication.translate('BaseGUI', 'Help'))
+        self._ui.action_exit.setText(QApplication.translate('BaseGUI', 'Exit'))
 
         # Панель Меню
-        self._ui.menu_file.setTitle(_tr('BaseGUI', "&File"))
-        self._ui.menu_view.setTitle(_tr('BaseGUI', "&View"))
-        self._ui.menu_help.setTitle(_tr('BaseGUI', "&Help"))
+        self._ui.menu_file.setTitle(QApplication.translate('BaseGUI', "&File"))
+        self._ui.menu_view.setTitle(QApplication.translate('BaseGUI', "&View"))
+        self._ui.menu_help.setTitle(QApplication.translate('BaseGUI', "&Help"))
 
         # QStackWidgets
         # Processing
         pc = self._ui.ui_processing
-        pc.tab_widget.setTabText(0, _tr('BaseGUI', "Merge"))
-        pc.tab_widget.setTabText(1, _tr('BaseGUI', "Slicing"))
-        pc.tab_widget.setTabText(2, _tr('BaseGUI', "Attributes"))
-        pc.tab_widget.setTabText(3, _tr('BaseGUI', "Geometry"))
+        pc.tab_widget.setTabText(0, QApplication.translate('BaseGUI', "Merge"))
+        pc.tab_widget.setTabText(1, QApplication.translate('BaseGUI', "Slicing"))
+        pc.tab_widget.setTabText(2, QApplication.translate('BaseGUI', "Attributes"))
+        pc.tab_widget.setTabText(3, QApplication.translate('BaseGUI', "Geometry"))
         # Processing - Merge
-        pc.merge_actions[0].setText(_tr('BaseGUI', "Add files"))
-        pc.merge_actions[1].setText(_tr('BaseGUI', "Remove files"))
-        pc.merge_actions[2].setText(_tr('BaseGUI', "Clear list"))
-        pc.merge_actions[3].setText(_tr('BaseGUI', "Merge selected files"))
-        pc.merge_output_label.setText(_tr('BaseGUI', "Output type:"))
-        pc.merge_default_output_text[0] = _tr('BaseGUI', "Default output catalog:")
-        pc.merge_default_output_text[1] = _tr('BaseGUI', "User output catalog:")
-        pc.merge_toolbar.setWindowTitle(_tr('BaseGUI', "Toolbar for merging project files"))
-        pc.merge_actions[0].setText(_tr('BaseGUI', ""))
-        pc.merge_actions[0].setText(_tr('BaseGUI', ""))
+        pc.merge_actions[0].setText(QApplication.translate('BaseGUI', "Add files"))
+        pc.merge_actions[1].setText(QApplication.translate('BaseGUI', "Remove files"))
+        pc.merge_actions[2].setText(QApplication.translate('BaseGUI', "Select all"))
+        pc.merge_actions[3].setText(QApplication.translate('BaseGUI', "Clear list"))
+        pc.merge_actions[4].setText(QApplication.translate('BaseGUI', "Merge selected files"))
+        pc.merge_actions[5].setText(QApplication.translate('BaseGUI', "Open output folder"))
+        pc.merge_output_tb.setText(
+            QApplication.translate('BaseGUI', "Default output dir: \n" + self.settings.read_default_output_dir()))
+        pc.merge_output_label.setText(QApplication.translate('BaseGUI', "Output type:"))
+        pc.merge_toolbar.setWindowTitle(QApplication.translate('BaseGUI', "Toolbar for merging project files"))
 
         # Baseview
         bv = self._ui.ui_viewdataset
-        bv.tb_info_dataset.setText(_tr('BaseGUI', ' Info'))
-        bv.tb_load_preset.setText(_tr('BaseGUI', 'Load preset dataset'))
-        bv.actions_load[0].setText(_tr('BaseGUI', 'Load last data'))
-        bv.actions_load[1].setText(_tr('BaseGUI', 'Load dir'))
-        bv.actions_load[2].setText(_tr('BaseGUI', 'Load dataset'))
-        bv.action_load_presets.setText(_tr('BaseGUI', 'Load preset dataset'))
-        bv.actions_show_data[0].setText(_tr('BaseGUI', 'One window'))
-        bv.actions_show_data[1].setText(_tr('BaseGUI', 'Add window'))
-        bv.actions_show_data[2].setText(_tr('BaseGUI', '4x windows'))
-        bv.actions_show_data[3].setText(_tr('BaseGUI', '16x windows'))
-        bv.actions_adjust[0].setText(_tr('BaseGUI', 'Tiled'))
-        bv.actions_adjust[1].setText(_tr('BaseGUI', 'Cascade'))
-        bv.actions_adjust[2].setText(_tr('BaseGUI', 'Disable layout'))
-        bv.actions_labels[0].setText(_tr('BaseGUI', 'Show labels'))
-        bv.actions_labels[1].setText(_tr('BaseGUI', 'Show filenames'))
-        bv.actions_control_images[0].setText(_tr('BaseGUI', 'Preview'))
-        bv.actions_control_images[1].setText(_tr('BaseGUI', 'Next'))
-        bv.action_shuffle_data.setText(_tr('BaseGUI', 'Shuffle data'))
-        bv.files_search.setPlaceholderText(_tr('BaseGUI', 'Filter files'))
-        bv.files_list.setWindowTitle(_tr('BaseGUI', 'Files List'))
+        bv.tb_info_dataset.setText(QApplication.translate('BaseGUI', ' Info'))
+        bv.tb_load_preset.setText(QApplication.translate('BaseGUI', 'Load preset dataset'))
+        bv.actions_load[0].setText(QApplication.translate('BaseGUI', 'Load last data'))
+        bv.actions_load[1].setText(QApplication.translate('BaseGUI', 'Load dir'))
+        bv.actions_load[2].setText(QApplication.translate('BaseGUI', 'Load dataset'))
+        bv.action_load_presets.setText(QApplication.translate('BaseGUI', 'Load preset dataset'))
+        bv.actions_show_data[0].setText(QApplication.translate('BaseGUI', 'One window'))
+        bv.actions_show_data[1].setText(QApplication.translate('BaseGUI', 'Add window'))
+        bv.actions_show_data[2].setText(QApplication.translate('BaseGUI', '4x windows'))
+        bv.actions_show_data[3].setText(QApplication.translate('BaseGUI', '16x windows'))
+        bv.actions_adjust[0].setText(QApplication.translate('BaseGUI', 'Tiled'))
+        bv.actions_adjust[1].setText(QApplication.translate('BaseGUI', 'Cascade'))
+        bv.actions_adjust[2].setText(QApplication.translate('BaseGUI', 'Disable layout'))
+        bv.actions_labels[0].setText(QApplication.translate('BaseGUI', 'Show labels'))
+        bv.actions_labels[1].setText(QApplication.translate('BaseGUI', 'Show filenames'))
+        bv.actions_control_images[0].setText(QApplication.translate('BaseGUI', 'Preview'))
+        bv.actions_control_images[1].setText(QApplication.translate('BaseGUI', 'Next'))
+        bv.action_shuffle_data.setText(QApplication.translate('BaseGUI', 'Shuffle data'))
+        bv.files_search.setPlaceholderText(QApplication.translate('BaseGUI', 'Filter files'))
+        bv.files_dock.setWindowTitle(QApplication.translate('BaseGUI', 'Files List'))
 
         # Settings
         st = self._ui.ui_settings
-        st.output_dir.setText(_tr('BaseGUI', 'Default output dir:'))
-        st.datasets_dir.setText(_tr('BaseGUI', 'Default datasets directory:'))
-        st.tab_widget.setTabText(0, _tr('BaseGUI', 'Common settings'))
-        st.chk_load_sub_dirs.setText(_tr('BaseGUI', 'Load subdirectories, when use "Load image dir"'))
+        st.output_dir.setText(QApplication.translate('BaseGUI', 'Default output dir:'))
+        st.datasets_dir.setText(QApplication.translate('BaseGUI', 'Default datasets directory:'))
+        st.tab_widget.setTabText(0, QApplication.translate('BaseGUI', 'Common settings'))
+        st.chk_load_sub_dirs.setText(
+            QApplication.translate('BaseGUI', 'Load subdirectories, when use "Load image dir"'))
 
     def show_statusbar_msg(self, msg):
         self.statusBar().showMessage(msg)
@@ -318,7 +322,7 @@ class BaseGUI(QMainWindow):
             self._theme = self._ui.actions_theme[1].text()  # зажатая кнопка темы
         else:
             self._theme = self._ui.actions_theme[0].text()  # неактивная кнопка темы
-        qdarktheme.setup_theme(self._theme, "sharp", additional_qss=qss_light if self._theme == "dark"else qss_dark)
+        qdarktheme.setup_theme(self._theme, "sharp", additional_qss=qss_light if self._theme == "dark" else qss_dark)
         self.settings.write_ui_theme(self._theme)  # сохраняем настройки темы
         self.statusBar().showMessage(self._theme)  # извещаем пользователя
 

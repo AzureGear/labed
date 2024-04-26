@@ -28,6 +28,7 @@ UI_BASE_VIEW = {
 }
 
 UI_OUTPUT_TYPES = ["SAMA.json"]
+UI_READ_LINES = 35
 
 
 # (dark) c:\venvs\lab-ed\Lib\site-packages>python -m qdarktheme.widget_gallery

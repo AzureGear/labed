@@ -156,9 +156,7 @@ def AzFileDialog(self, caption=None, last_dir=None, dir_only=False, filter=None,
                 settings.write_last_dir(select_dir)
             return select_dir
     else:
-        print("try...")
         arr = QFileDialog.getOpenFileNames(self, caption, last_dir, filter, initial_filter)
-        print("good")
         select_files = arr[0]
         if len(arr[0]) > 0:
             if save_dir:
