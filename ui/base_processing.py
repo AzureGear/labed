@@ -213,13 +213,13 @@ class ProcessingUI(QtWidgets.QWidget):
                 return
             new_name = os.path.join(self.merge_output_dir,
                                     "converted_%s.json" % datetime.now().strftime("%Y-%m-%d--%H-%M-%S"))
+            print(unique)
             if convert_labelme_to_sama(unique, new_name):
                 self.merge_files_list.clearSelection()
                 self.signal_message.emit("Файлы успешно объединены и конвертированы")
             else:
                 self.signal_message.emit("Ошибка при конвертации данных. Проверьте исходные файлы.")
             # метод возвращающий True|False в зависимости от успеха
-
         except Exception as e:
             raise e
             print("Error {}".format(e.args[0]))
