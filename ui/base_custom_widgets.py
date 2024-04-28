@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QWidget, QHBoxLayout, QPushButton, QFileDialog, QLin
 from utils import AppSettings
 from ui import newPixmap
 import os
+import re
 
 
 class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Романа Хабарова
@@ -144,6 +145,12 @@ class EditWithButton(QWidget):  # Реализация Романа Хабаро
 
 # ======================================================================================================================
 
+def natural_order(val):  # естественная сортировка
+    return [int(text) if text.isdigit() else text.lower() for text in re.split('(\d+)', val)]
+
+
+# ======================================================================================================================
+
 # @staticmethod
 def AzFileDialog(self, caption=None, last_dir=None, dir_only=False, filter=None, initial_filter=None,
                  save_dir=True, parent=None):
@@ -162,6 +169,9 @@ def AzFileDialog(self, caption=None, last_dir=None, dir_only=False, filter=None,
             if save_dir:
                 settings.write_last_dir(os.path.dirname(select_files[0]))
             return select_files
+
+
+# ======================================================================================================================
 
 
 class AzButtonLineEdit(QLineEdit):

@@ -8,6 +8,7 @@ from .base_custom_widgets import AzImageViewer
 from .base_custom_widgets import AzAction
 from .base_custom_widgets import coloring_icon
 from .base_custom_widgets import AzFileDialog
+from .base_custom_widgets import natural_order
 from .base_experiments import ExperimentUI
 from .base_settings import SettingsUI
 from .base_view import ViewDatasetUI

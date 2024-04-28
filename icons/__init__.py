@@ -56,3 +56,4 @@
 # glyph_website: Freepik
 # glyph_nuclear_power: Freepik
 # glyph_language: Freepik
+# glyph_check_all: Freepik

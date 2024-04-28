@@ -2,10 +2,9 @@ from qdarktheme.qtpy import QtCore
 from qdarktheme.qtpy import QtWidgets
 from qdarktheme.qtpy import QtGui
 from utils import AppSettings, convert_labelme_to_sama, UI_COLORS, UI_OUTPUT_TYPES, UI_READ_LINES
-from ui import coloring_icon, AzFileDialog
+from ui import coloring_icon, AzFileDialog, natural_order
 from datetime import datetime
 import os
-import json
 
 the_color = UI_COLORS.get("processing_color")
 the_color_side = UI_COLORS.get("sidepanel_color")
@@ -57,7 +56,7 @@ class ProcessingUI(QtWidgets.QWidget):
             QtGui.QAction(coloring_icon("glyph_add", the_color), "Add files", triggered=self.merge_add_files),
             QtGui.QAction(coloring_icon("glyph_delete3", the_color), "Remove files",
                           triggered=self.merge_remove_files),
-            QtGui.QAction(coloring_icon("glyph_folder_dataset", the_color), "Select all",
+            QtGui.QAction(coloring_icon("glyph_check_all", the_color), "Select all",
                           triggered=self.merge_select_all),
             QtGui.QAction(coloring_icon("glyph_delete2", the_color), "Clear list", triggered=self.merge_clear),
             QtGui.QAction(coloring_icon("glyph_merge", the_color), "Merge selected files",
@@ -122,8 +121,8 @@ class ProcessingUI(QtWidgets.QWidget):
     def merge_selection_files_change(self):  # загрузка данных *.json в предпросмотр
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)  # ставим курсор ожидание
         try:
-            if self.merge_files_list.count() > 0: # количество объектов больше 0
-                if self.merge_files_list.currentItem().text() is not None:
+            if self.merge_files_list.count() > 0:  # количество объектов больше 0
+                if self.merge_files_list.currentItem() is not None:
                     file = self.merge_files_list.currentItem().text()  # считываем текущую строку
                     if os.path.exists(file):
                         with open(file, "r") as f:
@@ -132,7 +131,8 @@ class ProcessingUI(QtWidgets.QWidget):
                                 data.append(f.readline())  # ...поскольку файлы могут быть большими
                             data.append("...")
                             self.merge_label.setText(("".join(data)))  # объединяем лист в строку
-                            self.merge_label.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)  # выравниваем надпись
+                            self.merge_label.setAlignment(
+                                QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)  # выравниваем надпись
         except Exception as e:
             raise e
             print("Error {}".format(e.args[0]))
@@ -208,12 +208,13 @@ class ProcessingUI(QtWidgets.QWidget):
                 if os.path.exists(item.text()):
                     data.append(item.text())
             unique = list(set(data))
+            unique = sorted(unique, key=natural_order)
             if len(unique) <= 1:
                 self.signal_message.emit("Выбраны дубликаты")
                 return
             new_name = os.path.join(self.merge_output_dir,
                                     "converted_%s.json" % datetime.now().strftime("%Y-%m-%d--%H-%M-%S"))
-            print(unique)
+
             if convert_labelme_to_sama(unique, new_name):
                 self.merge_files_list.clearSelection()
                 self.signal_message.emit("Файлы успешно объединены и конвертированы")
