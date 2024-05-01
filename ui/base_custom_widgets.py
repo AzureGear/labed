@@ -14,11 +14,6 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
     """
 
     def __init__(self, parent=None, active_color=None, fat_point_color=None, on_rubber_band_mode=None):
-        """
-        active_color - цвет активного полигона, по умолчанию config.ACTIVE_COLOR
-        fat_point_color - цвет узлов активного полигона, по умолчанию config.FAT_POINT_COLOR
-        """
-
         super().__init__(parent)
         scene = QtWidgets.QGraphicsScene(self)
         self.setScene(scene)
@@ -34,113 +29,9 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
         """
         Задать новую картинку
         """
-        # scene = QtWidgets.QGraphicsScene(self)
-        # self.setScene(scene)
-        # self.scene().clear()
-
         self._pixmap_item = QtWidgets.QGraphicsPixmapItem()
         self.scene().addItem(self._pixmap_item)
         self.pixmap_item.setPixmap(pixmap)
-        #
-        # self.init_objects_and_params()
-        #
-        # self.set_fat_width()
-        # self.set_pens()
-        # self.remove_fat_point_from_scene()
-        # self.clear_ai_points()
-        #
-        # self.active_group = ActiveHandler([])
-        # self.active_group.set_brush_pen_line_width(self.active_brush, self.active_pen, self.line_width)
-        #
-        # # Ruler items clear:
-        # self.on_ruler_mode_off()
-        #
-        # if self.view_state == ViewState.rubber_band:
-        #     self.on_rb_mode_change(False)
-
-
-# ======================================================================================================================
-class EditWithButton(QWidget):  # Реализация Романа Хабарова
-    def __init__(self, parent, in_separate_window=False, on_button_clicked_callback=None,
-                 is_dir=False, file_type='txt',
-                 dialog_text='Открытие файла', placeholder=None, title=None,
-                 is_existing_file_only=True):
-        """
-        Поле Edit с кнопкой
-        """
-        super().__init__(parent)
-        self.settings = AppSettings()
-        last_dir = self.settings.read_last_dir()
-
-        if in_separate_window:
-            self.setWindowFlag(QtCore.Qt.Tool)
-
-        if title:
-            self.setWindowTitle(title)
-
-        self.is_dir = is_dir
-        self.file_type = file_type
-        self.on_button_clicked_callback = on_button_clicked_callback
-        self.dialog_text = dialog_text
-        self.start_folder = last_dir
-        self.is_existing_file_only = is_existing_file_only
-
-        layout = QHBoxLayout()
-
-        self.edit = QLineEdit()
-        if placeholder:
-            self.edit.setPlaceholderText(placeholder)
-        self.button = QPushButton()
-
-        self.icon_folder = os.path.join(os.path.dirname(__file__), "..", "icons", "glyph_folder.png")
-
-        self.button.setIcon(QIcon(self.icon_folder))
-
-        self.button.clicked.connect(self.on_button_clicked)
-
-        layout.addWidget(self.edit)
-        self.edit_height = self.edit.height() - 12
-        layout.addWidget(self.button)
-        self.setLayout(layout)
-
-    def setPlaceholderText(self, placeholder):
-        self.edit.setPlaceholderText(placeholder)
-
-    def getEditText(self):
-        return self.edit.text()
-
-    def showEvent(self, event):
-        self.button.setMaximumHeight(max(self.edit_height, self.edit.height()))
-
-    def on_button_clicked(self):
-
-        if self.is_dir:
-            dir_ = QFileDialog.getExistingDirectory(self,
-                                                    self.dialog_text)
-            if dir_:
-                # self.settings.write_last_opened_path(dir_)
-                self.edit.setText(dir_)
-                if self.on_button_clicked_callback:
-                    self.on_button_clicked_callback()
-
-        else:
-
-            if self.is_existing_file_only:
-                file_name, _ = QFileDialog.getOpenFileName(self,
-                                                           self.dialog_text,
-                                                           self.start_folder,
-                                                           f'{self.file_type} File (*.{self.file_type})')
-
-            else:
-                file_name, _ = QFileDialog.getSaveFileName(self,
-                                                           self.dialog_text,
-                                                           self.start_folder,
-                                                           f'{self.file_type} File (*.{self.file_type})')
-            if file_name:
-                # self.settings.write_last_opened_path(os.path.dirname(file_name))
-                self.edit.setText(file_name)
-                if self.on_button_clicked_callback:
-                    self.on_button_clicked_callback()
 
 
 # ======================================================================================================================
@@ -154,6 +45,7 @@ def natural_order(val):  # естественная сортировка
 # @staticmethod
 def AzFileDialog(self, caption=None, last_dir=None, dir_only=False, filter=None, initial_filter=None,
                  save_dir=True, parent=None):
+    """ Базовые варианты диалоговых окон """
     settings = AppSettings()  # чтение настроек
     save_dir = settings.read_last_dir()  # вспоминаем прошлый открытый каталог
     if dir_only:
