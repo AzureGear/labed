@@ -6,7 +6,6 @@ from ui import coloring_icon, AzFileDialog, natural_order
 from datetime import datetime
 import os
 
-
 the_color = UI_COLORS.get("processing_color")
 the_color_side = UI_COLORS.get("sidepanel_color")
 current_folder = os.path.dirname(os.path.abspath(__file__))
@@ -26,7 +25,7 @@ class ProcessingUI(QtWidgets.QWidget):
         self.tab_widget = QtWidgets.QTabWidget()  # виджет со вкладками-страницами обработки
         self.tab_widget.setIconSize(QtCore.QSize(24, 24))
         self.tab_widget.currentChanged.connect(self.change_tab)
-        layout.addWidget(self.tab_widget)
+        layout.addWidget(self.tab_widget)  # добавляем виджет со вкладками в расположение
 
         # Создание и настройка перечня виджетов-вкладок
         self.tab_merge_setup()
@@ -112,7 +111,7 @@ class ProcessingUI(QtWidgets.QWidget):
         wid = QtWidgets.QWidget()  # создаём виджет-контейнер...
         wid.setLayout(vlayout)  # ...куда помещаем vlayout (поскольку Central Widget может быть только QWidget)
         self.ui_tab_merge.addToolBar(self.merge_toolbar)  # добавляем панель меню
-        self.ui_tab_merge.setCentralWidget(wid)  # устанавливаем главный виджет старицы "Слияние"
+        self.ui_tab_merge.setCentralWidget(wid)  # устанавливаем главный виджет страницы "Слияние"
         self.merge_toggle_instruments()
 
     def merge_cust_path_box_toggled(self):
@@ -142,7 +141,20 @@ class ProcessingUI(QtWidgets.QWidget):
             self.merge_toggle_instruments()
 
     def tab_slicing_setup(self):  # настройка страницы "Нарезка"
-        self.ui_tab_slicing = self.tab_basic_setup()
+        self.ui_tab_slicing = self.tab_basic_setup(complex=True)
+        self.pb1 = QtWidgets.QPushButton("glyph_folder")
+        self.pb2 = QtWidgets.QPushButton("glyph_folder2")
+        split = QtWidgets.QSplitter(QtCore.Qt.Vertical)  # вертикальный разделитель
+        split.addWidget(self.pb1)  #
+        split.addWidget(self.pb2)  #
+        split.setChildrenCollapsible(False)  # отключаем полное сворачивание виджетов внутри разделителя
+        split.setSizes((30, 70))
+        vlayout = QtWidgets.QVBoxLayout()  # контейнер QVBoxLayout()
+        vlayout.addWidget(split)  # добавляем область с разделением
+        wid = QtWidgets.QWidget()  # создаём виджет-контейнер...
+        wid.setLayout(vlayout)  # ...куда помещаем vlayout (поскольку Central Widget может быть только QWidget)
+        self.ui_tab_slicing.setCentralWidget(wid)
+
 
     def tab_attributes_setup(self):  # настройка страницы "Атрибуты"
         self.ui_tab_attributes = self.tab_basic_setup()
