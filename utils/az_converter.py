@@ -35,11 +35,10 @@ import os
 
 # TODO: сделать функцию считывания ЛРМ изо всех файлов *.MAP, ее усреднения и записи в файл SAMA
 
-def convert_labelme_to_sama(input_files, output_file):
+def convert_to_sama(input_files, output_file):
     """
     Конвертация файлов проекта LabelMe в проект SAMA
     """
-    print(input_files)
     data = dict()
     data["path_to_images"] = os.path.dirname(input_files[0])  # такой же, как у первого файла
     images = {}  # изображения
@@ -49,7 +48,6 @@ def convert_labelme_to_sama(input_files, output_file):
     id_count = -1  # начинаем с -1, т.к. на первой итерации +1 и будет id:0.
 
     for item in input_files:  # начинаем обход перечня полученных файлов
-        print(item)
         list_shapes = []
         label_me_data = load(item)
         img_name = label_me_data["imagePath"]  # формируем имя файла (можно и через os.path.basename(image))

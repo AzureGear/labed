@@ -1,10 +1,11 @@
 from qdarktheme.qtpy import QtCore
 from qdarktheme.qtpy import QtWidgets
 from qdarktheme.qtpy import QtGui
-from utils import AppSettings, convert_labelme_to_sama, UI_COLORS, UI_OUTPUT_TYPES, UI_READ_LINES
+from utils import AppSettings, convert_to_sama, UI_COLORS, UI_OUTPUT_TYPES, UI_READ_LINES
 from ui import coloring_icon, AzFileDialog, natural_order
 from datetime import datetime
 import os
+
 
 the_color = UI_COLORS.get("processing_color")
 the_color_side = UI_COLORS.get("sidepanel_color")
@@ -215,7 +216,7 @@ class ProcessingUI(QtWidgets.QWidget):
             new_name = os.path.join(self.merge_output_dir,
                                     "converted_%s.json" % datetime.now().strftime("%Y-%m-%d--%H-%M-%S"))
 
-            if convert_labelme_to_sama(unique, new_name):
+            if convert_to_sama(unique, new_name):
                 self.merge_files_list.clearSelection()
                 self.signal_message.emit("Файлы успешно объединены и конвертированы")
             else:
