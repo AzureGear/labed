@@ -71,17 +71,21 @@ class AzButtonLineEdit(QLineEdit):
     Упрощённая QLineEdit с кнопкой внутри
     """
 
-    def __init__(self, icon_name, color="Black", caption=None, read_only=True, parent=None, dir_only=False,
-                 on_button_clicked_callback=None):
+    def __init__(self, icon_name, color="Black", caption=None, read_only=True, dir_only=False, save_dialog=False,
+                 filter=None, save_dir=True, initial_filter=None, on_button_clicked_callback=None, parent=None):
         super(AzButtonLineEdit, self).__init__(parent)
         self.settings = AppSettings()  # чтение настроек
-        self.last_dir = self.settings.read_last_dir()  # вспоминаем прошлый открытый каталог
         self.button = QtWidgets.QToolButton(self)  # создаём кнопку
         self.button.setIcon(coloring_icon(icon_name, color))  # устанавливаем иконку
         # принимаем и устанавливаем атрибуты:
         self.on_button_clicked_callback = on_button_clicked_callback
+        self.last_dir = self.settings.read_last_dir()  # вспоминаем прошлый открытый каталог
         self.dir_only = dir_only
+        self.save_dialog = save_dialog
+        self.save_dir = save_dir
         self.caption = caption
+        self.filter = filter
+        self.initial_filter = initial_filter
         self.setReadOnly(read_only)
         self.button.clicked.connect(self.on_button_clicked)  # соединяем сигнал щелчка
         # self.button.setStyleSheet('border: 0px; padding: 0px;')  # убираем границу и отступы
@@ -96,13 +100,30 @@ class AzButtonLineEdit(QLineEdit):
         super(AzButtonLineEdit, self).resizeEvent(event)
 
     def on_button_clicked(self):
-        if self.dir_only:
+        self.last_dir = self.settings.read_last_dir()  # обновляем, т.к. могли выполняться действия
+        if self.dir_only:  # выбрано "только каталог"
             select_dir = QFileDialog.getExistingDirectory(self, self.caption, self.last_dir)
             if select_dir:
-                self.settings.write_last_dir(select_dir)
+                if self.save_dir:
+                    self.settings.write_last_dir(select_dir)
                 self.setText(select_dir)
                 if self.on_button_clicked_callback:
                     self.on_button_clicked_callback()
+        else:
+            if self.save_dialog:  # выбрано диалог сохранения файла
+                filename, _ = QFileDialog.getSaveFileName(self, self.caption, self.last_dir, self.filter,
+                                                          self.initial_filter)
+                if self.save_dir:
+                    self.settings.write_last_dir(os.path.dirname(filename))
+            else:  # значит классический вариант выбора файлов (dir_only=False, save_dialog=False)
+                filename, _ = QFileDialog.getOpenFileName(self, self.caption, self.last_dir, self.filter,
+                                                          self.initial_filter)
+            if len(filename) > 0:  # проверяем в обоих случаях возвращаемый файл
+                if self.save_dir:  # сохраняем последний используемый каталог
+                    self.settings.write_last_dir(os.path.dirname(filename))
+                self.setText(filename)
+            if self.on_button_clicked_callback:
+                self.on_button_clicked_callback()
 
 
 # ======================================================================================================================

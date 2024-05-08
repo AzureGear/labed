@@ -1,3 +1,23 @@
+# def getFileName(self):
+#     filename, filetype = QFileDialog.getOpenFileName(self,
+#                                                      "Выбрать файл",
+#                                                      ".",
+#                                                      "Text Files(*.txt);;JPEG Files(*.jpeg);;\
+#                                                      PNG Files(*.png);;GIF File(*.gif);;All Files(*)")
+#     self.plainTextEdit.appendHtml("<br>Выбрали файл: <b>{}</b> <br> <b>{:*^54}</b>"
+#                                   "".format(filename, filetype))
+#
+#
+# def getFileNames(self):
+#     filenames, ok = QFileDialog.getOpenFileNames(self,
+#                                                  "Выберите несколько файлов",
+#                                                  ".",
+#                                                  "All Files(*.*)")
+#     self.plainTextEdit.appendHtml("""<br>Выбрали несколько файлов:
+#                                    <b>{}</b> <br> <b>{:*^80}</b>"""
+#                                   "".format(filenames, ok))
+#
+# ----------------------------------------------------------------------------------------------------------------------
 # Отображение картинок, текста и проч. - было добавлено в init
 # test_img = os.path.join(current_folder, "..", "test.jpg")
 # scene = QGraphicsScene()  # Создание графической сцены
@@ -16,7 +36,8 @@
 # # text.setY(200)
 # scene.addItem(text)  # Добавление текста на сцену
 # layout.addWidget(graphicView)
-# ----------------------------------------------------------------------
+#
+# ----------------------------------------------------------------------------------------------------------------------
 #
 # def show_image(self, to_right: bool = True):
 #     filename = None
@@ -34,70 +55,70 @@
 #                 filename = self.image_list[index + 1]
 #         self.files_list.setCurrentRow()
 # ------------------------------------
-
-import sys
-from PyQt5.Qt import *
-
-
-class GraphicsView(QGraphicsView):
-    def __init__(self):
-        super(GraphicsView, self).__init__()
-        self.resize(400, 400)
-
-        self.scene = QGraphicsScene()
-        self.scene.setSceneRect(0, 0, 400, 400)
-
-        self.pic = QGraphicsPixmapItem()
-        self.pic.setPixmap(QPixmap('Ok.png').scaled(60, 60))
-        # позволяет выбирать его и перемещать
-        self.pic.setFlags(QGraphicsItem.ItemIsSelectable | QGraphicsItem.ItemIsMovable)
-        # установить смещение изображения от начала координат сцены
-        self.pic.setOffset(170, 170)
-
-        self.text = QGraphicsTextItem()
-        self.text.setPlainText('Hello QGraphicsPixmapItem')
-        self.text.setDefaultTextColor(QColor('#91091e'))  # для установки цвета текста
-        # setPos - для установки положения текстовых примитивов относительно начала координат сцены
-        self.text.setPos(130, 230)
-
-        self.scene.addItem(self.pic)
-        self.scene.addItem(self.text)
-        self.setScene(self.scene)
-
-
-class MainWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-
-        self.centralWidget = QWidget()
-        self.setCentralWidget(self.centralWidget)
-
-        self.graphicsView = GraphicsView()  # создаём QGraphicView
-        self.open_im = QPushButton('Add image')
-        self.open_im.clicked.connect(self.addImage)
-
-        layout = QVBoxLayout(self.centralWidget)
-        layout.addWidget(self.graphicsView)
-        layout.addWidget(self.open_im)
-
-    def addImage(self):
-        #        pixmap = QGraphicsItem(QPixmap(fname))
-        #        form.srcGraphicsView.addItem(pixmap)
-        fname, _ = QFileDialog.getOpenFileName(
-            self, 'Open file', '.', 'Image Files (*.png *.jpg *.bmp)')
-        if fname:
-            pic = QGraphicsPixmapItem()
-            pic.setPixmap(QPixmap(fname).scaled(160, 160))
-            pic.setFlags(QGraphicsItem.ItemIsSelectable | QGraphicsItem.ItemIsMovable)
-            pic.setOffset(12, 12)
-            self.graphicsView.scene.addItem(pic)
-
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    demo = MainWindow()  # Demo()
-    demo.show()
-    sys.exit(app.exec_())
+#
+# import sys
+# from PyQt5.Qt import *
+#
+#
+# class GraphicsView(QGraphicsView):
+#     def __init__(self):
+#         super(GraphicsView, self).__init__()
+#         self.resize(400, 400)
+#
+#         self.scene = QGraphicsScene()
+#         self.scene.setSceneRect(0, 0, 400, 400)
+#
+#         self.pic = QGraphicsPixmapItem()
+#         self.pic.setPixmap(QPixmap('Ok.png').scaled(60, 60))
+#         # позволяет выбирать его и перемещать
+#         self.pic.setFlags(QGraphicsItem.ItemIsSelectable | QGraphicsItem.ItemIsMovable)
+#         # установить смещение изображения от начала координат сцены
+#         self.pic.setOffset(170, 170)
+#
+#         self.text = QGraphicsTextItem()
+#         self.text.setPlainText('Hello QGraphicsPixmapItem')
+#         self.text.setDefaultTextColor(QColor('#91091e'))  # для установки цвета текста
+#         # setPos - для установки положения текстовых примитивов относительно начала координат сцены
+#         self.text.setPos(130, 230)
+#
+#         self.scene.addItem(self.pic)
+#         self.scene.addItem(self.text)
+#         self.setScene(self.scene)
+#
+#
+# class MainWindow(QMainWindow):
+#     def __init__(self):
+#         super().__init__()
+#
+#         self.centralWidget = QWidget()
+#         self.setCentralWidget(self.centralWidget)
+#
+#         self.graphicsView = GraphicsView()  # создаём QGraphicView
+#         self.open_im = QPushButton('Add image')
+#         self.open_im.clicked.connect(self.addImage)
+#
+#         layout = QVBoxLayout(self.centralWidget)
+#         layout.addWidget(self.graphicsView)
+#         layout.addWidget(self.open_im)
+#
+#     def addImage(self):
+#         #        pixmap = QGraphicsItem(QPixmap(fname))
+#         #        form.srcGraphicsView.addItem(pixmap)
+#         fname, _ = QFileDialog.getOpenFileName(
+#             self, 'Open file', '.', 'Image Files (*.png *.jpg *.bmp)')
+#         if fname:
+#             pic = QGraphicsPixmapItem()
+#             pic.setPixmap(QPixmap(fname).scaled(160, 160))
+#             pic.setFlags(QGraphicsItem.ItemIsSelectable | QGraphicsItem.ItemIsMovable)
+#             pic.setOffset(12, 12)
+#             self.graphicsView.scene.addItem(pic)
+#
+#
+# if __name__ == '__main__':
+#     app = QApplication(sys.argv)
+#     demo = MainWindow()  # Demo()
+#     demo.show()
+#     sys.exit(app.exec_())
 
 # ================================================================================================
 # try:

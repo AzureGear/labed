@@ -8,7 +8,7 @@ import json
 import copy
 
 if __name__ == '__main__':
-    Path = 'D:/Beatls/NIR_S/Крамола/2024/Progs/DataForProgs/cutter_prj'
+    Path = 'd:/data_sets/uranium enrichment/test_cut/'
     JsonFile = 'res.json'
     jsonObj = dn_crop.DNjson(Path + '/' + JsonFile)
     NumImg = 70

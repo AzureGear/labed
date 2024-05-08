@@ -2,7 +2,7 @@ from qdarktheme.qtpy import QtCore
 from qdarktheme.qtpy import QtWidgets
 from qdarktheme.qtpy import QtGui
 from utils import AppSettings, convert_to_sama, UI_COLORS, UI_OUTPUT_TYPES, UI_READ_LINES
-from ui import coloring_icon, AzFileDialog, natural_order
+from ui import coloring_icon, AzFileDialog, natural_order, AzButtonLineEdit
 from datetime import datetime
 import os
 
@@ -28,10 +28,10 @@ class ProcessingUI(QtWidgets.QWidget):
         layout.addWidget(self.tab_widget)  # добавляем виджет со вкладками в расположение
 
         # Создание и настройка перечня виджетов-вкладок
-        self.tab_merge_setup()
-        self.tab_slicing_setup()
-        self.tab_attributes_setup()
-        self.tab_geometry_setup()
+        self.tab_merge_setup()  # "Слияние"
+        self.tab_slicing_setup()  # "Нарезка"
+        self.tab_attributes_setup()  # "Атрибуты"
+        self.tab_geometry_setup()  # "Геометрия"
 
         ui_summ = [  # перечень: QWidget, "имя вкладки", "имя иконки", "подсказка"
             [self.ui_tab_merge, "Merge", "glyph_merge", "Объединение файлов разметки в формат SAMA"],  # "Слияние"
@@ -142,19 +142,67 @@ class ProcessingUI(QtWidgets.QWidget):
 
     def tab_slicing_setup(self):  # настройка страницы "Нарезка"
         self.ui_tab_slicing = self.tab_basic_setup(complex=True)
-        self.pb1 = QtWidgets.QPushButton("glyph_folder")
-        self.pb2 = QtWidgets.QPushButton("glyph_folder2")
+        self.pb2 = QtWidgets.QPushButton("Manual Visual Slice Process")
         split = QtWidgets.QSplitter(QtCore.Qt.Vertical)  # вертикальный разделитель
-        split.addWidget(self.pb1)  #
-        split.addWidget(self.pb2)  #
-        split.setChildrenCollapsible(False)  # отключаем полное сворачивание виджетов внутри разделителя
-        split.setSizes((30, 70))
+        slice_auto_form = QtWidgets.QFormLayout()  # форма для автоматического разрезания
+        self.slice_input_file_label = QtWidgets.QLabel("Path to file project *.json:")
+        self.slice_input_file_path = AzButtonLineEdit("glyph_folder", the_color,
+                                                      caption="Select project file to auto slicing",
+                                                      read_only=True, dir_only=False, filter="Projects files (*.json)",
+                                                      on_button_clicked_callback=self.slice_load_projects_data,
+                                                      initial_filter="json (*.json)")
+        self.slice_input_file_path.setText(self.settings.read_slicing_input())  # строка для исходного файла
+        self.slice_input_file_path.textChanged.connect(
+            lambda: self.settings.write_slicing_input(self.slice_input_file_path.text()))  # автосохранение
+        self.slice_output_file_check = QtWidgets.QCheckBox("Set user output file path other than default:")
+        self.slice_output_file_path = AzButtonLineEdit("glyph_folder", the_color,
+                                                       caption="Output file",
+                                                       read_only=True, dir_only=True)
+        # regexp = QtCore.QRegExp(r'^[[:ascii:]]+$')  # проверка имени файла на символы
+        # validator = QtGui.QRegExpValidator(regexp, self.slice_output_file_path)  # создаём валидатор
+        # self.slice_output_file_path.setValidator(validator)  # применяем его к нашей строке
+        self.slice_scan_size
+
+
+
+        self.slice_output_file_path.setEnabled(False)
+        self.slice_output_file_check.clicked.connect(self.slice_toggle_output_file)  # соединяем - требуется настройка
+        self.slice_output_file_path.setText(self.settings.read_default_output_dir())  # строка для выходного файла
+        self.slice_scan_size = 0  # размер сканирующего окна;
+        self.slice_overlap_window = 0  # процент перекрытия окна для смежных кадров
+        self.slice_overlap_pols = 0  # какой процент площади полигонов надо перекрыть окном
+
+        self.slice_exec = QtWidgets.QPushButton("Slice images in project")
+        ver_layout = QtWidgets.QVBoxLayout()
+        ver_layout.addWidget(QtWidgets.QLabel("Hello!"))
+        ver_layout.addWidget(QtWidgets.QLabel())
+
+        slice_auto_form.addRow(self.slice_input_file_label, self.slice_input_file_path)
+        slice_auto_form.addRow(self.slice_output_file_check, self.slice_output_file_path)
+        slice_auto_form.addRow(ver_layout)
+        up_widget = QtWidgets.QWidget()  # верхний виджет - автоматизированная обработка
+        up_widget.setLayout(slice_auto_form)
+        split.addWidget(up_widget)
+        split.addWidget(self.pb2)  # нижний виджет - ручная обработка
+        split.setChildrenCollapsible(True)  # включаем полное сворачивание виджетов внутри разделителя
+        split.setSizes((10, 120))
         vlayout = QtWidgets.QVBoxLayout()  # контейнер QVBoxLayout()
         vlayout.addWidget(split)  # добавляем область с разделением
         wid = QtWidgets.QWidget()  # создаём виджет-контейнер...
         wid.setLayout(vlayout)  # ...куда помещаем vlayout (поскольку Central Widget может быть только QWidget)
         self.ui_tab_slicing.setCentralWidget(wid)
 
+        # проверяем есть ли сохранённый ранее файл проекта, и загружаем его автоматически
+        if len(self.slice_input_file_path.text()) > 0:
+            self.slice_load_projects_data()
+
+    def slice_load_projects_data(self):  # загрузка файла проекта
+        pass  # загружаем формы
+
+    def slice_toggle_output_file(self):
+        self.slice_output_file_path.setEnabled(self.slice_output_file_check.checkState())
+        if not self.slice_output_file_check.isChecked():
+            self.slice_output_file_path.setText(self.settings.read_default_output_dir())
 
     def tab_attributes_setup(self):  # настройка страницы "Атрибуты"
         self.ui_tab_attributes = self.tab_basic_setup()

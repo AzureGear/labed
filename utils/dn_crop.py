@@ -6,8 +6,9 @@ import json
 import os
 
 
-# Класс работы с результатами НС, записанными в формате json
 class DNjson:
+    """ Класс работы с исходными данными (результатами НС), записанными в формате json"""
+
     def __init__(self, json_file: str):
         self.json_file = json_file
 
@@ -162,8 +163,10 @@ class DNjson:
         return Polys
 
 
-# Класс работы с изображениями
+# ----------------------------------------------------------------------------------------------------------------------
 class DNImgCut:
+    """ Класс работы с изображениями"""
+
     def __init__(self, PathToImg: str, NameJsonFile: str):
 
         self.PathToImg = PathToImg
@@ -393,6 +396,13 @@ class DNImgCut:
 
     # Функция нарезки всех картинок в json файле и генерация нового json-файла
     def CutAllImgs(self, SizeWind: int, ProcOverlapPol: [], ProcOverlapW: float, NameJsonFile: str):
+        """
+        1 - размер сканирующего окна;
+        ProcOverlapPol - какой процент площади полигонов надо перекрыть окном, чтобы считать возможным
+                зафиксировать позицию окна;
+        ProcOverlapW - процент перекрытия окна для смежных кадров
+            """
+        # TODO: все сокращения дениса переправить: Wind - ветер; Proc - сокращение от процесс, обработка;
         JsonAllData = {}
 
         # Добавляем путь к файлам-картинкам

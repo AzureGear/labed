@@ -68,3 +68,9 @@ class AppSettings:
 
     def write_load_sub_dir(self, b):    # загружать ли подкаталоги, когда загружаешь каталог [w]
         self.settings.setValue('common/with_sub_dirs', b)
+
+    def read_slicing_input(self):  # исходный файл проекта для автонарезки [r]
+        return self.settings.value('slicing/input_file', '')
+
+    def write_slicing_input(self, path):  # исходный файл проекта для автонарезки [w]
+        self.settings.setValue('slicing/input_file', path)
