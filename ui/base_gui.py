@@ -1,22 +1,20 @@
-from qdarktheme.qtpy.QtCore import QDir, Qt, Slot, pyqtSlot, pyqtSignal, QTranslator, QEvent
-from qdarktheme.qtpy.QtGui import QAction, QActionGroup, QWindow, QColor, QPixmap, QIcon
-from qdarktheme.qtpy.QtWidgets import QApplication, QToolBar, QToolButton, QWidget, QMainWindow, QStackedWidget, \
-    QStatusBar, QMenuBar, QSizePolicy, QMessageBox, QLabel, QMenu
+from qdarktheme.qtpy import QtCore
+from qdarktheme.qtpy import QtGui  # QAction, QActionGroup, QWindow, QColor, QPixmap, QIcon
+from qdarktheme.qtpy import QtWidgets  # QApplication, QToolBar, QToolButton, QWidget, QMainWindow, QStackedWidget,
+#  QStatusBar, QMenuBar, QSizePolicy, QMessageBox, QLabel, QMenu
 from utils import config
 from PyQt5 import QtWidgets
 import qdarktheme
 import sys
 import os
-from ui import newIcon
+from utils import APP_MIN_SIZE, UI_COLORS, AppSettings
 from ui import SettingsUI, ViewDatasetUI, ExperimentUI, ProcessingUI, AutomationUI
-from qdarktheme.widget_gallery._ui.frame_ui import FrameUI
-from utils import UI_COLORS, AppSettings
-from ui import AzAction, coloring_icon
+from ui import newIcon, AzAction, coloring_icon
 
+from qdarktheme.widget_gallery._ui.frame_ui import FrameUI
 from qdarktheme.widget_gallery._ui.widgets_ui import WidgetsUI
 
 the_color = UI_COLORS.get("sidepanel_color")
-
 current_folder = os.path.dirname(os.path.abspath(__file__))  # каталога проекта + /ui/
 
 # стиль некоторых виджетов для темной темы
@@ -73,7 +71,7 @@ QToolTip {
 
 
 class _BaseGUI:
-    def setup_ui(self, main_widget: QMainWindow):
+    def setup_ui(self, main_widget: QtWidgets.QMainWindow):
         # Actions для боковой панели
         self.actions_page_side_panel = (
             AzAction("Processing", "glyph_pickaxe", UI_COLORS.get("processing_color"), the_color),
@@ -86,37 +84,38 @@ class _BaseGUI:
         self.action_switch_theme = AzAction("Switch theme", "glyph_black-and-white", the_color, the_color)
 
         # Actions для меню
-        self.action_exit = QAction("Exit")
-        self.actions_theme = [QAction(theme, main_widget) for theme in ["dark", "light"]]
-        self.action_help = (QAction("Help"))
+        self.action_exit = QtGui.QAction("Exit")
+        self.actions_theme = [QtGui.QAction(theme, main_widget) for theme in ["dark", "light"]]
+        self.action_help = (QtGui.QAction("Help"))
 
         # Создаем кнопки
-        tool_btn_lang = QToolButton()  # создаем кнопки
+        tool_btn_lang = QtWidgets.QToolButton()  # создаем кнопки
 
         # Выбор языка
         tool_btn_lang.setIcon(coloring_icon('glyph_language', the_color))  # кнопка выбора языка
-        tool_btn_lang.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)  # со всплывающим меню
+        tool_btn_lang.setPopupMode(QtWidgets.QToolButton.ToolButtonPopupMode.InstantPopup)  # со всплывающим меню
         self.actions_switch_lang = []  # перечень QActions для доступных переводов (сделаем динамическое меню)
         for file in os.listdir(os.path.join(current_folder, "../" + config.LOCALIZATION_FOLDER)):
             if file.endswith(".qm"):  # файлы локализаций *.qm
                 only_file_name = os.path.splitext(file)[0]  # удаляем расширение
-                self.actions_switch_lang.append(QAction(text=only_file_name))  # формируем набор QAction для локализаций
+                self.actions_switch_lang.append(
+                    QtGui.QAction(text=only_file_name))  # формируем набор QAction для локализаций
         tool_btn_lang.addActions(self.actions_switch_lang)  # передаем его кнопке
 
         # Группировка виджетов
-        self.central_window = QMainWindow()  # главный виджет
-        self.stack_widget = QStackedWidget()  # виджет с переменой окон
-        sidepanel = QToolBar("Панель режимов")  # левая панель режимов, всегда активная
-        statusbar = QStatusBar()  # статусная строка
-        menubar = QMenuBar()  # панель меню
+        self.central_window = QtWidgets.QMainWindow()  # главный виджет
+        self.stack_widget = QtWidgets.QStackedWidget()  # виджет с переменой окон
+        sidepanel = QtWidgets.QToolBar("Панель режимов")  # левая панель режимов, всегда активная
+        statusbar = QtWidgets.QStatusBar()  # статусная строка
+        menubar = QtWidgets.QMenuBar()  # панель меню
 
-        action_group_toolbar = QActionGroup(main_widget)  # группа действий для панели режимов
+        action_group_toolbar = QtGui.QActionGroup(main_widget)  # группа действий для панели режимов
         for action in self.actions_page_side_panel:
             action.setCheckable(True)
             action_group_toolbar.addAction(action)  # соединяем действия боковой панели в группу
 
-        spacer = QToolButton()  # пустая растяжка между иконками
-        spacer.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
+        spacer = QtWidgets.QToolButton()  # пустая растяжка между иконками
+        spacer.setSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Expanding)
         spacer.setEnabled(False)
         # настройки панели режимов
         sidepanel.setMovable(False)
@@ -127,13 +126,13 @@ class _BaseGUI:
         sidepanel.toggleViewAction().setVisible(False)
 
         # Меню
-        self.menu_file = QMenu("&File")
+        self.menu_file = QtWidgets.QMenu("&File")
         self.menu_file.addAction(self.action_exit)
 
-        self.menu_view = QMenu("&View")
+        self.menu_view = QtWidgets.QMenu("&View")
         self.menu_view.addActions(self.actions_page_side_panel)
 
-        self.menu_help = QMenu("&Help")
+        self.menu_help = QtWidgets.QMenu("&Help")
         self.menu_help.addAction(self.action_help)
 
         menubar.addMenu(self.menu_file)
@@ -154,12 +153,12 @@ class _BaseGUI:
 
         # настраиваем интерфейс
         main_widget.setCentralWidget(self.central_window)
-        main_widget.addToolBar(Qt.ToolBarArea.LeftToolBarArea, sidepanel)
+        main_widget.addToolBar(QtCore.Qt.ToolBarArea.LeftToolBarArea, sidepanel)
         main_widget.setMenuBar(menubar)
         main_widget.setStatusBar(statusbar)
 
 
-class BaseGUI(QMainWindow):
+class BaseGUI(QtWidgets.QMainWindow):
     """
     Базовый класс для взаимодействия с пользователем
     """
@@ -184,7 +183,7 @@ class BaseGUI(QMainWindow):
             action.triggered.connect(self.change_page)
 
         # Локализация
-        self.trans = QTranslator(self)  # переводчик
+        self.trans = QtCore.QTranslator(self)  # переводчик
         self._retranslate_ui()  # переключение языка
 
         # Настройки по умолчанию и сохранённые настройки
@@ -200,99 +199,101 @@ class BaseGUI(QMainWindow):
         last_lang = self.settings.read_lang()  # загрузка сохранённого языка
         for action in self._ui.actions_switch_lang:
             if action.text() == last_lang: action.trigger()  # меняем язык на сохранённый
-        self.setMinimumWidth(300)
-        self.setMinimumHeight(250)
+        self.setMinimumWidth(APP_MIN_SIZE.get("HEIGHT"))
+        self.setMinimumHeight(APP_MIN_SIZE.get("HEIGHT") * APP_MIN_SIZE.get("WIDTH"))
 
         position, size, state = self.settings.read_ui_position()
         self.resize(size)
         self.move(position)
-        self.setWindowState(Qt.WindowState(state))
+        self.setWindowState(QtCore.Qt.WindowState(state))
 
     def closeEvent(self, event):
         self.settings.write_ui_position(self.pos(), self.size(), self.windowState())
 
     def _retranslate_ui(self):
         # Перечень всех виджетов и объектов для которых будет выполняться локализация
-        _tr = QApplication.translate
-        self._ui.actions_page_side_panel[0].setText(QApplication.translate('BaseGUI', 'Processing'))
-        self._ui.actions_page_side_panel[1].setText(QApplication.translate('BaseGUI', 'Experiments'))
-        self._ui.actions_page_side_panel[2].setText(QApplication.translate('BaseGUI', 'View datasets'))
-        self._ui.actions_page_side_panel[3].setText(QApplication.translate('BaseGUI', 'Move to mdi'))
-        self._ui.actions_page_side_panel[4].setText(QApplication.translate('BaseGUI', 'Settings'))
-        self._ui.action_switch_theme.setText(QApplication.translate('BaseGUI', 'Switch theme'))
-        self._ui.action_help.setText(QApplication.translate('BaseGUI', 'Help'))
-        self._ui.action_exit.setText(QApplication.translate('BaseGUI', 'Exit'))
+        _tr = QtWidgets.QApplication.translate  # не работает при использовании сокращения перевод не выполняется
+        self._ui.actions_page_side_panel[0].setText(QtWidgets.QApplication.translate('BaseGUI', 'Processing'))
+        self._ui.actions_page_side_panel[1].setText(QtWidgets.QApplication.translate('BaseGUI', 'Experiments'))
+        self._ui.actions_page_side_panel[2].setText(QtWidgets.QApplication.translate('BaseGUI', 'View datasets'))
+        self._ui.actions_page_side_panel[3].setText(QtWidgets.QApplication.translate('BaseGUI', 'Move to mdi'))
+        self._ui.actions_page_side_panel[4].setText(QtWidgets.QApplication.translate('BaseGUI', 'Settings'))
+        self._ui.action_switch_theme.setText(QtWidgets.QApplication.translate('BaseGUI', 'Switch theme'))
+        self._ui.action_help.setText(QtWidgets.QApplication.translate('BaseGUI', 'Help'))
+        self._ui.action_exit.setText(QtWidgets.QApplication.translate('BaseGUI', 'Exit'))
 
         # Панель Меню
-        self._ui.menu_file.setTitle(QApplication.translate('BaseGUI', "&File"))
-        self._ui.menu_view.setTitle(QApplication.translate('BaseGUI', "&View"))
-        self._ui.menu_help.setTitle(QApplication.translate('BaseGUI', "&Help"))
+        self._ui.menu_file.setTitle(QtWidgets.QApplication.translate('BaseGUI', "&File"))
+        self._ui.menu_view.setTitle(QtWidgets.QApplication.translate('BaseGUI', "&View"))
+        self._ui.menu_help.setTitle(QtWidgets.QApplication.translate('BaseGUI', "&Help"))
 
         # QStackWidgets
         # Processing
         pc = self._ui.ui_processing
-        pc.tab_widget.setTabText(0, QApplication.translate('BaseGUI', "Merge"))
-        pc.tab_widget.setTabText(1, QApplication.translate('BaseGUI', "Slicing"))
-        pc.tab_widget.setTabText(2, QApplication.translate('BaseGUI', "Attributes"))
-        pc.tab_widget.setTabText(3, QApplication.translate('BaseGUI', "Geometry"))
+        pc.tab_widget.setTabText(0, QtWidgets.QApplication.translate('BaseGUI', "Merge"))
+        pc.tab_widget.setTabText(1, QtWidgets.QApplication.translate('BaseGUI', "Slicing"))
+        pc.tab_widget.setTabText(2, QtWidgets.QApplication.translate('BaseGUI', "Attributes"))
+        pc.tab_widget.setTabText(3, QtWidgets.QApplication.translate('BaseGUI', "Geometry"))
         # Processing - Merge
-        pc.merge_actions[0].setText(QApplication.translate('BaseGUI', "Add files"))
-        pc.merge_actions[1].setText(QApplication.translate('BaseGUI', "Remove files"))
-        pc.merge_actions[2].setText(QApplication.translate('BaseGUI', "Select all"))
-        pc.merge_actions[3].setText(QApplication.translate('BaseGUI', "Clear list"))
-        pc.merge_actions[4].setText(QApplication.translate('BaseGUI', "Merge selected files"))
-        pc.merge_actions[5].setText(QApplication.translate('BaseGUI', "Open output folder"))
+        pc.merge_actions[0].setText(QtWidgets.QApplication.translate('BaseGUI', "Add files"))
+        pc.merge_actions[1].setText(QtWidgets.QApplication.translate('BaseGUI', "Remove files"))
+        pc.merge_actions[2].setText(QtWidgets.QApplication.translate('BaseGUI', "Select all"))
+        pc.merge_actions[3].setText(QtWidgets.QApplication.translate('BaseGUI', "Clear list"))
+        pc.merge_actions[4].setText(QtWidgets.QApplication.translate('BaseGUI', "Merge selected files"))
+        pc.merge_actions[5].setText(QtWidgets.QApplication.translate('BaseGUI', "Open output folder"))
         pc.merge_output_tb.setText(
-            QApplication.translate('BaseGUI', "Default output dir: \n" + self.settings.read_default_output_dir()))
-        pc.merge_output_label.setText(QApplication.translate('BaseGUI', "Output type:"))
-        pc.merge_toolbar.setWindowTitle(QApplication.translate('BaseGUI', "Toolbar for merging project files"))
+            QtWidgets.QApplication.translate('BaseGUI',
+                                             "Default output dir: \n" + self.settings.read_default_output_dir()))
+        pc.merge_output_label.setText(QtWidgets.QApplication.translate('BaseGUI', "Output type:"))
+        pc.merge_toolbar.setWindowTitle(
+            QtWidgets.QApplication.translate('BaseGUI', "Toolbar for merging project files"))
 
         # Baseview
         bv = self._ui.ui_viewdataset
-        bv.tb_info_dataset.setText(QApplication.translate('BaseGUI', ' Info'))
-        bv.tb_load_preset.setText(QApplication.translate('BaseGUI', 'Load preset dataset'))
-        bv.actions_load[0].setText(QApplication.translate('BaseGUI', 'Load last data'))
-        bv.actions_load[1].setText(QApplication.translate('BaseGUI', 'Load dir'))
-        bv.actions_load[2].setText(QApplication.translate('BaseGUI', 'Load dataset'))
-        bv.action_load_presets.setText(QApplication.translate('BaseGUI', 'Load preset dataset'))
-        bv.actions_show_data[0].setText(QApplication.translate('BaseGUI', 'One window'))
-        bv.actions_show_data[1].setText(QApplication.translate('BaseGUI', 'Add window'))
-        bv.actions_show_data[2].setText(QApplication.translate('BaseGUI', '4x windows'))
-        bv.actions_show_data[3].setText(QApplication.translate('BaseGUI', '16x windows'))
-        bv.actions_adjust[0].setText(QApplication.translate('BaseGUI', 'Tiled'))
-        bv.actions_adjust[1].setText(QApplication.translate('BaseGUI', 'Cascade'))
-        bv.actions_adjust[2].setText(QApplication.translate('BaseGUI', 'Disable layout'))
-        bv.actions_labels[0].setText(QApplication.translate('BaseGUI', 'Show labels'))
-        bv.actions_labels[1].setText(QApplication.translate('BaseGUI', 'Show filenames'))
-        bv.actions_control_images[0].setText(QApplication.translate('BaseGUI', 'Preview'))
-        bv.actions_control_images[1].setText(QApplication.translate('BaseGUI', 'Next'))
-        bv.action_shuffle_data.setText(QApplication.translate('BaseGUI', 'Shuffle data'))
-        bv.files_search.setPlaceholderText(QApplication.translate('BaseGUI', 'Filter files'))
-        bv.files_dock.setWindowTitle(QApplication.translate('BaseGUI', 'Files List'))
+        bv.tb_info_dataset.setText(QtWidgets.QApplication.translate('BaseGUI', ' Info'))
+        bv.tb_load_preset.setText(QtWidgets.QApplication.translate('BaseGUI', 'Load preset dataset'))
+        bv.actions_load[0].setText(QtWidgets.QApplication.translate('BaseGUI', 'Load last data'))
+        bv.actions_load[1].setText(QtWidgets.QApplication.translate('BaseGUI', 'Load dir'))
+        bv.actions_load[2].setText(QtWidgets.QApplication.translate('BaseGUI', 'Load dataset'))
+        bv.action_load_presets.setText(QtWidgets.QApplication.translate('BaseGUI', 'Load preset dataset'))
+        bv.actions_show_data[0].setText(QtWidgets.QApplication.translate('BaseGUI', 'One window'))
+        bv.actions_show_data[1].setText(QtWidgets.QApplication.translate('BaseGUI', 'Add window'))
+        bv.actions_show_data[2].setText(QtWidgets.QApplication.translate('BaseGUI', '4x windows'))
+        bv.actions_show_data[3].setText(QtWidgets.QApplication.translate('BaseGUI', '16x windows'))
+        bv.actions_adjust[0].setText(QtWidgets.QApplication.translate('BaseGUI', 'Tiled'))
+        bv.actions_adjust[1].setText(QtWidgets.QApplication.translate('BaseGUI', 'Cascade'))
+        bv.actions_adjust[2].setText(QtWidgets.QApplication.translate('BaseGUI', 'Disable layout'))
+        bv.actions_labels[0].setText(QtWidgets.QApplication.translate('BaseGUI', 'Show labels'))
+        bv.actions_labels[1].setText(QtWidgets.QApplication.translate('BaseGUI', 'Show filenames'))
+        bv.actions_control_images[0].setText(QtWidgets.QApplication.translate('BaseGUI', 'Preview'))
+        bv.actions_control_images[1].setText(QtWidgets.QApplication.translate('BaseGUI', 'Next'))
+        bv.action_shuffle_data.setText(QtWidgets.QApplication.translate('BaseGUI', 'Shuffle data'))
+        bv.files_search.setPlaceholderText(QtWidgets.QApplication.translate('BaseGUI', 'Filter files'))
+        bv.files_dock.setWindowTitle(QtWidgets.QApplication.translate('BaseGUI', 'Files List'))
 
         # Settings
         st = self._ui.ui_settings
-        st.output_dir.setText(QApplication.translate('BaseGUI', 'Default output dir:'))
-        st.datasets_dir.setText(QApplication.translate('BaseGUI', 'Default datasets directory:'))
-        st.tab_widget.setTabText(0, QApplication.translate('BaseGUI', 'Common settings'))
+        st.output_dir.setText(QtWidgets.QApplication.translate('BaseGUI', 'Default output dir:'))
+        st.datasets_dir.setText(QtWidgets.QApplication.translate('BaseGUI', 'Default datasets directory:'))
+        st.tab_widget.setTabText(0, QtWidgets.QApplication.translate('BaseGUI', 'Common settings'))
         st.chk_load_sub_dirs.setText(
-            QApplication.translate('BaseGUI', 'Load subdirectories, when use "Load image dir"'))
+            QtWidgets.QApplication.translate('BaseGUI', 'Load subdirectories, when use "Load image dir"'))
 
     def show_statusbar_msg(self, msg):
         self.statusBar().showMessage(msg)
 
     def changeEvent(self, event):
         # перегружаем функцию для возможности перевода "на лету"
-        if event.type() == QEvent.LanguageChange:
+        if event.type() == QtCore.QEvent.LanguageChange:
             self._retranslate_ui()  # что именно переводим
         super(BaseGUI, self).changeEvent(event)
 
     def setExampleGUI(self):
         # creating label
-        self.label = QLabel(self)
+        self.label = QtWidgets.QLabel(self)
 
         # loading image
-        self.pixmap = QPixmap("../test.jpg")
+        self.pixmap = QtGui.QPixmap("../test.jpg")
 
         # adding image to label
         self.label.setPixmap(self.pixmap)
@@ -301,7 +302,7 @@ class BaseGUI(QMainWindow):
         self.label.resize(self.pixmap.width(),
                           self.pixmap.height())
 
-    @Slot()
+    @QtCore.Slot()
     # Смена языка
     def change_lang(self):
         action_name: str = self.sender().text()
@@ -315,7 +316,7 @@ class BaseGUI(QMainWindow):
             self.settings.write_lang(action_name)  # записываем в настройки выбранный язык
             self.statusBar().showMessage(action_name)
 
-    @Slot()
+    @QtCore.Slot()
     # Смена темы
     def change_theme(self):
         if self._ui.action_switch_theme.isChecked():
@@ -326,7 +327,7 @@ class BaseGUI(QMainWindow):
         self.settings.write_ui_theme(self._theme)  # сохраняем настройки темы
         self.statusBar().showMessage(self._theme)  # извещаем пользователя
 
-    @Slot()
+    @QtCore.Slot()
     # Смена виджетов для панели режимов
     def change_page(self, index=None):
         if not index:
@@ -339,19 +340,19 @@ class BaseGUI(QMainWindow):
             else:
                 self._ui.stack_widget.setCurrentIndex(index)
 
-    @Slot()
+    @QtCore.Slot()
     # Аккуратный выход
     def slot_exit(self):
         self.close()  # вызываем закрытие приложения
 
-    @Slot()
+    @QtCore.Slot()
     # Тестовый слот
     def test_slot(self):
         self.statusBar().showMessage(str(self.settings.read_ui_stack_widget_cur_tab()))
 
 
 if __name__ == '__main__':
-    App = QApplication(sys.argv)  # создаем приложение
+    App = QtWidgets.QApplication(sys.argv)  # создаем приложение
     window = BaseGUI()
     window.setWindowTitle("BaseGUI")
     window.show()

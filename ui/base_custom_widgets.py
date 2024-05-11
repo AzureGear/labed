@@ -1,12 +1,51 @@
 from PyQt5 import QtCore
-from PyQt5.QtGui import QIcon, QColor
+from PyQt5 import QtGui
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QPushButton, QFileDialog, QLineEdit
 from utils import AppSettings
 from ui import newPixmap
 import os
 import re
 
+
+# ======================================================================================================================
+class _TableModel(QtCore.QAbstractTableModel):
+    def __init__(self) -> None:
+        super().__init__()
+        self._data = [[i * 10 + j for j in range(4)] for i in range(5)]
+
+    def data(self, index: QtCore.QModelIndex, role: int):
+        if role == QtCore.Qt.ItemDataRole.DisplayRole:
+            return self._data[index.row()][index.column()]
+        if role == QtCore.Qt.ItemDataRole.CheckStateRole and index.column() == 1:
+            return QtCore.Qt.CheckState.Checked if index.row() % 2 == 0 else QtCore.Qt.CheckState.Unchecked
+        if role == QtCore.Qt.ItemDataRole.EditRole and index.column() == 2:
+            return self._data[index.row()][index.column()]  # pragma: no cover
+        return None
+
+    def rowCount(self, index) -> int:  # noqa: N802
+        return len(self._data)
+
+    def columnCount(self, index) -> int:  # noqa: N802
+        return len(self._data[0])
+
+    def flags(self, index: QtCore.QModelIndex) -> QtCore.Qt.ItemFlag:
+        flag = super().flags(index)
+        if index.column() == 1:
+            flag |= QtCore.Qt.ItemFlag.ItemIsUserCheckable
+        elif index.column() in (2, 3):
+            flag |= QtCore.Qt.ItemFlag.ItemIsEditable
+        return flag  # type: ignore
+
+    def headerData(  # noqa: N802
+            self, section: int, orientation: QtCore.Qt.Orientation, role: int = ...):
+        if role != QtCore.Qt.ItemDataRole.DisplayRole:
+            return None
+        if orientation == QtCore.Qt.Orientation.Horizontal:
+            return ["Normal", "Checkbox", "Spinbox", "LineEdit"][section]
+        return section * 100
+
+
+# ======================================================================================================================
 
 class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Романа Хабарова
     """
@@ -49,13 +88,13 @@ def AzFileDialog(self, caption=None, last_dir=None, dir_only=False, filter=None,
     settings = AppSettings()  # чтение настроек
     save_dir = settings.read_last_dir()  # вспоминаем прошлый открытый каталог
     if dir_only:
-        select_dir = QFileDialog.getExistingDirectory(self, caption, last_dir)
+        select_dir = QtWidgets.QFileDialog.getExistingDirectory(self, caption, last_dir)
         if select_dir:
             if save_dir:
                 settings.write_last_dir(select_dir)
             return select_dir
     else:
-        arr = QFileDialog.getOpenFileNames(self, caption, last_dir, filter, initial_filter)
+        arr = QtWidgets.QFileDialog.getOpenFileNames(self, caption, last_dir, filter, initial_filter)
         select_files = arr[0]
         if len(arr[0]) > 0:
             if save_dir:
@@ -65,8 +104,32 @@ def AzFileDialog(self, caption=None, last_dir=None, dir_only=False, filter=None,
 
 # ======================================================================================================================
 
+class AzSpinBox(QtWidgets.QSpinBox):
+    """
+    Упрощённая реализация числового виджета
+    """
 
-class AzButtonLineEdit(QLineEdit):
+    def __init__(self, min_val=1, max_val=1280, step=8, max_start_val=True, start_val=1, min_wide=40, prefix=None,
+                 suffix=None, parent=None):
+        super(AzSpinBox, self).__init__(parent)
+        self.setMinimum(min_val)
+        self.setMaximum(max_val)
+        self.setSingleStep(step)
+        self.setAccelerated(True)
+        if max_start_val:
+            self.setValue(self.maximum())
+        else:
+            self.setValue(start_val)
+        self.setMinimumWidth(min_wide)
+        if suffix is not None:
+            self.setSuffix(suffix)
+        if prefix is not None:
+            self.setPrefix(prefix)
+
+
+# ======================================================================================================================
+
+class AzButtonLineEdit(QtWidgets.QLineEdit):
     """
     Упрощённая QLineEdit с кнопкой внутри
     """
@@ -102,7 +165,7 @@ class AzButtonLineEdit(QLineEdit):
     def on_button_clicked(self):
         self.last_dir = self.settings.read_last_dir()  # обновляем, т.к. могли выполняться действия
         if self.dir_only:  # выбрано "только каталог"
-            select_dir = QFileDialog.getExistingDirectory(self, self.caption, self.last_dir)
+            select_dir = QtWidgets.QFileDialog.getExistingDirectory(self, self.caption, self.last_dir)
             if select_dir:
                 if self.save_dir:
                     self.settings.write_last_dir(select_dir)
@@ -111,12 +174,12 @@ class AzButtonLineEdit(QLineEdit):
                     self.on_button_clicked_callback()
         else:
             if self.save_dialog:  # выбрано диалог сохранения файла
-                filename, _ = QFileDialog.getSaveFileName(self, self.caption, self.last_dir, self.filter,
+                filename, _ = QtWidgets.QFileDialog.getSaveFileName(self, self.caption, self.last_dir, self.filter,
                                                           self.initial_filter)
                 if self.save_dir:
                     self.settings.write_last_dir(os.path.dirname(filename))
             else:  # значит классический вариант выбора файлов (dir_only=False, save_dialog=False)
-                filename, _ = QFileDialog.getOpenFileName(self, self.caption, self.last_dir, self.filter,
+                filename, _ = QtWidgets.QFileDialog.getOpenFileName(self, self.caption, self.last_dir, self.filter,
                                                           self.initial_filter)
             if len(filename) > 0:  # проверяем в обоих случаях возвращаемый файл
                 if self.save_dir:  # сохраняем последний используемый каталог
@@ -135,10 +198,10 @@ def coloring_icon(path, color):  # здесь следует учесть, чт�
     Работа с svg не проверена
     """
     pixmap = newPixmap(path)  # иконка, которую будем перекрашивать
-    mask = pixmap.createMaskFromColor(QColor('black'), QtCore.Qt.MaskOutColor)  # по умолчанию цвет иконок черный
-    pixmap.fill(QColor(color))  # меняем цвет иконки...
+    mask = pixmap.createMaskFromColor(QtGui.QColor('black'), QtCore.Qt.MaskOutColor)  # по умолчанию цвет иконок черный
+    pixmap.fill(QtGui.QColor(color))  # меняем цвет иконки...
     pixmap.setMask(mask)  # ...по маске
-    return QIcon(pixmap)
+    return QtGui.QIcon(pixmap)
 
 
 # ======================================================================================================================

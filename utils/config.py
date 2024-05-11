@@ -7,6 +7,10 @@ APPLICATION = 'lab_ed'
 # каталог для переводов по умолчанию
 LOCALIZATION_FOLDER = 'l10n'
 
+# размеры окна (высота в процентах от ширины)
+APP_MIN_SIZE = {"WIDTH": 720,
+                "HEIGHT": 0.628}
+
 # цвета интерфейса
 UI_COLORS = {
     "sidepanel_color": "dodgerblue",
@@ -29,6 +33,5 @@ UI_BASE_VIEW = {
 
 UI_OUTPUT_TYPES = ["SAMA.json"]
 UI_READ_LINES = 35
-
 
 # (dark) c:\venvs\lab-ed\Lib\site-packages>python -m qdarktheme.widget_gallery

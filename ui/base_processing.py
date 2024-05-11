@@ -2,7 +2,7 @@ from qdarktheme.qtpy import QtCore
 from qdarktheme.qtpy import QtWidgets
 from qdarktheme.qtpy import QtGui
 from utils import AppSettings, convert_to_sama, UI_COLORS, UI_OUTPUT_TYPES, UI_READ_LINES
-from ui import coloring_icon, AzFileDialog, natural_order, AzButtonLineEdit
+from ui import coloring_icon, AzFileDialog, natural_order, AzButtonLineEdit, AzSpinBox, _TableModel
 from datetime import datetime
 import os
 
@@ -144,8 +144,8 @@ class ProcessingUI(QtWidgets.QWidget):
         self.ui_tab_slicing = self.tab_basic_setup(complex=True)
         self.pb2 = QtWidgets.QPushButton("Manual Visual Slice Process")
         split = QtWidgets.QSplitter(QtCore.Qt.Vertical)  # вертикальный разделитель
-        slice_auto_form = QtWidgets.QFormLayout()  # форма для автоматического разрезания
-        self.slice_input_file_label = QtWidgets.QLabel("Path to file project *.json:")
+        slice_auto_form = QtWidgets.QFormLayout()  # форма для расположения виджетов "автоматического разрезания"
+        self.slice_input_file_label = QtWidgets.QLabel("Path to file project *.json:")  # метка исходного файла
         self.slice_input_file_path = AzButtonLineEdit("glyph_folder", the_color,
                                                       caption="Select project file to auto slicing",
                                                       read_only=True, dir_only=False, filter="Projects files (*.json)",
@@ -161,25 +161,44 @@ class ProcessingUI(QtWidgets.QWidget):
         # regexp = QtCore.QRegExp(r'^[[:ascii:]]+$')  # проверка имени файла на символы
         # validator = QtGui.QRegExpValidator(regexp, self.slice_output_file_path)  # создаём валидатор
         # self.slice_output_file_path.setValidator(validator)  # применяем его к нашей строке
-        self.slice_scan_size
+        self.slice_scan_size_label = QtWidgets.QLabel("Scan size:")  # метка для сканирующего окна
+        self.slice_scan_size = AzSpinBox(min_val=8, min_wide=70, suffix=" pix")  # размер сканирующего окна;
+        self.slice_overlap_window_label = QtWidgets.QLabel("Scanning window overlap percentage:")
+        # процент перекрытия окна для смежных кадров:
+        self.slice_overlap_window = AzSpinBox(min_val=0, max_val=95, step=1, max_start_val=False, start_val=5)
+        self.slice_overlap_pols_default_label = QtWidgets.QLabel("Default overlap percentage for classes:")
+        self.slice_overlap_pols_default = AzSpinBox(min_val=0, max_val=95, step=1, max_start_val=False, start_val=5)
+        hor_spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
 
-
+        # ImgCutObj.CutAllImgs(1280,[0.5,0.5,0.5,0.5,0.5,0.5],0.5,'res.json')
+        # CutAllImgs(self, SizeWind: int, ProcOverlapPol: [], ProcOverlapW: float, NameJsonFile: str):
 
         self.slice_output_file_path.setEnabled(False)
         self.slice_output_file_check.clicked.connect(self.slice_toggle_output_file)  # соединяем - требуется настройка
         self.slice_output_file_path.setText(self.settings.read_default_output_dir())  # строка для выходного файла
-        self.slice_scan_size = 0  # размер сканирующего окна;
-        self.slice_overlap_window = 0  # процент перекрытия окна для смежных кадров
+        self.slice_exec = QtWidgets.QPushButton(" Slice images")
+        self.slice_exec.setIcon(coloring_icon("glyph_cutter", the_color))
         self.slice_overlap_pols = 0  # какой процент площади полигонов надо перекрыть окном
+        h_widgets = [self.slice_scan_size_label, self.slice_scan_size, self.slice_overlap_window_label,
+                     self.slice_overlap_window, self.slice_overlap_pols_default_label,
+                     self.slice_overlap_pols_default]  # группа вертикальных виджетов для параметров авто разрезания
 
-        self.slice_exec = QtWidgets.QPushButton("Slice images in project")
-        ver_layout = QtWidgets.QVBoxLayout()
-        ver_layout.addWidget(QtWidgets.QLabel("Hello!"))
-        ver_layout.addWidget(QtWidgets.QLabel())
+        hor_sett_layout = QtWidgets.QHBoxLayout()  # расположение для параметров автоматизированной обработки
+        for i, wdt in enumerate(h_widgets):
+            hor_sett_layout.addWidget(wdt)
+            if i % 2 == 1:  # Выбираем только нечётные, т.е. 0-нет, 1-да и т.д.
+                hor_sett_layout.addStretch(20)
+        tab_table = QtWidgets.QTableView()
+        tab_table.setModel(_TableModel())
+        tab_table.setSortingEnabled(False)  # отключаем сортировку, т.к. для Денисова класса важен порядок
+        tab_table.setAlternatingRowColors(True)
 
-        slice_auto_form.addRow(self.slice_input_file_label, self.slice_input_file_path)
-        slice_auto_form.addRow(self.slice_output_file_check, self.slice_output_file_path)
-        slice_auto_form.addRow(ver_layout)
+        slice_auto_form.addRow(self.slice_input_file_label, self.slice_input_file_path)  # строка "исходный файл"
+        slice_auto_form.addRow(self.slice_output_file_check, self.slice_output_file_path)  # строка "выходной файл"
+        slice_auto_form.addRow(hor_sett_layout)  # строка "настройки автоматизированной обработки"
+        slice_auto_form.addRow(tab_table)
+
+        slice_auto_form.addRow(self.slice_exec)
         up_widget = QtWidgets.QWidget()  # верхний виджет - автоматизированная обработка
         up_widget.setLayout(slice_auto_form)
         split.addWidget(up_widget)
