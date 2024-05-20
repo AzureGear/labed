@@ -1,7 +1,7 @@
 from qdarktheme.qtpy import QtCore
 from qdarktheme.qtpy import QtWidgets
 from qdarktheme.qtpy import QtGui
-from utils import AppSettings, convert_to_sama, UI_COLORS, UI_OUTPUT_TYPES, UI_READ_LINES
+from utils import AppSettings, convert_to_sama, UI_COLORS, UI_OUTPUT_TYPES, UI_READ_LINES, dn_crop
 from ui import coloring_icon, AzFileDialog, natural_order, AzButtonLineEdit, AzSpinBox, _TableModel
 from datetime import datetime
 import os
@@ -178,6 +178,7 @@ class ProcessingUI(QtWidgets.QWidget):
         self.slice_output_file_path.setText(self.settings.read_default_output_dir())  # строка для выходного файла
         self.slice_exec = QtWidgets.QPushButton(" Slice images")
         self.slice_exec.setIcon(coloring_icon("glyph_cutter", the_color))
+        self.slice_exec.clicked.connect(self.slice_exec_run)  # соединение с процедурой разрезания
         self.slice_overlap_pols = 0  # какой процент площади полигонов надо перекрыть окном
         h_widgets = [self.slice_scan_size_label, self.slice_scan_size, self.slice_overlap_window_label,
                      self.slice_overlap_window, self.slice_overlap_pols_default_label,
@@ -215,8 +216,13 @@ class ProcessingUI(QtWidgets.QWidget):
         if len(self.slice_input_file_path.text()) > 0:
             self.slice_load_projects_data()
 
+    def slice_exec_run(self):  # процедура разрезания
+        pass
+
     def slice_load_projects_data(self):  # загрузка файла проекта
-        pass  # загружаем формы
+        self.json_obj = dn_crop.DNjson(self.slice_input_file_path.text())
+        self
+        # self.maximumSize  json_obj
 
     def slice_toggle_output_file(self):
         self.slice_output_file_path.setEnabled(self.slice_output_file_check.checkState())
