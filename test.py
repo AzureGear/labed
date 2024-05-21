@@ -1,3 +1,7 @@
+# hor_spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+# Спейсер, спайсер
+
+
 # def getFileName(self):
 #     filename, filetype = QFileDialog.getOpenFileName(self,
 #                                                      "Выбрать файл",

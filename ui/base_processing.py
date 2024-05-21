@@ -2,7 +2,7 @@ from qdarktheme.qtpy import QtCore
 from qdarktheme.qtpy import QtWidgets
 from qdarktheme.qtpy import QtGui
 from utils import AppSettings, convert_to_sama, UI_COLORS, UI_OUTPUT_TYPES, UI_READ_LINES, dn_crop
-from ui import coloring_icon, AzFileDialog, natural_order, AzButtonLineEdit, AzSpinBox, _TableModel
+from ui import coloring_icon, AzFileDialog, natural_order, AzButtonLineEdit, AzSpinBox, _TableModel, AzTableModel
 from datetime import datetime
 import os
 
@@ -61,7 +61,7 @@ class ProcessingUI(QtWidgets.QWidget):
             QtGui.QAction(coloring_icon("glyph_delete2", the_color), "Clear list", triggered=self.merge_clear),
             QtGui.QAction(coloring_icon("glyph_merge", the_color), "Merge selected files",
                           triggered=self.merge_combine),
-            QtGui.QAction(coloring_icon("glyph_folder", the_color), "Open output dir",
+            QtGui.QAction(coloring_icon("glyph_folder_clear", the_color), "Open output dir",
                           triggered=self.merge_open_output))
         self.merge_output_label = QtWidgets.QLabel("Output type:")
         self.merge_output_list = QtWidgets.QComboBox()  # список выходных данных
@@ -167,18 +167,19 @@ class ProcessingUI(QtWidgets.QWidget):
         # процент перекрытия окна для смежных кадров:
         self.slice_overlap_window = AzSpinBox(min_val=0, max_val=95, step=1, max_start_val=False, start_val=5)
         self.slice_overlap_pols_default_label = QtWidgets.QLabel("Default overlap percentage for classes:")
-        self.slice_overlap_pols_default = AzSpinBox(min_val=0, max_val=95, step=1, max_start_val=False, start_val=5)
-        hor_spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
-
-        # ImgCutObj.CutAllImgs(1280,[0.5,0.5,0.5,0.5,0.5,0.5],0.5,'res.json')
-        # CutAllImgs(self, SizeWind: int, ProcOverlapPol: [], ProcOverlapW: float, NameJsonFile: str):
-
+        current_overlap_pols_default = self.settings.read_default_slice_overlap_pols()
+        self.slice_overlap_pols_default = AzSpinBox(min_val=0, max_val=95, step=1, max_start_val=False,
+                                                    start_val=current_overlap_pols_default)
+        self.slice_overlap_pols_default.valueChanged.connect(self.slice_write_default_overlap_pols)
         self.slice_output_file_path.setEnabled(False)
         self.slice_output_file_check.clicked.connect(self.slice_toggle_output_file)  # соединяем - требуется настройка
         self.slice_output_file_path.setText(self.settings.read_default_output_dir())  # строка для выходного файла
         self.slice_exec = QtWidgets.QPushButton(" Slice images")
         self.slice_exec.setIcon(coloring_icon("glyph_cutter", the_color))
         self.slice_exec.clicked.connect(self.slice_exec_run)  # соединение с процедурой разрезания
+        self.slice_open_result = QtWidgets.QPushButton(" Open results")
+        self.slice_open_result.setIcon(coloring_icon("glyph_folder_clear", the_color))
+        self.slice_open_result.clicked.connect(lambda: os.startfile(self.slice_output_file_path.text()))
         self.slice_overlap_pols = 0  # какой процент площади полигонов надо перекрыть окном
         h_widgets = [self.slice_scan_size_label, self.slice_scan_size, self.slice_overlap_window_label,
                      self.slice_overlap_window, self.slice_overlap_pols_default_label,
@@ -189,17 +190,16 @@ class ProcessingUI(QtWidgets.QWidget):
             hor_sett_layout.addWidget(wdt)
             if i % 2 == 1:  # Выбираем только нечётные, т.е. 0-нет, 1-да и т.д.
                 hor_sett_layout.addStretch(20)
-        tab_table = QtWidgets.QTableView()
-        tab_table.setModel(_TableModel())
-        tab_table.setSortingEnabled(False)  # отключаем сортировку, т.к. для Денисова класса важен порядок
-        tab_table.setAlternatingRowColors(True)
+        self.slice_tab_labels = QtWidgets.QTableView()  # Создаём объект табличного просмотра
+        self.slice_tab_labels.setSortingEnabled(False)  # отключаем сортировку, т.к. для Денисова класса важен порядок
+        self.slice_tab_labels.setAlternatingRowColors(True)  # устанавливаем чередование цветов строк таблицы
 
         slice_auto_form.addRow(self.slice_input_file_label, self.slice_input_file_path)  # строка "исходный файл"
         slice_auto_form.addRow(self.slice_output_file_check, self.slice_output_file_path)  # строка "выходной файл"
         slice_auto_form.addRow(hor_sett_layout)  # строка "настройки автоматизированной обработки"
-        slice_auto_form.addRow(tab_table)
+        slice_auto_form.addRow(self.slice_tab_labels)
 
-        slice_auto_form.addRow(self.slice_exec)
+        slice_auto_form.addRow(self.slice_open_result, self.slice_exec)
         up_widget = QtWidgets.QWidget()  # верхний виджет - автоматизированная обработка
         up_widget.setLayout(slice_auto_form)
         split.addWidget(up_widget)
@@ -217,12 +217,42 @@ class ProcessingUI(QtWidgets.QWidget):
             self.slice_load_projects_data()
 
     def slice_exec_run(self):  # процедура разрезания
-        pass
+        pols_overlap_percent = []
+        model = self.slice_tab_labels.model()
+        for row in range(model.rowCount(-198)):  # -198 чтобы тебя запутать))
+            # процент указан во втором столбце, роль "Редактирования" включает "Отображение"
+            pols_overlap_percent.append((model.data(model.index(row, 1), QtCore.Qt.ItemDataRole.DisplayRole)) / 100)
+        print(pols_overlap_percent)
+        cut_settings = []  # выбранные параметры разрезания
+        cut_settings.append(self.slice_scan_size.value())  # размер сканирующего окна
+        cut_settings.append(pols_overlap_percent)
+        cut_settings.append(self.slice_overlap_window.value() / 100)
+        new_name = os.path.join(self.slice_output_file_path.text(),
+                                "sliced_%s.json" % datetime.now().strftime("%Y-%m-%d--%H-%M-%S"))
+        cut_settings.append(new_name)
+        print(cut_settings)
+        # ImgCutObj = dn_crop.DNImgCut(PathData, JsonNameFile)
+        # ImgCutObj.CutAllImgs(1280, [0.5, 0.5, 0.5, 0.5, 0.5, 0.5], 0.5, 'res.json')
 
     def slice_load_projects_data(self):  # загрузка файла проекта
-        self.json_obj = dn_crop.DNjson(self.slice_input_file_path.text())
-        self
-        # self.maximumSize  json_obj
+        self.json_obj = dn_crop.DNjson(self.slice_input_file_path.text())  # Файл проекта, реализация Дениса
+        if not self.json_obj.good_file:
+            self.signal_message.emit("Выбранный файл не является корректным либо не содержит необходимых данных")
+            self.slice_exec.setEnabled(False)  # отключаем возможность Разрезать
+            return
+        self.slice_exec.setEnabled(True)
+        model_data = []  # данные для отображения
+        for label in self.json_obj.labels:
+            # [наменование метки, процент перекрытия]
+            model_data.append([label, int(self.slice_overlap_pols_default.text())])
+        self.slice_tab_labels.setModel(
+            AzTableModel(model_data, header_data=["Наименование класса (метки)", "Процент перекрытия"], edit_column=1))
+        header = self.slice_tab_labels.horizontalHeader()  # настраиваем отображение столбцов
+        header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
+        header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
+
+    def slice_write_default_overlap_pols(self):
+        self.settings.write_default_slice_overlap_pols(self.slice_overlap_pols_default.value())
 
     def slice_toggle_output_file(self):
         self.slice_output_file_path.setEnabled(self.slice_output_file_check.checkState())

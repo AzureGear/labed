@@ -12,6 +12,7 @@ from .base_custom_widgets import AzSpinBox
 from .base_custom_widgets import coloring_icon
 from .base_custom_widgets import natural_order
 from .base_custom_widgets import _TableModel
+from .base_custom_widgets import AzTableModel
 
 from .base_experiments import ExperimentUI
 from .base_settings import SettingsUI

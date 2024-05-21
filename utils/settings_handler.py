@@ -74,3 +74,9 @@ class AppSettings:
 
     def write_slicing_input(self, path):  # исходный файл проекта для автонарезки [w]
         self.settings.setValue('slicing/input_file', path)
+
+    def read_default_slice_overlap_pols(self):  # значение перекрытия для полигонов по умолчанию [r]
+        return self.settings.value('slicing/default_slice_overlap_pols', 5)
+
+    def write_default_slice_overlap_pols(self, percent):  # значение перекрытия для полигонов по умолчанию [w]
+        self.settings.setValue('slicing/default_slice_overlap_pols', percent)

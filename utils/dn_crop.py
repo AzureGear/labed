@@ -17,14 +17,16 @@ class DNjson:
         # Получаем данные из файла в виде формата json
         self.DataDict = self.ReadDataJson()
 
-        # Читаем имена всех изображений, записанных в json
-        self.ImgsName = self.ReadNamesImgs()
+        if self.DataDict:  # выполняем проверку
 
-        # Формируем перечень имен классов (меток)
-        self.labels = (self.DataDict['labels'])
+            # Читаем имена всех изображений, записанных в json
+            self.ImgsName = self.ReadNamesImgs()
 
-        # Узнаем максимальный номер класса
-        self.MaxClsNum = len(self.labels)  # print("Максимальный номер класса: ", self.MaxClsNum)
+            # Формируем перечень имен классов (меток)
+            self.labels = (self.DataDict['labels'])
+
+            # Узнаем максимальный номер класса
+            self.MaxClsNum = len(self.labels)  # print("Максимальный номер класса: ", self.MaxClsNum)
 
     # Функции, использующиеся при инициализации класса
     # Функция чтения данных из файла Json
@@ -35,9 +37,20 @@ class DNjson:
         data = file.readline()
         file.close()
 
-        # Переделываем строку в json словарь
-        data_dict = json.loads(data)
-        return data_dict
+        if self.check_json(data):  # выполняем проверку
+            self.good_file = True
+            # Переделываем строку в json словарь
+            data_dict = json.loads(data)
+            return data_dict
+        else:
+            self.good_file = False
+            return None
+
+    def check_json(self, json_project_data):  # примитивная проверка на наличие нужных параметров
+        for field in ["path_to_images", "images", "labels", "labels_color"]:
+            if field not in json_project_data:
+                return False
+        return True
 
     @classmethod
     def ReadJsonKeys(cls, DataDict):  # код для отладки

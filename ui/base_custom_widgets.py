@@ -8,7 +8,7 @@ import re
 
 
 # ======================================================================================================================
-class _TableModel(QtCore.QAbstractTableModel):
+class _TableModel(QtCore.QAbstractTableModel):  # Реализация qdarktheme
     def __init__(self) -> None:
         super().__init__()
         self._data = [[i * 10 + j for j in range(4)] for i in range(5)]
@@ -43,6 +43,75 @@ class _TableModel(QtCore.QAbstractTableModel):
         if orientation == QtCore.Qt.Orientation.Horizontal:
             return ["Normal", "Checkbox", "Spinbox", "LineEdit"][section]
         return section * 100
+
+
+# ======================================================================================================================
+
+class AzTableModel(QtCore.QAbstractTableModel):
+    """
+    Модель для отображения табличных данных, принимает лист листов [[x1, y1], [x2, y2]... ]
+    """
+
+    def __init__(self, data=None, header_data=None, edit_column=None, parent=None):
+        super(AzTableModel, self).__init__()
+        self._data = data
+        self._header_data = header_data
+        if edit_column:
+            self.edit_col = edit_column
+        if self._data is None:
+            self._header_data = [["no data available"]]
+
+    def data(self, index, role):
+        if index.isValid():
+            if role == QtCore.Qt.DisplayRole or role == QtCore.Qt.EditRole:
+                return self._data[index.row()][index.column()]
+        # if role == QtCore.Qt.ItemDataRole.DisplayRole:
+        #     return self._data[index.row()][index.column()]
+
+    def setData(self, index, value, role):
+        if role == QtCore.Qt.EditRole:
+            if value > 95:
+                value = 95
+            elif value < 0:
+                value = 0
+            self._data[index.row()][index.column()] = value
+            return True
+        return False
+
+    def headerData(self, section: int, orientation: QtCore.Qt.Orientation, role):
+        if role != QtCore.Qt.ItemDataRole.DisplayRole:
+            return None
+        if orientation == QtCore.Qt.Orientation.Horizontal:
+            return self._header_data[section]
+        return section + 1
+
+    def rowCount(self, index):
+        # Количество строк = всего элементов списка списков [[x1, y1], [x2, y2] ... >>[xN, yN]<< ]
+        if self._data:
+            return len(self._data)
+        else:
+            return 0
+
+    def columnCount(self, index):
+        # Количество столбцов = элементов внутреннего списка [[x1, >>y1<<], [x2, y2] ... [xN, yN]]
+        if self._data:
+            return len(self._data[0])
+        else:
+            return 0
+
+    def flags(self, index: QtCore.QModelIndex):
+        flag = super().flags(index)
+        if index.column() == int(self.edit_col):
+            flag |= QtCore.Qt.ItemFlag.ItemIsEditable  # | QtCore.Qt.ItemFlag.ItemIsSelectable | QtCore.Qt.ItemFlag.ItemIsEnabled
+        return flag  # type: ignore
+
+    # def flags(self, index: QtCore.QModelIndex):
+    #     flag = super().flags(index)
+    #     if self._flags:
+    #         for i, _flag in enumerate(self._flags()):
+    #             if index.column() == i:
+    #                 flag |= _flag
+    #     return flag
 
 
 # ======================================================================================================================
@@ -175,12 +244,12 @@ class AzButtonLineEdit(QtWidgets.QLineEdit):
         else:
             if self.save_dialog:  # выбрано диалог сохранения файла
                 filename, _ = QtWidgets.QFileDialog.getSaveFileName(self, self.caption, self.last_dir, self.filter,
-                                                          self.initial_filter)
+                                                                    self.initial_filter)
                 if self.save_dir:
                     self.settings.write_last_dir(os.path.dirname(filename))
             else:  # значит классический вариант выбора файлов (dir_only=False, save_dialog=False)
                 filename, _ = QtWidgets.QFileDialog.getOpenFileName(self, self.caption, self.last_dir, self.filter,
-                                                          self.initial_filter)
+                                                                    self.initial_filter)
             if len(filename) > 0:  # проверяем в обоих случаях возвращаемый файл
                 if self.save_dir:  # сохраняем последний используемый каталог
                     self.settings.write_last_dir(os.path.dirname(filename))
