@@ -1,7 +1,7 @@
 from qdarktheme.qtpy import QtCore
 from qdarktheme.qtpy import QtWidgets
 from qdarktheme.qtpy import QtGui
-from utils import AppSettings, convert_to_sama, UI_COLORS, UI_OUTPUT_TYPES, UI_READ_LINES, dn_crop
+from utils import AppSettings, convert_to_sama, UI_COLORS, UI_OUTPUT_TYPES, UI_READ_LINES, dn_crop_images
 from ui import coloring_icon, AzFileDialog, natural_order, AzButtonLineEdit, AzSpinBox, _TableModel, AzTableModel
 from datetime import datetime
 import os
@@ -222,17 +222,14 @@ class ProcessingUI(QtWidgets.QWidget):
         for row in range(model.rowCount(-198)):  # -198 чтобы тебя запутать))
             # процент указан во втором столбце, роль "Редактирования" включает "Отображение"
             pols_overlap_percent.append((model.data(model.index(row, 1), QtCore.Qt.ItemDataRole.DisplayRole)) / 100)
-        print(pols_overlap_percent)
-        cut_settings = []  # выбранные параметры разрезания
-        cut_settings.append(self.slice_scan_size.value())  # размер сканирующего окна
-        cut_settings.append(pols_overlap_percent)
-        cut_settings.append(self.slice_overlap_window.value() / 100)
         new_name = os.path.join(self.slice_output_file_path.text(),
                                 "sliced_%s.json" % datetime.now().strftime("%Y-%m-%d--%H-%M-%S"))
-        cut_settings.append(new_name)
-        print(cut_settings)
-        # ImgCutObj = dn_crop.DNImgCut(PathData, JsonNameFile)
-        # ImgCutObj.CutAllImgs(1280, [0.5, 0.5, 0.5, 0.5, 0.5, 0.5], 0.5, 'res.json')
+        cut_images = dn_crop_images.DNImgCut(os.path.dirname(self.slice_input_file_path.text()),
+                                             os.path.basename(self.slice_input_file_path.text()))
+        # ImgCutObj.CutAllImgs(1280, [0.5,0.5,0.5,0.5,0.5,0.5], 0.5, 'res.json')
+        temp = cut_images.CutAllImgs(self.slice_scan_size.value(), pols_overlap_percent,
+                                     self.slice_overlap_window.value() / 100, new_name)
+        print(temp)
 
     def slice_load_projects_data(self):  # загрузка файла проекта
         self.json_obj = dn_crop.DNjson(self.slice_input_file_path.text())  # Файл проекта, реализация Дениса
@@ -243,7 +240,7 @@ class ProcessingUI(QtWidgets.QWidget):
         self.slice_exec.setEnabled(True)
         model_data = []  # данные для отображения
         for label in self.json_obj.labels:
-            # [наменование метки, процент перекрытия]
+            # [наименование метки, процент перекрытия]
             model_data.append([label, int(self.slice_overlap_pols_default.text())])
         self.slice_tab_labels.setModel(
             AzTableModel(model_data, header_data=["Наименование класса (метки)", "Процент перекрытия"], edit_column=1))
