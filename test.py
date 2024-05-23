@@ -346,3 +346,6 @@
 #     demo = Demo()
 #     demo.show()
 #     sys.exit(app.exec_())
+
+for i in range(988, 1023):
+    print("hello_{:0>3}".format(i))

@@ -1,32 +1,33 @@
-import json
+from shapely import Polygon, MultiPolygon
+from sklearn.cluster import DBSCAN
 import cv2 as cv
 import numpy as np
-import copy
-from sklearn.cluster import DBSCAN
-from shapely import Polygon, MultiPolygon
-import os
 import codecs
+import copy
+import json
+import os
+
+DEBUG = True  # активатор режима отладки
 
 
-# Класс работы с результатами НС, записанными в формате json
 class DNjson:
+    """ Класс работы с исходными данными (результатами НС), записанными в формате json"""
+
     def __init__(self, FullNameJsonFile: str):
         self.FullNameJsonFile = FullNameJsonFile
 
         # Получаем данные из файла в виде формата json
         self.DataDict = self.ReadDataJson()
 
-        # Читаем имена всех изображений, записанных в json
-        self.ImgsName = self.ReadNamesImgs()
+        if self.DataDict:  # выполняем проверку
+            # Читаем имена всех изображений, записанных в json
+            self.ImgsName = self.ReadNamesImgs()
 
-        # Узнаем максимальный номер класса
-        NumsAllCls = []
-        for i in range(len(self.ImgsName)):
-            Data = self.ReadPolygons(i)
-            NumsAllCls += Data['ClsNums']
+            # Формируем перечень имен классов (меток)
+            self.labels = (self.DataDict['labels'])
 
-        print("Максимальный номер класса: ", max(NumsAllCls))
-        self.MaxClsNum = max(NumsAllCls)
+            # Узнаем максимальный номер класса
+            self.MaxClsNum = len(self.labels)  # print("Максимальный номер класса: ", self.MaxClsNum)
 
     # Функции, использующиеся при инициализации класса
     # Функция чтения данных из файла Json
@@ -37,9 +38,20 @@ class DNjson:
         data = file.readline()
         file.close()
 
-        # Переделываем строку в json словарь
-        data_dict = json.loads(data)
-        return data_dict
+        if self.check_json(data):  # выполняем проверку
+            self.good_file = True
+            # Переделываем строку в json словарь
+            data_dict = json.loads(data)
+            return data_dict
+        else:
+            self.good_file = False
+            return None
+
+    def check_json(self, json_project_data):  # примитивная проверка на наличие нужных параметров
+        for field in ["path_to_images", "images", "labels", "labels_color"]:
+            if field not in json_project_data:
+                return False
+        return True
 
     @classmethod
     def ReadJsonKeys(cls, DataDict):
@@ -177,10 +189,16 @@ class DNjson:
     #     return RGBMAss
 
 
-# Класс работы с изображениями
+# ----------------------------------------------------------------------------------------------------------------------
+
 class DNImgCut:
+    """ Класс работы с изображениями:
+        PathToImg - каталог входной файла json
+        NameJsonFile - наименования входного файла json"""
+
     def __init__(self, PathToImg: str, NameJsonFile: str):
 
+        self.cut_images_count = 0  # счетчик нарезанных изображений, в случае ошибки возвращает None
         self.PathToImg = PathToImg
 
         # Создаем объект json
@@ -192,9 +210,9 @@ class DNImgCut:
         for ImgName in self.JsonObj.ImgsName:
             self.FullNamesImgsFile.append(PathToImg + '/' + ImgName)
 
-    # Функция построения shp полигона из сканирующего окна
     @classmethod
     def CreateWPolSHP(cls, pn: [], WW, HW):
+        """Функция построения shp полигона из сканирующего окна"""
         xn = pn[0]
         yn = pn[1]
         xk = xn + WW
@@ -203,19 +221,19 @@ class DNImgCut:
         PolSHP = Polygon(Pol)
         return PolSHP
 
-    # Функция перемещения сканирующего окна по картинке (возвращает массив значений всех удовлетворительных
-    # положений сканирующего окна
-    # Параметры: pn - начальная точка перемещения окна,
-    # WW,HW - размеры окна,
-    # WImg,HImg - размеры информативной области изображения, в пределах которой имеет смысл организовывать скольжение окна
-    # ProcOverlapPol - какой процент площади полигонов надо перекрыть окном, чтобы считать возможным
-    # зафиксировать позицию окна (процент площади устанавливается для каждого класса отдельно),
-    # ProcOverlapW - процент перекрытия окна для смежных кадров
-
     @classmethod
     def GetPosWindShp(cls, pn: [], WW: int, HW: int, WImg: int, HImg: int, ProcOverlapPol: [], ProcOverlapW: float,
                       PolsSHP: [], NumClsPols: []):
-
+        """
+        Функция перемещения сканирующего окна по картинке (возвращает массив значений всех удовлетворительных
+        положений сканирующего окна). Параметры:
+            pn - начальная точка перемещения окна;
+            WW, HW - размеры окна;
+            WImg, HImg - размеры информативной области изображения, в пределах которой следует вести скольжение окна;
+            ProcOverlapPol - значение границы (%) перекрытия площади полигонов (устанавливается для каждого класса
+                отдельно);
+            ProcOverlapW - процент перекрытия окна для смежных кадров.
+        """
         # В начале алгоритма перемещение окна идет по одному пикселю
         dx = WW - int(WW * ProcOverlapW)
         dy = HW - int(HW * ProcOverlapW)
@@ -255,10 +273,13 @@ class DNImgCut:
                 dx = WW - int(WW * ProcOverlapW)
 
     @classmethod
-    # Функция получения позиций сканирующего окна, но хитрее предыдущей (не тупая)
-    # AZ
     def GetPosWindShp2(cls, WW: int, HW: int, WImg: int, HImg: int, ProcOverlapPol: [], D: int, ProcOverlapW: float,
                        PolsSHP: [], NumClsPols: []):
+        """Интеллектуальная функция перемещения сканирующего окна по картинке. Разбиваем полигоны на кластеры согласно
+        положению их центров масс (по территориальному признаку)
+            eps - минимальное расстояние между центрами масс полигонов, чтобы их можно было отнести в один кластер
+            считаем, что если центры масс укладываются в размеры сканирующего окна, то это - один кластер """
+
         # Запоминаем координаты центров масс всех полигонов
         PolsC = []
         for Pol in PolsSHP:
@@ -274,7 +295,8 @@ class DNImgCut:
         pnList = []  # Список удовлетворительных значений сканирующего окна
         # Дальнейшая обработка изображения идет по кластерам, на которые разбиты полигоны
         for NCl in np.unique(ClastModel.labels_):
-            print("Номер обрабатываемого кластера: ", NCl)
+            if DEBUG:
+                print("Номер обрабатываемого кластера: ", NCl)
             # Выбираем все полигоны, принадлежащие одному кластеру
             Index = np.column_stack(np.where(np.array(ClastModel.labels_) == NCl))
             PolsSHPClast = [PolsSHP[i[0]] for i in Index]
@@ -490,10 +512,9 @@ class DNImgCut:
 
         return pnList
 
-    # Функция поиска пересекающихся с рамкой полигонов
     @classmethod
     def FindPolyOverload(cls, WPolSHP, PolsSHP: [], ProcOverlapPols: [], NumClsPols: []):
-
+        """Функция поиска пересекающихся с рамкой полигонов"""
         # Получаем индексы полигонов, пересекающихся со сканирующим окном
         Ov = WPolSHP.intersects(PolsSHP)
         Indx = np.column_stack(np.where(Ov))
@@ -535,10 +556,10 @@ class DNImgCut:
             elif len(GoodPolSHP) == 0:
                 return None
 
-    # Функция нарезки картинки
-    # ProcOverlapPol - пороговое значение части площади пересечения полигона со сканирующим окном
-    # с которого считается, что полигон попадает в окно
-    def CutImg(self, NumImg: int, SizeWind: int, ProcOverlapPol: [], ProcOverlapW: float):
+    def CutImg(self, NumImg: int, SizeWind: int, ProcOverlapPol: [], ProcOverlapW: float, output_image_dir: str):
+        """Функция нарезки картинки
+        ProcOverlapPol - пороговое значение части площади пересечения полигона со сканирующим окном
+        с которого считается, что полигон попадает в окно"""
         # Определяем координаты рамки, в которую вмещается вся разметка
         # Читаем все полигоны с картинки
         Pols = self.JsonObj.ReadPolygons(NumImg)
@@ -607,7 +628,7 @@ class DNImgCut:
         # plt.show()
 
         # Для каждой позиции сканирующего окна режем полигоны, площадь пересечения которых больше порогового значения
-        i = 0
+        i = 0  # счетчик имён нарезанных картинок (в пределах обрабатываемого исходного снимка)
         NameCropImgs = []
         PolsImg = []
         ClsNumsImg = []
@@ -645,17 +666,14 @@ class DNImgCut:
 
             # Генерим имя сохраняемого изображения
             NameImg = os.path.splitext(os.path.basename(path))[0]
-            NameImg += '_'
-            if i < 10: NameImg += '0'
-            NameImg += str(i)
-            NameImg += '.jpg'
-            FullFileName = self.PathToImg + '/' + NameImg
-
+            NameImg += "_{:0>3}.jpg".format(i)
+            i += 1  # увеличиваем счетчик
+            FullFileName = os.path.join(output_image_dir, NameImg)
             # Записываем картинки
             success, ImgCropArr = cv.imencode('.jpg', ImgCrop)
             ImgCropArr.tofile(FullFileName)
-
-            i += 1
+            if success:
+                self.cut_images_count += 1
 
             NameCropImgs.append(NameImg)
             PolsImg.append(PolsCut)
@@ -678,39 +696,43 @@ class DNImgCut:
             if WPol < WW and HPol < HW:
                 NumbSmollPol += 1
 
-        print("\nКоличество картинок:", len(WPos))
-        print("Доля нерезанных полигонов:", len(np.unique(IndxNoCutPol)) / NumbSmollPol)
+        if DEBUG:
+            print("\nКоличество картинок:", len(WPos))
+            print("Доля нерезанных полигонов:", len(np.unique(IndxNoCutPol)) / NumbSmollPol)
 
         return {'ImgNames': NameCropImgs, 'Pols': PolsImg, 'ClsNums': ClsNumsImg}
 
     # Функция нарезки всех картинок в json файле и генерация нового json-файла
     def CutAllImgs(self, SizeWind: int, ProcOverlapPol: [], ProcOverlapW: float, NameJsonFile: str):
-        JsonAllData = {}
+        try:  # старт процедуры
+            JsonAllData = {}
 
-        # Добавляем путь к файлам-картинкам
-        JsonAllData['path_to_images'] = self.PathToImg
+            # # Добавляем путь к файлам-картинкам
+            JsonAllData['path_to_images'] = os.path.dirname(NameJsonFile)
 
-        # Перебор по всем картинкам в Json-файле
-        JsonAllData['images'] = {}
-        for i in range(len(self.JsonObj.ImgsName)):
-            CutData = self.CutImg(i, SizeWind, ProcOverlapPol, ProcOverlapW)
+            # Перебор по всем картинкам в Json-файле
+            JsonAllData['images'] = {}
+            for i in range(len(self.JsonObj.ImgsName)):
+                CutData = self.CutImg(i, SizeWind, ProcOverlapPol, ProcOverlapW, os.path.dirname(NameJsonFile))
 
-            # Перебор по нарезанным картинкам одного исходного изображения
-            for j in range(len(CutData['ImgNames'])):
-                Dict = self.JsonObj.PolsToDict(i, CutData['Pols'][j], CutData['ClsNums'][j])
-                JsonAllData['images'][CutData['ImgNames'][j]] = Dict.copy()
+                # Перебор по нарезанным картинкам одного исходного изображения
+                for j in range(len(CutData['ImgNames'])):
+                    Dict = self.JsonObj.PolsToDict(i, CutData['Pols'][j], CutData['ClsNums'][j])
+                    JsonAllData['images'][CutData['ImgNames'][j]] = Dict.copy()
 
-        # Записываем оконцовку json без изменений, к картинкам отношение не имеет
-        JsonAllData['labels'] = self.JsonObj.DataDict['labels']
-        JsonAllData['labels_color'] = self.JsonObj.DataDict['labels_color']
+            # Записываем оконцовку json без изменений, к картинкам отношение не имеет
+            JsonAllData['labels'] = self.JsonObj.DataDict['labels']
+            JsonAllData['labels_color'] = self.JsonObj.DataDict['labels_color']
 
-        # Перевод json в строку
-        JsonAllDataStr = json.dumps(JsonAllData, ensure_ascii=False, sort_keys=False)
+            # Перевод json в строку
+            JsonAllDataStr = json.dumps(JsonAllData, ensure_ascii=False, sort_keys=False)
 
-        # Запись строки в файл
-        FullNameJsonFile = self.PathToImg + '/' + NameJsonFile
-        with codecs.open(FullNameJsonFile, 'w', 'utf-8') as file:
-            file.write(str(JsonAllDataStr))
-
-        print("Нарезка завершена")
-        return 0
+            # Запись строки в файл
+            with codecs.open(NameJsonFile, 'w', 'utf-8') as file:
+                file.write(str(JsonAllDataStr))
+            if DEBUG:
+                print("Нарезка завершена")
+        except Exception as e:  # действия в случае ошибки
+            return -1
+        finally:  # действия в случае успешного выполнения
+            return self.cut_images_count

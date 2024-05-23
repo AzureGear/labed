@@ -1,7 +1,7 @@
 from qdarktheme.qtpy import QtCore
 from qdarktheme.qtpy import QtWidgets
 from qdarktheme.qtpy import QtGui
-from utils import AppSettings, convert_to_sama, UI_COLORS, UI_OUTPUT_TYPES, UI_READ_LINES, dn_crop_images
+from utils import AppSettings, convert_to_sama, UI_COLORS, UI_OUTPUT_TYPES, UI_READ_LINES, dn_crop
 from ui import coloring_icon, AzFileDialog, natural_order, AzButtonLineEdit, AzSpinBox, _TableModel, AzTableModel
 from datetime import datetime
 import os
@@ -217,19 +217,32 @@ class ProcessingUI(QtWidgets.QWidget):
             self.slice_load_projects_data()
 
     def slice_exec_run(self):  # процедура разрезания
-        pols_overlap_percent = []
-        model = self.slice_tab_labels.model()
-        for row in range(model.rowCount(-198)):  # -198 чтобы тебя запутать))
-            # процент указан во втором столбце, роль "Редактирования" включает "Отображение"
-            pols_overlap_percent.append((model.data(model.index(row, 1), QtCore.Qt.ItemDataRole.DisplayRole)) / 100)
-        new_name = os.path.join(self.slice_output_file_path.text(),
-                                "sliced_%s.json" % datetime.now().strftime("%Y-%m-%d--%H-%M-%S"))
-        cut_images = dn_crop_images.DNImgCut(os.path.dirname(self.slice_input_file_path.text()),
-                                             os.path.basename(self.slice_input_file_path.text()))
-        # ImgCutObj.CutAllImgs(1280, [0.5,0.5,0.5,0.5,0.5,0.5], 0.5, 'res.json')
-        temp = cut_images.CutAllImgs(self.slice_scan_size.value(), pols_overlap_percent,
-                                     self.slice_overlap_window.value() / 100, new_name)
-        print(temp)
+        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)  # ставим курсор ожидание
+        try:
+            pols_overlap_percent = []
+            model = self.slice_tab_labels.model()
+            for row in range(model.rowCount(-198)):  # -198 чтобы тебя запутать))
+                # процент указан во втором столбце, роль "Редактирования" включает "Отображение"
+                pols_overlap_percent.append((model.data(model.index(row, 1), QtCore.Qt.ItemDataRole.DisplayRole)) / 100)
+            new_name = os.path.join(self.slice_output_file_path.text(),
+                                    "sliced_%s.json" % datetime.now().strftime("%Y-%m-%d--%H-%M-%S"))
+            cut_images = dn_crop.DNImgCut(os.path.dirname(self.slice_input_file_path.text()),
+                                          os.path.basename(self.slice_input_file_path.text()))
+            proc_imgs = cut_images.CutAllImgs(self.slice_scan_size.value(), pols_overlap_percent,
+                                              self.slice_overlap_window.value() / 100,
+                                              new_name)  # нарезка функцией Дениса
+            if proc_imgs > 0:
+                self.signal_message.emit("Кадрирование завершено. Общее количество изображений %s" % proc_imgs)
+            elif proc_imgs == 0:
+                self.signal_message.emit("Кадрирование изображений не выполнено - в проекте отсутствуют изображения")
+            else:
+                self.signal_message.emit("Нарезка изображений не выполнена")
+        except Exception as e:
+            raise e
+            print("Error {}".format(e.args[0]))
+            QtWidgets.QApplication.restoreOverrideCursor()
+        finally:
+            QtWidgets.QApplication.restoreOverrideCursor()
 
     def slice_load_projects_data(self):  # загрузка файла проекта
         self.json_obj = dn_crop.DNjson(self.slice_input_file_path.text())  # Файл проекта, реализация Дениса
@@ -327,7 +340,6 @@ class ProcessingUI(QtWidgets.QWidget):
                 return
             new_name = os.path.join(self.merge_output_dir,
                                     "converted_%s.json" % datetime.now().strftime("%Y-%m-%d--%H-%M-%S"))
-
             if convert_to_sama(unique, new_name):
                 self.merge_files_list.clearSelection()
                 self.signal_message.emit("Файлы успешно объединены и конвертированы")
