@@ -47,7 +47,6 @@ class ProcessingUI(QtWidgets.QWidget):
 
     def change_tab(self):
         pass
-        # print(str(self.tab_widget.currentIndex()))
 
     def tab_merge_setup(self):  # настройка страницы "Слияние"
         self.ui_tab_merge = self.tab_basic_setup(complex=True)  # создаём "сложный" виджет
@@ -80,13 +79,6 @@ class ProcessingUI(QtWidgets.QWidget):
         split.setSizes((90, 30))
         self.merge_files_list.itemSelectionChanged.connect(self.merge_selection_files_change)
 
-        self.merge_output_tb = QtWidgets.QToolButton()  # выходной путь; по нажатии меняется на выбранный пользователем
-        self.merge_output_tb.setCheckable(True)  # кнопка "нажимательная"
-        self.merge_output_tb.setText("Каталог по умолчанию:" + "\n" + self.settings.read_default_output_dir())
-        self.merge_output_tb.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonTextOnly)  # только текст от кнопки
-        self.merge_output_tb.toggled.connect(self.merge_output_tb_toggled)  # связываем с методом смены каталога
-        self.merge_output_dir = self.settings.read_default_output_dir()  # устанавливаем выходной каталог
-
         # Настройка панели инструментов
         self.merge_toolbar = QtWidgets.QToolBar("Toolbar for merging project files")  # панель инструментов для слияния
         self.merge_toolbar.setIconSize(QtCore.QSize(30, 30))
@@ -103,20 +95,40 @@ class ProcessingUI(QtWidgets.QWidget):
         self.merge_toolbar.addSeparator()
         self.merge_toolbar.addAction(self.merge_actions[4])  # объединить проекты и конвертировать
         self.merge_toolbar.addSeparator()
-        self.merge_toolbar.addWidget(self.merge_output_tb)
         self.merge_toolbar.addAction(self.merge_actions[5])  # открыть выходной каталог
 
+        # выходной каталог для Слияния
+        hlayout = QtWidgets.QHBoxLayout()  # контейнер QHBoxLayout()
+        self.merge_output_file_check = QtWidgets.QCheckBox("Set user output file path other than default:")
+        self.merge_output_file_path = AzButtonLineEdit("glyph_folder", the_color,
+                                                       caption="Output file",
+                                                       read_only=True, dir_only=True)
+        self.merge_output_file_path.setEnabled(False)  # Отключаем, т.е. по умолчанию флаг не включен
+        self.merge_output_file_path.setText(self.settings.read_default_output_dir())  # устанавливаем выходной каталог
+        # соединяем, поскольку требуется изменять выходной каталог, в случае деактивации
+        self.merge_output_file_check.clicked.connect(self.merge_toggle_output_file)
+        # соединяем, чтобы записывать изменения в переменную.
+        self.merge_output_file_path.textChanged.connect(self.merge_output_file_path_change)
+        hlayout.addWidget(self.merge_output_file_check)
+        hlayout.addWidget(self.merge_output_file_path)
+
+        # Собираем итоговую компоновку
         vlayout = QtWidgets.QVBoxLayout()  # контейнер QVBoxLayout()
+        vlayout.addLayout(hlayout)
         vlayout.addWidget(split)  # добавляем область с разделением
         wid = QtWidgets.QWidget()  # создаём виджет-контейнер...
         wid.setLayout(vlayout)  # ...куда помещаем vlayout (поскольку Central Widget может быть только QWidget)
         self.ui_tab_merge.addToolBar(self.merge_toolbar)  # добавляем панель меню
         self.ui_tab_merge.setCentralWidget(wid)  # устанавливаем главный виджет страницы "Слияние"
-        self.merge_toggle_instruments()
+        self.merge_toggle_instruments()  # устанавливаем доступные инструменты
 
-    def merge_cust_path_box_toggled(self):
-        if not self.merge_cust_path_box.isChecked():
-            self.merge_output_line.setText(self.settings.read_default_output_dir())
+    def merge_output_file_path_change(self):
+        self.merge_output_dir = self.merge_output_file_path.text()
+
+    def merge_toggle_output_file(self):
+        self.merge_output_file_path.setEnabled(self.merge_output_file_check.checkState())
+        if not self.merge_output_file_check.isChecked():
+            self.merge_output_file_path.setText(self.settings.read_default_output_dir())
 
     def merge_selection_files_change(self):  # загрузка данных *.json в предпросмотр
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)  # ставим курсор ожидание
@@ -145,6 +157,8 @@ class ProcessingUI(QtWidgets.QWidget):
         self.pb2 = QtWidgets.QPushButton("Manual Visual Slice Process")
         split = QtWidgets.QSplitter(QtCore.Qt.Vertical)  # вертикальный разделитель
         slice_auto_form = QtWidgets.QFormLayout()  # форма для расположения виджетов "автоматического разрезания"
+
+        # 1 строка в форме Автоматизированного разрезания
         self.slice_input_file_label = QtWidgets.QLabel("Path to file project *.json:")  # метка исходного файла
         self.slice_input_file_path = AzButtonLineEdit("glyph_folder", the_color,
                                                       caption="Select project file to auto slicing",
@@ -154,6 +168,8 @@ class ProcessingUI(QtWidgets.QWidget):
         self.slice_input_file_path.setText(self.settings.read_slicing_input())  # строка для исходного файла
         self.slice_input_file_path.textChanged.connect(
             lambda: self.settings.write_slicing_input(self.slice_input_file_path.text()))  # автосохранение
+
+        # 2 строка в форме Автоматизированного разрезания
         self.slice_output_file_check = QtWidgets.QCheckBox("Set user output file path other than default:")
         self.slice_output_file_path = AzButtonLineEdit("glyph_folder", the_color,
                                                        caption="Output file",
@@ -161,45 +177,62 @@ class ProcessingUI(QtWidgets.QWidget):
         # regexp = QtCore.QRegExp(r'^[[:ascii:]]+$')  # проверка имени файла на символы
         # validator = QtGui.QRegExpValidator(regexp, self.slice_output_file_path)  # создаём валидатор
         # self.slice_output_file_path.setValidator(validator)  # применяем его к нашей строке
+
+        # 3 строка в форме Автоматизированного разрезания
         self.slice_scan_size_label = QtWidgets.QLabel("Scan size:")  # метка для сканирующего окна
         self.slice_scan_size = AzSpinBox(min_val=8, min_wide=70, suffix=" pix")  # размер сканирующего окна;
         self.slice_overlap_window_label = QtWidgets.QLabel("Scanning window overlap percentage:")
-        # процент перекрытия окна для смежных кадров:
-        self.slice_overlap_window = AzSpinBox(min_val=0, max_val=95, step=1, max_start_val=False, start_val=5)
+        # процент перекрытия окна для смежных кадров скользящего окна:
+        self.slice_overlap_window = AzSpinBox(min_val=0, max_val=95, step=1, max_start_val=False,
+                                              start_val=self.settings.read_slice_window_overlap())
+        self.slice_overlap_window.valueChanged.connect(self.slice_write_overlap_window)
         self.slice_overlap_pols_default_label = QtWidgets.QLabel("Default overlap percentage for classes:")
-        current_overlap_pols_default = self.settings.read_default_slice_overlap_pols()
         self.slice_overlap_pols_default = AzSpinBox(min_val=0, max_val=95, step=1, max_start_val=False,
-                                                    start_val=current_overlap_pols_default)
+                                                    start_val=self.settings.read_default_slice_overlap_pols())
         self.slice_overlap_pols_default.valueChanged.connect(self.slice_write_default_overlap_pols)
+
+        h_widgets = [self.slice_scan_size_label, self.slice_scan_size, self.slice_overlap_window_label,
+                     self.slice_overlap_window, self.slice_overlap_pols_default_label,
+                     self.slice_overlap_pols_default]  # группа горизонтальных виджетов для параметров авто разрезания
+        hor_sett_layout = QtWidgets.QHBoxLayout()  # расположение для параметров автоматизированной обработки
+        fill_layout_by_widgets(h_widgets, hor_sett_layout, group_by=2)
+
+        # 4 строка в форме Автоматизированного разрезания
         self.slice_output_file_path.setEnabled(False)
         self.slice_output_file_check.clicked.connect(self.slice_toggle_output_file)  # соединяем - требуется настройка
         self.slice_output_file_path.setText(self.settings.read_default_output_dir())  # строка для выходного файла
-        self.slice_exec = QtWidgets.QPushButton(" Slice images")
+        self.slice_exec = QtWidgets.QPushButton(" Automatically crop images")
         self.slice_exec.setIcon(coloring_icon("glyph_cutter", the_color))
         self.slice_exec.clicked.connect(self.slice_exec_run)  # соединение с процедурой разрезания
+
         self.slice_open_result = QtWidgets.QPushButton(" Open results")
         self.slice_open_result.setIcon(coloring_icon("glyph_folder_clear", the_color))
         self.slice_open_result.clicked.connect(lambda: os.startfile(self.slice_output_file_path.text()))
         self.slice_overlap_pols = 0  # какой процент площади полигонов надо перекрыть окном
-        h_widgets = [self.slice_scan_size_label, self.slice_scan_size, self.slice_overlap_window_label,
-                     self.slice_overlap_window, self.slice_overlap_pols_default_label,
-                     self.slice_overlap_pols_default]  # группа вертикальных виджетов для параметров авто разрезания
 
-        hor_sett_layout = QtWidgets.QHBoxLayout()  # расположение для параметров автоматизированной обработки
-        for i, wdt in enumerate(h_widgets):
-            hor_sett_layout.addWidget(wdt)
-            if i % 2 == 1:  # Выбираем только нечётные, т.е. 0-нет, 1-да и т.д.
-                hor_sett_layout.addStretch(20)
+        self.slice_smart_crop = QtWidgets.QCheckBox(
+            "Упрощенное кадрирование по сетке (без интеллектуальной группировки)")
+
+        hor_sett_layout2 = QtWidgets.QHBoxLayout()  # расположение smart + кнопки
+        hor_sett_layout2.addWidget(self.slice_smart_crop)
+        hor_sett_layout2.addStretch(1)
+        hor_sett_layout2.addWidget(self.slice_exec)
+        hor_sett_layout2.addWidget(self.slice_open_result)
+
+
+        # Табличный просмотр в форме Автоматизированного разрезания
         self.slice_tab_labels = QtWidgets.QTableView()  # Создаём объект табличного просмотра
         self.slice_tab_labels.setSortingEnabled(False)  # отключаем сортировку, т.к. для Денисова класса важен порядок
         self.slice_tab_labels.setAlternatingRowColors(True)  # устанавливаем чередование цветов строк таблицы
 
-        slice_auto_form.addRow(self.slice_input_file_label, self.slice_input_file_path)  # строка "исходный файл"
-        slice_auto_form.addRow(self.slice_output_file_check, self.slice_output_file_path)  # строка "выходной файл"
         slice_auto_form.addRow(hor_sett_layout)  # строка "настройки автоматизированной обработки"
+        slice_auto_form.addRow(hor_sett_layout2)  # строка Smart + кнопки
         slice_auto_form.addRow(self.slice_tab_labels)
 
-        slice_auto_form.addRow(self.slice_open_result, self.slice_exec)
+        slice_caption_form = QtWidgets.QFormLayout()  # общее заголовочное расположение
+        slice_caption_form.addRow(self.slice_input_file_label, self.slice_input_file_path)  # строка "исходный файл"
+        slice_caption_form.addRow(self.slice_output_file_check, self.slice_output_file_path)  # строка "выходной файл"
+
         up_widget = QtWidgets.QWidget()  # верхний виджет - автоматизированная обработка
         up_widget.setLayout(slice_auto_form)
         split.addWidget(up_widget)
@@ -207,6 +240,7 @@ class ProcessingUI(QtWidgets.QWidget):
         split.setChildrenCollapsible(True)  # включаем полное сворачивание виджетов внутри разделителя
         split.setSizes((10, 120))
         vlayout = QtWidgets.QVBoxLayout()  # контейнер QVBoxLayout()
+        vlayout.addLayout(slice_caption_form)   # добавляем область с заголовочным расположением
         vlayout.addWidget(split)  # добавляем область с разделением
         wid = QtWidgets.QWidget()  # создаём виджет-контейнер...
         wid.setLayout(vlayout)  # ...куда помещаем vlayout (поскольку Central Widget может быть только QWidget)
@@ -263,6 +297,9 @@ class ProcessingUI(QtWidgets.QWidget):
 
     def slice_write_default_overlap_pols(self):
         self.settings.write_default_slice_overlap_pols(self.slice_overlap_pols_default.value())
+
+    def slice_write_overlap_window(self):
+        self.settings.write_slice_window_overlap(self.slice_overlap_window.value())
 
     def slice_toggle_output_file(self):
         self.slice_output_file_path.setEnabled(self.slice_output_file_check.checkState())
@@ -358,17 +395,14 @@ class ProcessingUI(QtWidgets.QWidget):
     def merge_open_output(self):
         os.startfile(self.merge_output_dir)  # открываем каталог средствами системы
 
-    def merge_output_tb_toggled(self):  # настройка выходных данных
-        if not self.merge_output_tb.isChecked():  # кнопка не нажата - значит каталог по умолчанию
-            self.merge_output_dir = self.settings.read_default_output_dir()
-            self.merge_output_tb.setText("Каталог по умолчанию" + "\n" + self.settings.read_default_output_dir())
-        else:  # кнопка нажата - пробуем установить каталог пользователя
-            last_dir = self.settings.read_default_output_dir()  # последний открытый каталог
-            if not os.path.exists(last_dir):
-                last_dir = ""
-            out_path = AzFileDialog(self, "Select directory for files to be merged", last_dir, True)  # диалог
-            if out_path:
-                self.merge_output_tb.setText("Каталог пользователя" + "\n" + out_path)
-                self.merge_output_dir = out_path
-            else:
-                self.merge_output_tb.setChecked(False)  # если новый путь не выбран, возвращаем кнопку по умолчанию
+
+def fill_layout_by_widgets(widgets: list, layout, group_by=2):  # автоматизированное заполнение layout
+    for i, wdt in enumerate(widgets):
+        layout.addWidget(wdt)
+        if group_by == 2:
+            # Выбираем только нечётные, т.е. 0-нет, 1-да и т.д., а также отбрасываем последний
+            if i % 2 == 1 and i < len(widgets) - 1:
+                layout.addStretch(1)
+        else:   # во всех остальных случаях после каждого виджета - добавляем "растяжку"
+            if i < len(widgets) - 1:
+                layout.addStretch(1)

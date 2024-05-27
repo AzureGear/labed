@@ -347,5 +347,8 @@
 #     demo.show()
 #     sys.exit(app.exec_())
 
-for i in range(988, 1023):
-    print("hello_{:0>3}".format(i))
+# self.merge_output_tb = QtWidgets.QToolButton()  # выходной путь; по нажатии меняется на выбранный пользователем
+# self.merge_output_tb.setCheckable(True)  # кнопка "нажимательная"
+# self.merge_output_tb.setText("Каталог по умолчанию:" + "\n" + self.settings.read_default_output_dir())
+# self.merge_output_tb.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonTextOnly)  # только текст от кнопки
+# self.merge_output_tb.toggled.connect(self.merge_output_tb_toggled)  # связываем с методом смены каталога

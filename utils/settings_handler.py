@@ -6,6 +6,7 @@ class AppSettings:
     """
     Взаимодействие с хранением, записью и сбросом настроек в реестре
     """
+
     def __init__(self):
         self.settings = QSettings(config.ORGANIZATION, config.APPLICATION)
 
@@ -66,7 +67,7 @@ class AppSettings:
     def read_load_sub_dir(self):  # загружать ли подкаталоги, когда загружаешь каталог [r]
         return self.settings.value('common/with_sub_dirs', False)
 
-    def write_load_sub_dir(self, b):    # загружать ли подкаталоги, когда загружаешь каталог [w]
+    def write_load_sub_dir(self, b):  # загружать ли подкаталоги, когда загружаешь каталог [w]
         self.settings.setValue('common/with_sub_dirs', b)
 
     def read_slicing_input(self):  # исходный файл проекта для автонарезки [r]
@@ -80,3 +81,9 @@ class AppSettings:
 
     def write_default_slice_overlap_pols(self, percent):  # значение перекрытия для полигонов по умолчанию [w]
         self.settings.setValue('slicing/default_slice_overlap_pols', percent)
+
+    def read_slice_window_overlap(self):  # значение перекрытия для сканирующего окна [r]
+        return self.settings.value('slicing/default_slice_window_overlap', 50)
+
+    def write_slice_window_overlap(self, percent):  # значение перекрытия для сканирующего окна [w]
+        self.settings.setValue('slicing/default_slice_window_overlap', percent)

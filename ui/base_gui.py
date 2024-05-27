@@ -241,12 +241,16 @@ class BaseGUI(QtWidgets.QMainWindow):
         pc.merge_actions[3].setText(QtWidgets.QApplication.translate('BaseGUI', "Clear list"))
         pc.merge_actions[4].setText(QtWidgets.QApplication.translate('BaseGUI', "Merge selected files"))
         pc.merge_actions[5].setText(QtWidgets.QApplication.translate('BaseGUI', "Open output folder"))
-        pc.merge_output_tb.setText(
-            QtWidgets.QApplication.translate('BaseGUI',
-                                             "Default output dir: \n" + self.settings.read_default_output_dir()))
         pc.merge_output_label.setText(QtWidgets.QApplication.translate('BaseGUI', "Output type:"))
+        pc.merge_output_file_check.setText("Set user output file path other than default:")
         pc.merge_toolbar.setWindowTitle(
             QtWidgets.QApplication.translate('BaseGUI', "Toolbar for merging project files"))
+        # Processing - Cutting Images (crop)
+        pc.slice_input_file_label.setText("Path to file project *.json:")
+        pc.slice_output_file_check.setText("Set user output file path other than default:")
+        pc.slice_scan_size_label.setText("Scan size:")
+        pc.slice_overlap_window_label.setText("Scanning window overlap percentage:")
+        pc.slice_overlap_pols_default_label.setText("Default overlap percentage for classes:")
 
         # Baseview
         bv = self._ui.ui_viewdataset
