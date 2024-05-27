@@ -2,7 +2,7 @@ from qdarktheme.qtpy import QtCore
 from qdarktheme.qtpy import QtWidgets
 from qdarktheme.qtpy import QtGui
 from utils import AppSettings, convert_to_sama, UI_COLORS, UI_OUTPUT_TYPES, UI_READ_LINES, dn_crop
-from ui import coloring_icon, AzFileDialog, natural_order, AzButtonLineEdit, AzSpinBox, _TableModel, AzTableModel
+from ui import coloring_icon, AzFileDialog, natural_order, AzButtonLineEdit, AzSpinBox, AzTableModel
 from datetime import datetime
 import os
 
@@ -61,6 +61,7 @@ class ProcessingUI(QtWidgets.QWidget):
             self.tab_widget.setTabToolTip(i, elem[3])
 
     def change_tab(self):
+        # TODO: make saver for tab
         pass
 
     def tab_merge_setup(self):  # настройка страницы "Слияние"
