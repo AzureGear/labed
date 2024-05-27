@@ -27,6 +27,21 @@ class ProcessingUI(QtWidgets.QWidget):
         self.tab_widget.currentChanged.connect(self.change_tab)
         layout.addWidget(self.tab_widget)  # добавляем виджет со вкладками в расположение
 
+        # Матрешка виджетов
+        # ProcessingUI(QWidget) - наш главный родительский контейнер
+        #  └- layout - контейнер типа QVBoxLayout в котором хранится...
+        #      └- tab_widget - ...виджет со вкладками, пока их 4: Слияние, Нарезка, Атрибуты, Геометрия.
+        #          ├- ui_tab_merge - "Слияние", виджет типа QMainWindow()
+        #          |   ├- toolbar - панель инструментов
+        #          |   └- list... и др. виджеты
+        #          ├- ui_tab_slicing - "Нарезка", виджет типа QMainWindow()
+        #          |   └- CentralWidget - главный виджет класса QMainWindow()
+        #          |       └- QVBoxLayout  - вертикальный контейнер
+        #          |           ├- slice_caption_form - область с заголовочным расположением элементов
+        #          |           └- split - разделитель QSplitter
+        #          |               ├- self.slice_up_group - группа объектов верхнего разделителя (автоматизир. кадрир.)
+        #          |               └- self.slice_down_group - группа объектов нижнего разделителя (ручное кадрирование)
+
         # Создание и настройка перечня виджетов-вкладок
         self.tab_merge_setup()  # "Слияние"
         self.tab_slicing_setup()  # "Нарезка"
@@ -154,7 +169,6 @@ class ProcessingUI(QtWidgets.QWidget):
 
     def tab_slicing_setup(self):  # настройка страницы "Нарезка"
         self.ui_tab_slicing = self.tab_basic_setup(complex=True)
-        self.pb2 = QtWidgets.QPushButton("Manual Visual Slice Process")
         split = QtWidgets.QSplitter(QtCore.Qt.Vertical)  # вертикальный разделитель
         slice_auto_form = QtWidgets.QFormLayout()  # форма для расположения виджетов "автоматического разрезания"
 
@@ -210,15 +224,13 @@ class ProcessingUI(QtWidgets.QWidget):
         self.slice_open_result.clicked.connect(lambda: os.startfile(self.slice_output_file_path.text()))
         self.slice_overlap_pols = 0  # какой процент площади полигонов надо перекрыть окном
 
-        self.slice_smart_crop = QtWidgets.QCheckBox(
-            "Упрощенное кадрирование по сетке (без интеллектуальной группировки)")
+        self.slice_smart_crop = QtWidgets.QCheckBox("Упрощенное кадрирование сеткой (без интеллектуальной группировки)")
 
         hor_sett_layout2 = QtWidgets.QHBoxLayout()  # расположение smart + кнопки
         hor_sett_layout2.addWidget(self.slice_smart_crop)
         hor_sett_layout2.addStretch(1)
         hor_sett_layout2.addWidget(self.slice_exec)
         hor_sett_layout2.addWidget(self.slice_open_result)
-
 
         # Табличный просмотр в форме Автоматизированного разрезания
         self.slice_tab_labels = QtWidgets.QTableView()  # Создаём объект табличного просмотра
@@ -233,22 +245,77 @@ class ProcessingUI(QtWidgets.QWidget):
         slice_caption_form.addRow(self.slice_input_file_label, self.slice_input_file_path)  # строка "исходный файл"
         slice_caption_form.addRow(self.slice_output_file_check, self.slice_output_file_path)  # строка "выходной файл"
 
-        up_widget = QtWidgets.QWidget()  # верхний виджет - автоматизированная обработка
-        up_widget.setLayout(slice_auto_form)
-        split.addWidget(up_widget)
-        split.addWidget(self.pb2)  # нижний виджет - ручная обработка
+        # верхний виджет - автоматизированная обработка
+        self.slice_up_group = QtWidgets.QGroupBox("Automatic image cropping")
+        self.slice_up_group.setLayout(slice_auto_form)
+
+        # элементы для нижнего виджета
+        self.pb2 = QtWidgets.QPushButton("Manual")
+        self.slice_setup_toolbar()  # настройка панели инструментов
+        manual_wid = QtWidgets.QMainWindow()
+        manual_wid.setCentralWidget(self.pb2)  # в будущем это будет класс виджета
+        manual_wid.addToolBar(self.slice_toolbar)
+
+        slice_manual_lay = QtWidgets.QVBoxLayout()
+        slice_manual_lay.addWidget(manual_wid)
+
+        # нижний виджет -  ручная обработка
+        self.slice_down_group = QtWidgets.QGroupBox("Manual visual image cropping")
+        self.slice_down_group.setLayout(slice_manual_lay)
+
+        split.addWidget(self.slice_up_group)  # верхний виджет - авто разрезание - добавляем в разделитель
+        split.addWidget(self.slice_down_group)  # нижний виджет - ручная обработка - добавляем в разделитель
         split.setChildrenCollapsible(True)  # включаем полное сворачивание виджетов внутри разделителя
         split.setSizes((10, 120))
+
         vlayout = QtWidgets.QVBoxLayout()  # контейнер QVBoxLayout()
-        vlayout.addLayout(slice_caption_form)   # добавляем область с заголовочным расположением
+        vlayout.addLayout(slice_caption_form)  # добавляем область с заголовочным расположением
         vlayout.addWidget(split)  # добавляем область с разделением
         wid = QtWidgets.QWidget()  # создаём виджет-контейнер...
         wid.setLayout(vlayout)  # ...куда помещаем vlayout (поскольку Central Widget может быть только QWidget)
         self.ui_tab_slicing.setCentralWidget(wid)
+        # self.ui_tab_slicing.addToolBar(self.slice_toolbar)
 
         # проверяем есть ли сохранённый ранее файл проекта, и загружаем его автоматически
         if len(self.slice_input_file_path.text()) > 0:
             self.slice_load_projects_data()
+
+    def slice_setup_toolbar(self):
+        self.slice_actions = (
+            QtGui.QAction(coloring_icon("glyph_folder", the_color), "Open"),  # открыть
+            QtGui.QAction(coloring_icon("glyph_add", the_color), "New"),  # новый
+            QtGui.QAction(coloring_icon("glyph_save", the_color), "Save"),  # сохранить
+            QtGui.QAction(coloring_icon("glyph_time-save", the_color), "Autosave"),  # автосохранение
+            QtGui.QAction(coloring_icon("glyph_crop", the_color), "Fit image"),  # изображение по размеру окна
+            QtGui.QAction(coloring_icon("glyph_hand", the_color), "Hand"),  # перемещение по снимку
+            QtGui.QAction(coloring_icon("glyph_merge", the_color), "Add"),  # добавить метку
+            QtGui.QAction(coloring_icon("glyph_merge", the_color), "Move"),  # передвинуть метку
+            QtGui.QAction(coloring_icon("glyph_merge", the_color), "Delete"),  # удалить метку
+            QtGui.QAction(coloring_icon("glyph_merge", the_color), "Change crop size"),  # сменить размер кадрирования
+            QtGui.QAction(coloring_icon("glyph_cutter", the_color), "Slice"))  # разрезать снимки
+
+        self.slice_actions[3].setCheckable(True)  # у автосохранения делаем кнопку нажимания
+
+        # Настройка панели инструментов
+        self.slice_toolbar = QtWidgets.QToolBar("Manual visual cropping toolbar")  # панель инструментов кадрирования
+        self.slice_toolbar.setIconSize(QtCore.QSize(30, 30))
+        self.slice_toolbar.setFloatable(False)
+        self.slice_toolbar.toggleViewAction().setVisible(False)  # чтобы панель случайно не отключали
+        separator_placement = [3, 5, 8]  # места после которых добавляется сепаратор
+        self.slice_toolbar.addAction(self.slice_actions[0])  # открыть
+        self.slice_toolbar.addAction(self.slice_actions[1])  # новый
+        self.slice_toolbar.addAction(self.slice_actions[2])
+        self.slice_toolbar.addAction(self.slice_actions[3])
+        self.slice_toolbar.addSeparator()
+        self.slice_toolbar.addAction(self.slice_actions[4])
+        self.slice_toolbar.addAction(self.slice_actions[5])
+        self.slice_toolbar.addSeparator()
+        self.slice_toolbar.addAction(self.slice_actions[6])
+        self.slice_toolbar.addAction(self.slice_actions[7])
+        self.slice_toolbar.addAction(self.slice_actions[8])
+        self.slice_toolbar.addSeparator()
+        self.slice_toolbar.addAction(self.slice_actions[9])
+        self.slice_toolbar.addAction(self.slice_actions[10])
 
     def slice_exec_run(self):  # процедура разрезания
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)  # ставим курсор ожидание
@@ -307,10 +374,30 @@ class ProcessingUI(QtWidgets.QWidget):
             self.slice_output_file_path.setText(self.settings.read_default_output_dir())
 
     def tab_attributes_setup(self):  # настройка страницы "Атрибуты"
-        self.ui_tab_attributes = self.tab_basic_setup()
+        self.ui_tab_attributes = self.tab_basic_setup(True)
+        # элементы для нижнего виджета
+        # self.pb2 = QtWidgets.QPushButton("Manual")
+        # slice_manual_lay = QtWidgets.QVBoxLayout()
+        # slice_manual_lay.addWidget(self.pb2)
+        # self.slice_setup_toolbar()
+        #
+        # # нижний виджет -  ручная обработка
+        # self.tab_test = QtWidgets.QGroupBox("Manual visual image cropping")
+        # self.tab_test.setLayout(slice_manual_lay)
+        #
+        # self.ui_tab_attributes.setCentralWidget(self.tab_test)
+        # self.ui_tab_attributes.addToolBar(self.slice_toolbar)
 
     def tab_geometry_setup(self):  # настройка страницы "Геометрия"
         self.ui_tab_geometry = self.tab_basic_setup()
+
+    def tab_basic_setup(self, complex=False):  # базовая настройка каждой страницы QTabWidget
+        if complex:
+            widget = QtWidgets.QMainWindow()
+        else:
+            widget = QtWidgets.QWidget()
+            widget.layout = QtWidgets.QVBoxLayout(widget)  # не забываем указать ссылку на объект
+        return widget
 
     def merge_toggle_instruments(self):  # включает/отключает инструменты
         # сначала всё отключим по умолчанию
@@ -325,14 +412,6 @@ class ProcessingUI(QtWidgets.QWidget):
             self.merge_actions[1].setEnabled(True)  # включаем кнопку "удалить выбранные"
             if len(self.merge_files_list.selectedItems()) > 1:  # выбрано более 2х файлов
                 self.merge_actions[4].setEnabled(True)
-
-    def tab_basic_setup(self, complex=False):  # базовая настройка каждой страницы QTabWidget
-        if complex:
-            widget = QtWidgets.QMainWindow()
-        else:
-            widget = QtWidgets.QWidget()
-            widget.layout = QtWidgets.QVBoxLayout(widget)  # не забываем указать ссылку на объект
-        return widget
 
     def merge_add_files(self):
         sel_files = AzFileDialog(self, "Select project files to add", self.settings.read_last_dir(), False,
@@ -396,6 +475,8 @@ class ProcessingUI(QtWidgets.QWidget):
         os.startfile(self.merge_output_dir)  # открываем каталог средствами системы
 
 
+# ----------------------------------------------------------------------------------------------------------------------
+
 def fill_layout_by_widgets(widgets: list, layout, group_by=2):  # автоматизированное заполнение layout
     for i, wdt in enumerate(widgets):
         layout.addWidget(wdt)
@@ -403,6 +484,6 @@ def fill_layout_by_widgets(widgets: list, layout, group_by=2):  # автомат
             # Выбираем только нечётные, т.е. 0-нет, 1-да и т.д., а также отбрасываем последний
             if i % 2 == 1 and i < len(widgets) - 1:
                 layout.addStretch(1)
-        else:   # во всех остальных случаях после каждого виджета - добавляем "растяжку"
+        else:  # во всех остальных случаях после каждого виджета - добавляем "растяжку"
             if i < len(widgets) - 1:
                 layout.addStretch(1)
