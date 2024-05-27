@@ -50,6 +50,7 @@ class _TableModel(QtCore.QAbstractTableModel):  # Реализация qdarkthem
 class AzTableModel(QtCore.QAbstractTableModel):
     """
     Модель для отображения табличных данных, принимает лист листов [[x1, y1], [x2, y2]... ]
+    Все методы "перегруженные" для минимального функционала.
     """
 
     def __init__(self, data=None, header_data=None, edit_column=None, parent=None):

@@ -302,20 +302,24 @@ class ProcessingUI(QtWidgets.QWidget):
         self.slice_toolbar.setFloatable(False)
         self.slice_toolbar.toggleViewAction().setVisible(False)  # чтобы панель случайно не отключали
         separator_placement = [3, 5, 8]  # места после которых добавляется сепаратор
-        self.slice_toolbar.addAction(self.slice_actions[0])  # открыть
-        self.slice_toolbar.addAction(self.slice_actions[1])  # новый
-        self.slice_toolbar.addAction(self.slice_actions[2])
-        self.slice_toolbar.addAction(self.slice_actions[3])
-        self.slice_toolbar.addSeparator()
-        self.slice_toolbar.addAction(self.slice_actions[4])
-        self.slice_toolbar.addAction(self.slice_actions[5])
-        self.slice_toolbar.addSeparator()
-        self.slice_toolbar.addAction(self.slice_actions[6])
-        self.slice_toolbar.addAction(self.slice_actions[7])
-        self.slice_toolbar.addAction(self.slice_actions[8])
-        self.slice_toolbar.addSeparator()
-        self.slice_toolbar.addAction(self.slice_actions[9])
-        self.slice_toolbar.addAction(self.slice_actions[10])
+        for i, action in enumerate(self.slice_actions):
+            self.slice_toolbar.addAction(action)
+            if i in separator_placement:
+                self.slice_toolbar.addSeparator()
+        # self.slice_toolbar.addAction(self.slice_actions[0])
+        # self.slice_toolbar.addAction(self.slice_actions[1])
+        # self.slice_toolbar.addAction(self.slice_actions[2])
+        # self.slice_toolbar.addAction(self.slice_actions[3])
+        # self.slice_toolbar.addSeparator()
+        # self.slice_toolbar.addAction(self.slice_actions[4])
+        # self.slice_toolbar.addAction(self.slice_actions[5])
+        # self.slice_toolbar.addSeparator()
+        # self.slice_toolbar.addAction(self.slice_actions[6])
+        # self.slice_toolbar.addAction(self.slice_actions[7])
+        # self.slice_toolbar.addAction(self.slice_actions[8])
+        # self.slice_toolbar.addSeparator()
+        # self.slice_toolbar.addAction(self.slice_actions[9])
+        # self.slice_toolbar.addAction(self.slice_actions[10])
 
     def slice_exec_run(self):  # процедура разрезания
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)  # ставим курсор ожидание
@@ -350,6 +354,7 @@ class ProcessingUI(QtWidgets.QWidget):
         if not self.json_obj.good_file:
             self.signal_message.emit("Выбранный файл не является корректным либо не содержит необходимых данных")
             self.slice_exec.setEnabled(False)  # отключаем возможность Разрезать
+            self.slice_toggle_toolbar(False)  # настраиваем состояние инструментов
             return
         self.slice_exec.setEnabled(True)
         model_data = []  # данные для отображения
@@ -361,6 +366,20 @@ class ProcessingUI(QtWidgets.QWidget):
         header = self.slice_tab_labels.horizontalHeader()  # настраиваем отображение столбцов
         header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
         header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
+        self.slice_toggle_toolbar(True)  # настраиваем состояние инструментов
+        # TODO: добавить загрузку перечня изображений в лист ручного разрезания
+
+    def slice_toggle_toolbar(self, switch):  # включить/выключить инструменты при загрузке данных
+        for action in self.slice_actions:
+            action.setEnabled(switch)
+        self.slice_actions[0].setEnabled(True)
+        self.slice_actions[1].setEnabled(True)
+        # else:  # нет данных
+        #     self.set_instrument(self.tb_info_dataset, False)
+        #     self.set_instrument(self.actions_show_data, False)
+        #     self.set_instrument(self.actions_labels, False)
+        #     self.set_instrument(self.actions_control_images, False)
+        #     self.set_instrument(self.action_shuffle_data, False)
 
     def slice_write_default_overlap_pols(self):
         self.settings.write_default_slice_overlap_pols(self.slice_overlap_pols_default.value())
@@ -375,18 +394,6 @@ class ProcessingUI(QtWidgets.QWidget):
 
     def tab_attributes_setup(self):  # настройка страницы "Атрибуты"
         self.ui_tab_attributes = self.tab_basic_setup(True)
-        # элементы для нижнего виджета
-        # self.pb2 = QtWidgets.QPushButton("Manual")
-        # slice_manual_lay = QtWidgets.QVBoxLayout()
-        # slice_manual_lay.addWidget(self.pb2)
-        # self.slice_setup_toolbar()
-        #
-        # # нижний виджет -  ручная обработка
-        # self.tab_test = QtWidgets.QGroupBox("Manual visual image cropping")
-        # self.tab_test.setLayout(slice_manual_lay)
-        #
-        # self.ui_tab_attributes.setCentralWidget(self.tab_test)
-        # self.ui_tab_attributes.addToolBar(self.slice_toolbar)
 
     def tab_geometry_setup(self):  # настройка страницы "Геометрия"
         self.ui_tab_geometry = self.tab_basic_setup()
