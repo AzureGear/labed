@@ -9,7 +9,7 @@ import sys
 import os
 from utils import APP_MIN_SIZE, UI_COLORS, AppSettings
 from ui import SettingsUI, ViewDatasetUI, ExperimentUI, ProcessingUI, AutomationUI
-from ui import newIcon, AzAction, coloring_icon
+from ui import new_icon, coloring_icon, AzAction
 
 from qdarktheme.widget_gallery._ui.frame_ui import FrameUI
 from qdarktheme.widget_gallery._ui.widgets_ui import WidgetsUI
@@ -166,7 +166,7 @@ class BaseGUI(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.settings = AppSettings()  # настройки программы
-        self.setWindowIcon(newIcon('digitalization'))
+        self.setWindowIcon(new_icon('digitalization'))
         self._ui = _BaseGUI()  # настройка интерфейса и создание приватных атрибуты
         self._ui.setup_ui(self)
 
@@ -323,13 +323,16 @@ class BaseGUI(QtWidgets.QMainWindow):
     @QtCore.Slot()
     # Смена темы
     def change_theme(self):
+        current_theme = ""
         if self._ui.action_switch_theme.isChecked():
             self._theme = self._ui.actions_theme[1].text()  # зажатая кнопка темы
+            current_theme = "☀"
         else:
             self._theme = self._ui.actions_theme[0].text()  # неактивная кнопка темы
+            current_theme = "☾"
         qdarktheme.setup_theme(self._theme, "sharp", additional_qss=qss_light if self._theme == "dark" else qss_dark)
         self.settings.write_ui_theme(self._theme)  # сохраняем настройки темы
-        self.statusBar().showMessage(self._theme)  # извещаем пользователя
+        self.statusBar().showMessage(current_theme)  # извещаем пользователя
 
     @QtCore.Slot()
     # Смена виджетов для панели режимов

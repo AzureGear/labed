@@ -1,10 +1,6 @@
-from qdarktheme.qtpy.QtCore import Qt, QSize, pyqtSignal, Slot, QFile
-from qdarktheme.qtpy.QtWidgets import QDockWidget, QTabWidget, QMainWindow, QTextEdit, QGroupBox, QVBoxLayout, QLabel, \
-    QWidget, QSlider, QFormLayout, QComboBox, QScrollArea, QPushButton, QGridLayout, QTabBar, QLineEdit, QHBoxLayout, \
-    QToolButton, QApplication, QMessageBox, QToolBar, QGraphicsScene, QGraphicsView, QGraphicsPixmapItem, \
-    QGraphicsSimpleTextItem, QAction, QListWidget, QMdiArea, QMdiSubWindow, QActionGroup, QListWidgetItem, \
-    QSizePolicy, QFileDialog, QAbstractItemView
-from qdarktheme.qtpy.QtGui import QPixmap, QImageReader, QImage
+from qdarktheme.qtpy import QtCore
+from qdarktheme.qtpy import QtWidgets
+from qdarktheme.qtpy import QtGui
 from utils import AppSettings, UI_COLORS, UI_BASE_VIEW
 from ui import AzImageViewer, AzAction, coloring_icon, AzFileDialog
 import os
@@ -18,11 +14,11 @@ the_color2 = UI_COLORS.get("datasets_change_color")
 current_folder = os.path.dirname(os.path.abspath(__file__))  # каталога проекта + /ui/
 
 
-class ViewDatasetUI(QWidget):
+class ViewDatasetUI(QtWidgets.QWidget):
     """
     Класс виджета просмотра датасетов
     """
-    signal_message = pyqtSignal(str)
+    signal_message = QtCore.pyqtSignal(str)
 
     def __init__(self, parent):
         super().__init__()
@@ -34,49 +30,50 @@ class ViewDatasetUI(QWidget):
         self.current_data_dir = ""
         self.current_file = None
 
-        main_win = QMainWindow()  # главное окно виджетов
+        main_win = QtWidgets.QMainWindow()  # главное окно виджетов
         self.image_viewer = AzImageViewer()  # класс QGraphicView, который предназначен для отрисовки графической сцены
-        self.label_info = QLabel("Информация о датасете:")  # за отображение информации будет отвечать QLabel
+        self.label_info = QtWidgets.QLabel("Информация о датасете:")  # за отображение информации будет отвечать QLabel
         self.label_info.setMaximumHeight(28)
         self.label_info.setWordWrap(True)  # устанавливаем перенос по словам
 
-        self.top_dock = QDockWidget("")  # контейнер для информации о датасете
+        self.top_dock = QtWidgets.QDockWidget("")  # контейнер для информации о датасете
         self.top_dock.setWidget(self.label_info)  # устанавливаем в контейнер QLabel
         self.tb_info_dataset.clicked.connect(self.show_info)  # соединяем с выводом инфо о датасете
         self.toggle_instruments()
 
         # Настроим все QDockWidgets для нашего main_win
-        features = QDockWidget.DockWidgetFeatures()  # features для док-виджетов
+        features = QtWidgets.QDockWidget.DockWidgetFeatures()  # features для док-виджетов
         for dock in ["top_dock", "files_dock"]:
             dock_settings = UI_BASE_VIEW.get(dock)  # храним их описание в config.py
             if not dock_settings[0]:  # 0 - show
                 getattr(self, dock).setVisible(False)  # устанавливаем атрибуты напрямую
             if dock_settings[1]:  # 1 - closable
-                features = features | QDockWidget.DockWidgetClosable
+                features = features | QtWidgets.QDockWidget.DockWidgetClosable
             if dock_settings[2]:  # 2 - movable
-                features = features | QDockWidget.DockWidgetMovable
+                features = features | QtWidgets.QDockWidget.DockWidgetMovable
             if dock_settings[3]:  # 3 - floatable
-                features = features | QDockWidget.DockWidgetFloatable
+                features = features | QtWidgets.QDockWidget.DockWidgetFloatable
             if dock_settings[4]:  # 4 - no_caption
-                getattr(self, dock).setTitleBarWidget(QWidget())
+                getattr(self, dock).setTitleBarWidget(QtWidgets.QWidget())
             if dock_settings[5]:  # 5 - no_actions - "close"
                 getattr(self, dock).toggleViewAction().setVisible(False)
             getattr(self, dock).setFeatures(features)  # применяем настроенные атрибуты [1-3]
 
-        self.top_dock.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.MinimumExpanding)
+        self.top_dock.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
+                                    QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         self.top_dock.setMaximumHeight(28)  # делаем "инфо о датасете"...
         self.top_dock.setMinimumHeight(28)  # ...без границ
-        main_win.addDockWidget(Qt.DockWidgetArea.TopDockWidgetArea, self.top_dock)
+        main_win.addDockWidget(QtCore.Qt.DockWidgetArea.TopDockWidgetArea, self.top_dock)
         main_win.addToolBar(self.toolbar)
-        main_win.addDockWidget(Qt.RightDockWidgetArea, self.files_dock)
+        main_win.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.files_dock)
 
-        self.mdi = QMdiArea()  # класс для данных (изображения, подписи, графики и т.п.)
+        self.mdi = QtWidgets.QMdiArea()  # класс для данных (изображения, подписи, графики и т.п.)
         main_win.setCentralWidget(self.mdi)
-        layout = QVBoxLayout(self)  # главный QLayout на виджете
+        layout = QtWidgets.QVBoxLayout(self)  # главный QLayout на виджете
         layout.setContentsMargins(4, 4, 4, 4)  # визуально граница на 1 пиксель меньше для состыковки с другими
         layout.addWidget(main_win)  # добавляем наш QMainWindow
 
-    @Slot()
+    @QtCore.Slot()
     def show_info(self):
         if self.tb_info_dataset.isChecked():
             self.top_dock.setHidden(False)
@@ -84,24 +81,24 @@ class ViewDatasetUI(QWidget):
             self.top_dock.setHidden(True)
 
     def open_image(self, image_name):  # загрузить изображение
-        self.image_viewer.set_pixmap(QPixmap(image_name))
-        self.image_viewer.fitInView(self.image_viewer.pixmap_item, Qt.KeepAspectRatio)
+        self.image_viewer.set_pixmap(QtGui.QPixmap(image_name))
+        self.image_viewer.fitInView(self.image_viewer.pixmap_item, QtCore.Qt.KeepAspectRatio)
 
     def setup_files_and_labels(self):
         # Настройка правого (по умолчанию) виджета для отображения перечня файлов датасета
-        self.files_list = QListWidget()
-        self.files_search = QLineEdit()  # строка поиска файлов
+        self.files_list = QtWidgets.QListWidget()
+        self.files_search = QtWidgets.QLineEdit()  # строка поиска файлов
         self.files_search.setPlaceholderText("Filter files")
         self.files_search.textChanged.connect(self.file_search_changed)
-        right_layout = QVBoxLayout()
+        right_layout = QtWidgets.QVBoxLayout()
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(0)
         # right_layout.addWidget(QLabel("Dataset/dir files:"))
         right_layout.addWidget(self.files_search)
         right_layout.addWidget(self.files_list)
-        file_list_widget = QWidget()
+        file_list_widget = QtWidgets.QWidget()
         file_list_widget.setLayout(right_layout)
-        self.files_dock = QDockWidget("Files List")  # Контейнер для виджета QListWidget
+        self.files_dock = QtWidgets.QDockWidget("Files List")  # Контейнер для виджета QListWidget
         self.files_dock.setWidget(file_list_widget)  # устанавливаем виджет перечня файлов
         self.files_list.itemSelectionChanged.connect(self.file_selection_changed)  # выбора файла в QWidgetList
         # fileListLayout = QtWidgets.QVBoxLayout()
@@ -121,12 +118,13 @@ class ViewDatasetUI(QWidget):
             self.set_instrument(self.action_shuffle_data, False)
 
     def set_instrument(self, item, b):
-        if isinstance(item, QAction) or isinstance(item, QToolButton):
+        if isinstance(item, QtWidgets.QAction) or isinstance(item, QtWidgets.QToolButton):
             item.setEnabled(b)
         elif isinstance(item, tuple):  # если набор, то вызываем себя рекурсивно
             for obj in item:
                 self.set_instrument(obj, b)
 
+    @QtCore.Slot()
     def open_project(self):  # загрузить датасет
         pass
         # os.scandir(folderPath)
@@ -139,6 +137,7 @@ class ViewDatasetUI(QWidget):
         # # images = natsort.os_sorted(images)
         # return images
 
+    @QtCore.Slot()
     def open_last_data(self):  # загрузка последних использованных данных
         last_data = self.settings.read_last_load_data()
         if self.current_data_dir == last_data:
@@ -149,6 +148,7 @@ class ViewDatasetUI(QWidget):
         else:
             self.signal_message.emit("Использованные ранее данные отсутствуют")
 
+    @QtCore.Slot()
     def open_dir(self, _value=False, dir_path=None, no_dialog=False):  # загрузить каталог изображений
         sel_dir = None  # каталог с данными по умолчанию
         if no_dialog:
@@ -186,7 +186,7 @@ class ViewDatasetUI(QWidget):
         self.label_info.setText(str_info)
 
     def import_dir_images(self, path):
-        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)
         try:
             filenames = self.search_for_images(path)  # получаем перечень всех доступных изображений
             self.current_data_list = filenames  # сохраняем его в памяти
@@ -199,13 +199,13 @@ class ViewDatasetUI(QWidget):
 
     def fill_files_list(self, filenames):  # формируем перечень из list'а для QListWidget
         for filename in filenames:
-            item = QListWidgetItem(filename)
+            item = QtWidgets.QListWidgetItem(filename)
             self.files_list.addItem(item)
 
     def search_for_images(self, path):  # формирование перечня загружаемых изображений
         deep = self.settings.read_load_sub_dir()
         # используем только поддерживаемые QImageReader расширения
-        types = [".%s" % fmt.data().decode().lower() for fmt in QImageReader.supportedImageFormats()]
+        types = [".%s" % fmt.data().decode().lower() for fmt in QtGui.QImageReader.supportedImageFormats()]
         images = []  # перечень возвращаемых изображений
         for root, dirs, files in os.walk(path):
             for file in files:
@@ -217,6 +217,7 @@ class ViewDatasetUI(QWidget):
         # images = natsort.os_sorted(images)
         return images
 
+    @QtCore.Slot()
     def file_search_changed(self):
         self.files_list.clear()  # очищаем список
         self.files_list.clearSelection()  # убираем выделение
@@ -232,12 +233,13 @@ class ViewDatasetUI(QWidget):
 
     def files_step_image(self, move_forward: bool = True):
         if move_forward:  # движемся вперед...
-            index = self.files_list.moveCursor(QAbstractItemView.MoveDown, Qt.NoModifier)
+            index = self.files_list.moveCursor(QtWidgets.QAbstractItemView.MoveDown, QtCore.Qt.NoModifier)
         else:  # ...или назад по списку
-            index = self.files_list.moveCursor(QAbstractItemView.MoveUp, Qt.NoModifier)
+            index = self.files_list.moveCursor(QtWidgets.QAbstractItemView.MoveUp, QtCore.Qt.NoModifier)
         if index.isValid():  # проверяем валидность индекса
             self.files_list.setCurrentIndex(index)
 
+    @QtCore.Slot()
     def file_selection_changed(self):  # метод смены файла
         items = self.files_list.selectedItems()
         if not items:
@@ -249,8 +251,8 @@ class ViewDatasetUI(QWidget):
 
     def setup_toolbar(self):
         # Настройка Toolbar'a
-        self.toolbar = QToolBar("Dataset viewer instruments")  # панель инструментов для просмотра датасетов
-        self.toolbar.setIconSize(QSize(30, 30))
+        self.toolbar = QtWidgets.QToolBar("Dataset viewer instruments")  # панель инструментов для просмотра датасетов
+        self.toolbar.setIconSize(QtCore.QSize(30, 30))
         self.toolbar.setFloatable(False)
         self.toolbar.toggleViewAction().setVisible(False)  # чтобы панель случайно не отключали
         self.toolbar.addWidget(self.tb_info_dataset)
@@ -268,6 +270,7 @@ class ViewDatasetUI(QWidget):
         self.toolbar.addSeparator()
         self.toolbar.addAction(self.action_shuffle_data)
 
+    @QtCore.Slot()
     def mdi_windows_1x(self):
         if len(self.mdi.subWindowList()) == 1: self.mdi_show_sub_windows()  # открыто одно окно
         if len(self.mdi.subWindowList()) > 0:  # есть открытые
@@ -281,21 +284,22 @@ class ViewDatasetUI(QWidget):
             return
         self.mdi_add_window()  # если открытых нет
 
+    @QtCore.Slot()
     def mdi_add_window(self):
         if self.current_file is None:
             self.signal_message.emit("Ошибка загрузки файла")
-        sub = QMdiSubWindow()
-        sub.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)  # удалять окна при их закрытии
+        sub = QtWidgets.QMdiSubWindow()
+        sub.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)  # удалять окна при их закрытии
         self.mdi_window_set_image(sub, self.current_file)
         self.mdi.addSubWindow(sub)
         sub.show()
         self.mdi_show_sub_windows()  # выравниваем
 
     def mdi_window_set_image(self, subwindow, image):  # загрузка снимка для отображения
-        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)
         try:
             image_viewer = AzImageViewer()  # формируем контейнер
-            image_viewer.set_pixmap(QPixmap(image))  # помещаем туда изображение
+            image_viewer.set_pixmap(QtGui.QPixmap(image))  # помещаем туда изображение
             subwindow.setWidget(image_viewer)  # добавляем контейнер в окно QMdiSubWindow()
             subwindow.setWindowTitle(str(image))  # заголовок окна
         except Exception as e:
@@ -304,9 +308,11 @@ class ViewDatasetUI(QWidget):
         finally:
             QApplication.restoreOverrideCursor()
 
+    @QtCore.Slot()
     def mdi_windows_4x(self):
         self.mdi_set_windows(4)
 
+    @QtCore.Slot()
     def mdi_windows_16x(self):
         self.mdi_set_windows(16)
 
@@ -338,10 +344,11 @@ class ViewDatasetUI(QWidget):
             random_filename = random.choice(self.current_data_list)
             self.mdi_window_set_image(sub, random_filename)
         active_mdi = self.mdi.activeSubWindow()
-        items = self.files_list.findItems(active_mdi.windowTitle(), Qt.MatchFlag.MatchExactly)
+        items = self.files_list.findItems(active_mdi.windowTitle(), QtCore.Qt.MatchFlag.MatchExactly)
         if len(items) > 0:
             self.files_list.setCurrentItem(items[0])
 
+    @QtCore.Slot()
     def mdi_show_sub_windows(self):
         if self.actions_adjust[2].isChecked():  # не следить за расположением
             return
@@ -350,9 +357,11 @@ class ViewDatasetUI(QWidget):
         elif self.actions_adjust[1].isChecked():  # установлен режим Cascade
             self.mdi.cascadeSubWindows()
 
+    @QtCore.Slot()
     def move_image_right(self):
         self.files_step_image(True)
 
+    @QtCore.Slot()
     def move_image_left(self):
         self.files_step_image(False)
 
@@ -360,38 +369,46 @@ class ViewDatasetUI(QWidget):
         # Actions
         # Действия для загрузки данных
         self.actions_load = (
-            QAction(coloring_icon("glyph_folder_recent", the_color), "Load last data", triggered=self.open_last_data),
-            QAction(coloring_icon("glyph_folder_clear", the_color), "Load dir", triggered=self.open_dir),
+            QtWidgets.QAction(coloring_icon("glyph_folder_recent", the_color), "Load last data",
+                              triggered=self.open_last_data),
+            QtWidgets.QAction(coloring_icon("glyph_folder_clear", the_color), "Load dir", triggered=self.open_dir),
             # загрузить каталог
-            QAction(coloring_icon("glyph_folder_dataset", the_color), "Load dataset", triggered=self.open_project))
-        self.action_load_presets = QAction(coloring_icon("glyph_folder_preset", the_color), "Load preset dataset")
-        self.tb_load_preset = QToolButton()  # кнопка загрузки предустановленных датасетов
+            QtWidgets.QAction(coloring_icon("glyph_folder_dataset", the_color), "Load dataset",
+                              triggered=self.open_project))
+        self.action_load_presets = QtWidgets.QAction(coloring_icon("glyph_folder_preset", the_color),
+                                                     "Load preset dataset")
+        self.tb_load_preset = QtWidgets.QToolButton()  # кнопка загрузки предустановленных датасетов
         self.tb_load_preset.setText("Load preset dataset")
         self.tb_load_preset.setIcon(coloring_icon('glyph_folder_preset', the_color))
-        self.tb_load_preset.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)  # со всплывающим меню
+        self.tb_load_preset.setPopupMode(QtWidgets.QToolButton.ToolButtonPopupMode.InstantPopup)  # со всплывающим меню
 
-        self.tb_info_dataset = QToolButton()  # кнопка информации о датасете
+        self.tb_info_dataset = QtWidgets.QToolButton()  # кнопка информации о датасете
         self.tb_info_dataset.setText(" Info")
         self.tb_info_dataset.setIcon(coloring_icon("glyph_info", the_color))
         self.tb_info_dataset.setCheckable(True)
 
-        self.tb_info_dataset.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self.tb_info_dataset.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         # self.tb_load_preset.addActions(self.actions_load)
 
         # Действия для отображения загруженных данных из датасетов (картинок) в окнах QMdiSubWindow()
         self.actions_show_data = (
-            QAction(coloring_icon("glyph_image", the_color), "One window", triggered=self.mdi_windows_1x),
-            QAction(coloring_icon("glyph_add_image", the_color), "Add window", triggered=self.mdi_add_window),
-            QAction(coloring_icon("glyph_image_4x", the_color), "4x windows", triggered=self.mdi_windows_4x),
-            QAction(coloring_icon("glyph_image_16x", the_color), "16x windows", triggered=self.mdi_windows_16x))
+            QtWidgets.QAction(coloring_icon("glyph_image", the_color), "One window", triggered=self.mdi_windows_1x),
+            QtWidgets.QAction(coloring_icon("glyph_add_image", the_color), "Add window", triggered=self.mdi_add_window),
+            QtWidgets.QAction(coloring_icon("glyph_image_4x", the_color), "4x windows", triggered=self.mdi_windows_4x),
+            QtWidgets.QAction(coloring_icon("glyph_image_16x", the_color), "16x windows",
+                              triggered=self.mdi_windows_16x))
 
         # Действия для расположения окон QMdiSubWindow()
         self.actions_adjust = (
-            QAction(coloring_icon("glyph_lay_tiled", the_color), "Tiled", triggered=self.mdi_show_sub_windows),
-            QAction(coloring_icon("glyph_lay_cascade", the_color), "Cascade", triggered=self.mdi_show_sub_windows),
-            QAction(coloring_icon("glyph_lay_off", the_color), "Disable layout", triggered=self.mdi_show_sub_windows))
+            QtWidgets.QAction(coloring_icon("glyph_lay_tiled", the_color), "Tiled",
+                              triggered=self.mdi_show_sub_windows),
+            QtWidgets.QAction(coloring_icon("glyph_lay_cascade", the_color), "Cascade",
+                              triggered=self.mdi_show_sub_windows),
+            QtWidgets.QAction(coloring_icon("glyph_lay_off", the_color), "Disable layout",
+                              triggered=self.mdi_show_sub_windows))
 
-        action_group_adjust = QActionGroup(self)  # объединяем в группу для расположения каскадом, мозаикой или выкл.
+        action_group_adjust = QtWidgets.QActionGroup(
+            self)  # объединяем в группу для расположения каскадом, мозаикой или выкл.
         for action in self.actions_adjust:
             action.setCheckable(True)
             action_group_adjust.addAction(action)
@@ -399,17 +416,17 @@ class ViewDatasetUI(QWidget):
 
         # Действия для меток и имён
         self.actions_labels = (
-            QAction(coloring_icon("glyph_label", the_color), "Show labels"),
-            QAction(coloring_icon("glyph_signature", the_color), "Show filenames"))
+            QtWidgets.QAction(coloring_icon("glyph_label", the_color), "Show labels"),
+            QtWidgets.QAction(coloring_icon("glyph_signature", the_color), "Show filenames"))
         for action in self.actions_labels:
             action.setCheckable(True)
 
         self.actions_control_images = (
-            QAction(coloring_icon("glyph_left_arrow", the_color), "Preview", triggered=self.move_image_left),
-            QAction(coloring_icon("glyph_right_arrow", the_color), "Next", triggered=self.move_image_right))
+            QtWidgets.QAction(coloring_icon("glyph_left_arrow", the_color), "Preview", triggered=self.move_image_left),
+            QtWidgets.QAction(coloring_icon("glyph_right_arrow", the_color), "Next", triggered=self.move_image_right))
 
-        self.action_shuffle_data = QAction(coloring_icon("glyph_dice", the_color), "Shuffle data",
-                                           triggered=self.mdi_shuffle)  # отображаемые данные
+        self.action_shuffle_data = QtWidgets.QAction(coloring_icon("glyph_dice", the_color), "Shuffle data",
+                                                     triggered=self.mdi_shuffle)  # отображаемые данные
 
     def load_file(self, filename=None):  # загрузить для отображения новый графический файл
         if filename is None:  # файла нет

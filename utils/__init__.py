@@ -1,6 +1,7 @@
 from .config import APP_MIN_SIZE
 from .config import UI_COLORS
 from .config import UI_BASE_VIEW
+from .config import UI_AZ_SLICE_MANUAL
 from .config import UI_OUTPUT_TYPES
 from .config import UI_READ_LINES
 from .az_converter import convert_to_sama

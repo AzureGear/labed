@@ -2,7 +2,7 @@ from qdarktheme.qtpy import QtCore
 from qdarktheme.qtpy import QtWidgets
 from qdarktheme.qtpy import QtGui
 from utils import AppSettings, convert_to_sama, UI_COLORS, UI_OUTPUT_TYPES, UI_READ_LINES, dn_crop
-from ui import coloring_icon, AzFileDialog, natural_order, AzButtonLineEdit, AzSpinBox, AzTableModel
+from ui import coloring_icon, AzFileDialog, natural_order, AzButtonLineEdit, AzSpinBox, AzTableModel, AzManualSlice
 from datetime import datetime
 import os
 
@@ -16,10 +16,13 @@ class ProcessingUI(QtWidgets.QWidget):
     Класс виджета обработки датасетов
     """
     signal_message = QtCore.pyqtSignal(str)
+    signal_slice_manual = QtCore.pyqtSignal(int)  # сигнал для класса Ручного кадрирования настройки инструментов
+    signal_slice_data = QtCore.pyqtSignal(list)  # сигнал для класса Ручного кадрирования смены данных
 
     def __init__(self, parent):
         super().__init__()
         self.settings = AppSettings()  # настройки программы
+        self.merge_output_dir = ""
         layout = QtWidgets.QVBoxLayout(self)  # вертикальный класс с расположением элементов интерфейса
         layout.setContentsMargins(5, 0, 5, 5)  # уменьшаем границу
         self.tab_widget = QtWidgets.QTabWidget()  # виджет со вкладками-страницами обработки
@@ -60,6 +63,18 @@ class ProcessingUI(QtWidgets.QWidget):
             # print("added tab: " + self.tab_widget.tabText(i))
             self.tab_widget.setTabToolTip(i, elem[3])
 
+        # Signals - настраиваем соединение сигналов
+        self.manual_wid.signal_message.connect(self.translate_signal)  # связываем сигнал с сигналом для сообщений
+
+        # Сигналы для AzManualSlice
+        self.signal_slice_data.connect(self.manual_wid.change_input_data)
+        self.signal_slice_manual.connect(self.manual_wid.slice_toggle_toolbar)  # сигнал об изменении исходных данных
+
+    @QtCore.Slot()
+    def translate_signal(self, message):
+        self.signal_message.emit(message)
+
+    @QtCore.Slot()
     def change_tab(self):
         # TODO: make saver for tab
         pass
@@ -119,12 +134,12 @@ class ProcessingUI(QtWidgets.QWidget):
         self.merge_output_file_path = AzButtonLineEdit("glyph_folder", the_color,
                                                        caption="Output file",
                                                        read_only=True, dir_only=True)
-        self.merge_output_file_path.setEnabled(False)  # Отключаем, т.е. по умолчанию флаг не включен
-        self.merge_output_file_path.setText(self.settings.read_default_output_dir())  # устанавливаем выходной каталог
         # соединяем, поскольку требуется изменять выходной каталог, в случае деактивации
         self.merge_output_file_check.clicked.connect(self.merge_toggle_output_file)
         # соединяем, чтобы записывать изменения в переменную.
         self.merge_output_file_path.textChanged.connect(self.merge_output_file_path_change)
+        self.merge_output_file_path.setEnabled(False)  # Отключаем, т.е. по умолчанию флаг не включен
+        self.merge_output_file_path.setText(self.settings.read_default_output_dir())  # устанавливаем выходной каталог
         hlayout.addWidget(self.merge_output_file_check)
         hlayout.addWidget(self.merge_output_file_path)
 
@@ -138,14 +153,17 @@ class ProcessingUI(QtWidgets.QWidget):
         self.ui_tab_merge.setCentralWidget(wid)  # устанавливаем главный виджет страницы "Слияние"
         self.merge_toggle_instruments()  # устанавливаем доступные инструменты
 
+    @QtCore.Slot()
     def merge_output_file_path_change(self):
         self.merge_output_dir = self.merge_output_file_path.text()
 
+    @QtCore.Slot()
     def merge_toggle_output_file(self):
         self.merge_output_file_path.setEnabled(self.merge_output_file_check.checkState())
         if not self.merge_output_file_check.isChecked():
             self.merge_output_file_path.setText(self.settings.read_default_output_dir())
 
+    @QtCore.Slot()
     def merge_selection_files_change(self):  # загрузка данных *.json в предпросмотр
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)  # ставим курсор ожидание
         try:
@@ -189,9 +207,6 @@ class ProcessingUI(QtWidgets.QWidget):
         self.slice_output_file_path = AzButtonLineEdit("glyph_folder", the_color,
                                                        caption="Output file",
                                                        read_only=True, dir_only=True)
-        # regexp = QtCore.QRegExp(r'^[[:ascii:]]+$')  # проверка имени файла на символы
-        # validator = QtGui.QRegExpValidator(regexp, self.slice_output_file_path)  # создаём валидатор
-        # self.slice_output_file_path.setValidator(validator)  # применяем его к нашей строке
 
         # 3 строка в форме Автоматизированного разрезания
         self.slice_scan_size_label = QtWidgets.QLabel("Scan size:")  # метка для сканирующего окна
@@ -251,14 +266,9 @@ class ProcessingUI(QtWidgets.QWidget):
         self.slice_up_group.setLayout(slice_auto_form)
 
         # элементы для нижнего виджета
-        self.pb2 = QtWidgets.QPushButton("Manual")
-        self.slice_setup_toolbar()  # настройка панели инструментов
-        manual_wid = QtWidgets.QMainWindow()
-        manual_wid.setCentralWidget(self.pb2)  # в будущем это будет класс виджета
-        manual_wid.addToolBar(self.slice_toolbar)
-
+        self.manual_wid = AzManualSlice()
         slice_manual_lay = QtWidgets.QVBoxLayout()
-        slice_manual_lay.addWidget(manual_wid)
+        slice_manual_lay.addWidget(self.manual_wid)
 
         # нижний виджет -  ручная обработка
         self.slice_down_group = QtWidgets.QGroupBox("Manual visual image cropping")
@@ -281,7 +291,7 @@ class ProcessingUI(QtWidgets.QWidget):
         if len(self.slice_input_file_path.text()) > 0:
             self.slice_load_projects_data()
 
-
+    @QtCore.Slot()
     def slice_exec_run(self):  # процедура разрезания
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)  # ставим курсор ожидание
         try:
@@ -315,7 +325,7 @@ class ProcessingUI(QtWidgets.QWidget):
         if not self.json_obj.good_file:
             self.signal_message.emit("Выбранный файл не является корректным либо не содержит необходимых данных")
             self.slice_exec.setEnabled(False)  # отключаем возможность Разрезать
-            self.slice_toggle_toolbar(0)  # настраиваем состояние инструментов
+            self.signal_slice_manual.emit(0)  # инструменты отключены
             return
         self.slice_exec.setEnabled(True)
         model_data = []  # данные для отображения
@@ -327,31 +337,17 @@ class ProcessingUI(QtWidgets.QWidget):
         header = self.slice_tab_labels.horizontalHeader()  # настраиваем отображение столбцов
         header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
         header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
-        self.slice_toggle_toolbar(1)  # настраиваем состояние инструментов
-        # TODO: добавить загрузку перечня изображений в лист ручного разрезания
+        self.signal_slice_manual.emit(1)  # инструменты первично доступны
 
-    def slice_toggle_toolbar(self, switch):
-        """
-        Настройка доступа к инструментам ручного кадрирования
-        switch = 0, отключить всё; switch = 1, включить только первые два; 2 - включить все инструменты.
-        """
-        logic = False
-        if switch == 0:
-            logic = False
-        elif switch == 2:
-            logic = True
-        for action in self.slice_actions:
-            action.setEnabled(logic)
-        if switch == 1:
-            self.slice_actions[0].setEnabled(True)
-            self.slice_actions[1].setEnabled(True)
-
+    @QtCore.Slot()
     def slice_write_default_overlap_pols(self):
         self.settings.write_default_slice_overlap_pols(self.slice_overlap_pols_default.value())
 
+    @QtCore.Slot()
     def slice_write_overlap_window(self):
         self.settings.write_slice_window_overlap(self.slice_overlap_window.value())
 
+    @QtCore.Slot()
     def slice_toggle_output_file(self):
         self.slice_output_file_path.setEnabled(self.slice_output_file_check.checkState())
         if not self.slice_output_file_check.isChecked():
@@ -385,6 +381,7 @@ class ProcessingUI(QtWidgets.QWidget):
             if len(self.merge_files_list.selectedItems()) > 1:  # выбрано более 2х файлов
                 self.merge_actions[4].setEnabled(True)
 
+    @QtCore.Slot()
     def merge_add_files(self):
         sel_files = AzFileDialog(self, "Select project files to add", self.settings.read_last_dir(), False,
                                  filter="LabelMe projects (*.json)", initial_filter="json (*.json)")
@@ -397,6 +394,7 @@ class ProcessingUI(QtWidgets.QWidget):
             item = QtWidgets.QListWidgetItem(filename)
             self.merge_files_list.addItem(item)
 
+    @QtCore.Slot()
     def merge_remove_files(self):
         sel_items = self.merge_files_list.selectedItems()
         if len(sel_items) <= 0:
@@ -407,12 +405,14 @@ class ProcessingUI(QtWidgets.QWidget):
         if self.merge_files_list.count() <= 0:
             self.merge_label.setText("")
 
+    @QtCore.Slot()
     def merge_clear(self):
         self.merge_files_list.clear()
         self.merge_toggle_instruments()
         if self.merge_files_list.count() <= 0:
             self.merge_label.setText("")
 
+    @QtCore.Slot()
     def merge_combine(self):
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)  # ставим курсор ожидание
         try:
@@ -440,9 +440,11 @@ class ProcessingUI(QtWidgets.QWidget):
         finally:
             QtWidgets.QApplication.restoreOverrideCursor()
 
+    @QtCore.Slot()
     def merge_select_all(self):
         self.merge_files_list.selectAll()
 
+    @QtCore.Slot()
     def merge_open_output(self):
         os.startfile(self.merge_output_dir)  # открываем каталог средствами системы
 

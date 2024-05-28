@@ -31,8 +31,16 @@ import os
 #             └- "mask" : null
 # "imagePath": "some_name.jpg",
 # "imageData": "...<data>..."
+#
 # ----------------------------------------------------------------------------------------------------------------------
-
+# Структура файла хранения проекта точек Визуального ручного кадрирования (AzManualSlice):
+# "filename" = "D:/data_sets/uranium enrichment/test_cut/crude_uranium_enrichment.json"
+# "scan_size" = "1280"
+#  "images" = { "125n_FRA_2019-09.jpg" : [ ], ... }
+# 		                                  ├-  "check" : True|False
+# 		                                  └-  "points" : { [x1, y1], [x2, y2], ... , [xN, yN] }
+#
+# ----------------------------------------------------------------------------------------------------------------------
 # TODO: сделать функцию считывания ЛРМ изо всех файлов *.MAP, ее усреднения и записи в файл SAMA
 
 def convert_to_sama(input_files, output_file):
@@ -90,10 +98,10 @@ def load(json_path):
 
 
 def save(json_path, data, mode='w'):
-    with open(json_path, 'w+') as f:
+    with open(json_path, mode) as f:
         ujson.dump(data, f)
 
 
-if __name__ == '__main__':
-    pass
+if __name__ == '__main__':  # заглушка для отладки
     # convert_labelme_to_sama(test_list, "F:/data_sets/output_dir/test_for_merge2/small_test/_temp.json")
+    pass

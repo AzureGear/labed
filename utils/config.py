@@ -22,19 +22,20 @@ UI_COLORS = {
     "settings_color": "deepskyblue",
 }
 
-# настройки Интерфейса
-# base_view
+# настройки Интерфейса со структурой:
 # dock_widget : { "widget_name":
 # 0 - show, 1 - closable, 2 - movable, 3 - floatable, 4 - no_caption, 5 - no_actions }
+#
+# base_view.py
 UI_BASE_VIEW = {
     "top_dock": [False, False, False, False, True, True],
     "files_dock": [True, True, True, False, False, False]
 }
-# # base_image_viewer
-# UI_BASE_IMAGE_VIEWER = {
-#     "top_dock": [False, False, False, False, True, True],
-#     "files_dock": [True, True, True, False, False, False]
-# }
+# az_slice_manual_crop.py
+UI_AZ_SLICE_MANUAL = {
+    "top_dock": [True, False, False, False, True, True],
+    "files_dock": [True, False, True, False, False, False]
+}
 
 UI_OUTPUT_TYPES = ["SAMA.json"]  # типы выходных данных
 UI_READ_LINES = 35  # количество читаемых строк в проектах *.json для предпросмотра

@@ -2,33 +2,32 @@ from qdarktheme.qtpy import QtCore
 from qdarktheme.qtpy import QtWidgets
 from qdarktheme.qtpy import QtGui
 import sys
-from utils import AppSettings, UI_COLORS
-from ui import AzImageViewer, AzAction, coloring_icon, AzFileDialog
-import os
-import re
-import random
-
+from utils import AppSettings, UI_COLORS, UI_AZ_SLICE_MANUAL
+from ui import AzImageViewer, AzAction, coloring_icon, AzFileDialog, new_act
+# import re
+# import random
 # import natsort
+# current_folder = os.path.dirname(os.path.abspath(__file__))  # каталога проекта + /ui/
 
 the_color = UI_COLORS.get("processing_color")
 the_color2 = UI_COLORS.get("processing_color")
-current_folder = os.path.dirname(os.path.abspath(__file__))  # каталога проекта + /ui/
 
 
 class AzManualSlice(QtWidgets.QMainWindow):
     """
-    Класс виджета просмотра датасетов
+    Класс виджета просмотра изображений проекта JSON и установки точек для ручного разрезания
     """
     signal_message = QtCore.pyqtSignal(str)
 
     def __init__(self, parent=None):
         super().__init__()
         # по правилам pep8
-        self.files_list = None
+        self.image_widget = None
         self.slice_toolbar = None
         self.slice_actions = None
         self.files_dock = None
-        
+        self.files_list = None
+
         self.settings = AppSettings()  # настройки программы
         self.setup_actions()  # настраиваем QActions
         self.setup_toolbar()  # настраиваем Toolbar
@@ -37,12 +36,60 @@ class AzManualSlice(QtWidgets.QMainWindow):
         self.current_data_dir = ""
         self.current_file = None
 
+        # перечень файлов текущего проекта
         self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.files_dock)
+
+        # панель инструментов
         self.addToolBar(self.slice_toolbar)
+
+        # элемент GUI с отображением текущего проекта хранения точек ручного кадрирования (ХТРК)
+        self.top_dock = QtWidgets.QDockWidget("Visual manual cropping project name")  # контейнер для информации ХТРК
+        self.label_info = QtWidgets.QLabel("Current manual project:")  # TODO: хранить имя проекта
+        self.top_dock.setWidget(self.label_info)  # устанавливаем в контейнер QLabel
+        self.addDockWidget(QtCore.Qt.DockWidgetArea.TopDockWidgetArea, self.top_dock)
+        # self.top_dock.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
+        #                             QtWidgets.QSizePolicy.Policy.MinimumExpanding)
+        self.top_dock.setMaximumHeight(26)  # делаем "инфо о датасете"...
+        self.top_dock.setMinimumHeight(25)  # ...без границ
+
+        # главный виджет отображения изображения и точек
+        self.image_widget = QtWidgets.QWidget()
+        self.setCentralWidget(self.image_widget)
+
+        # Настроим все QDockWidgets для нашего main_win
+        features = QtWidgets.QDockWidget.DockWidgetFeatures()  # features для док-виджетов
+        for dock in ["top_dock", "files_dock"]:
+            dock_settings = UI_AZ_SLICE_MANUAL.get(dock)  # храним их описание в config.py
+            if not dock_settings[0]:  # 0 - show
+                getattr(self, dock).setVisible(False)  # устанавливаем атрибуты напрямую
+            if dock_settings[1]:  # 1 - closable
+                features = features | QtWidgets.QDockWidget.DockWidgetClosable
+            if dock_settings[2]:  # 2 - movable
+                features = features | QtWidgets.QDockWidget.DockWidgetMovable
+            if dock_settings[3]:  # 3 - floatable
+                features = features | QtWidgets.QDockWidget.DockWidgetFloatable
+            if dock_settings[4]:  # 4 - no_caption
+                getattr(self, dock).setTitleBarWidget(QtWidgets.QWidget())
+            if dock_settings[5]:  # 5 - no_actions - "close"
+                getattr(self, dock).toggleViewAction().setVisible(False)
+            getattr(self, dock).setFeatures(features)  # применяем настроенные атрибуты [1-3]
+
+    def set_image(self, image):  # загрузка снимка для отображения
+        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)
+        try:
+            image_viewer = AzImageViewer()  # формируем контейнер
+            image_viewer.set_pixmap(QtGui.QPixmap(image))  # помещаем туда изображение
+            self.image_widget.setWidget(image_viewer)  # добавляем контейнер в окно QMdiSubWindow()
+        except Exception as e:
+            QtWidgets.QApplication.restoreOverrideCursor()
+            raise e
+            print("Error {}".format(e.args[0]))
+        finally:
+            QtWidgets.QApplication.restoreOverrideCursor()
 
     def setup_actions(self):  # перечень инструментов
         self.slice_actions = (
-            QtGui.QAction(coloring_icon("glyph_folder", the_color), "Open"),  # открыть
+            new_act(self, "Open", self.open_project, icon="glyph_folder", color=the_color),  # открыть
             QtGui.QAction(coloring_icon("glyph_add", the_color), "New"),  # новый
             QtGui.QAction(coloring_icon("glyph_save", the_color), "Save"),  # сохранить
             QtGui.QAction(coloring_icon("glyph_time-save", the_color), "Autosave"),  # автосохранение
@@ -53,7 +100,13 @@ class AzManualSlice(QtWidgets.QMainWindow):
             QtGui.QAction(coloring_icon("glyph_point_remove", the_color), "Delete"),  # удалить метку
             QtGui.QAction(coloring_icon("glyph_resize", the_color), "Change crop size"),  # сменить размер кадрирования
             QtGui.QAction(coloring_icon("glyph_cutter", the_color), "Slice"))  # разрезать снимки
-        self.slice_actions[3].setCheckable(True)  # у автосохранения делаем кнопку нажимания
+        self.slice_actions[3].setCheckable(True)  # у автосохранения делаем кнопку нажимания...
+        self.slice_actions[3].setChecked(True)  # ...и включаем его по умолчанию
+
+        # QtGui.QAction(coloring_icon("glyph_folder", the_color), "Open", triggered=self.open_project)
+
+    def open_project(self):
+        self.signal_message.emit("Test!")
 
     def setup_files_widget(self):
         # Настройка правого (по умолчанию) виджета для отображения перечня файлов датасета
@@ -80,13 +133,10 @@ class AzManualSlice(QtWidgets.QMainWindow):
     def load_file(self, filename=None):  # загрузить для отображения новый графический файл
         if filename is None:  # файла нет
             return
+        if self.current_file == filename:
+            return
         self.current_file = filename  # устанавливаем свойство текущего файла
-
-        # !!!!!!
-        # выбранный в окне файлов объект не загружен в активное окно и открыто хотя бы одно окно
-        active_mdi = self.mdi.activeSubWindow()
-        if active_mdi.windowTitle() != filename and len(self.mdi.subWindowList()) > 0:
-            self.mdi_window_set_image(active_mdi, filename)
+        self.set_image(filename)
 
     def setup_toolbar(self):
         # Настройка панели инструментов
@@ -94,11 +144,30 @@ class AzManualSlice(QtWidgets.QMainWindow):
         self.slice_toolbar.setIconSize(QtCore.QSize(30, 30))
         self.slice_toolbar.setFloatable(False)
         self.slice_toolbar.toggleViewAction().setVisible(False)  # чтобы панель случайно не отключали
-        separator_placement = [3, 5, 8]  # места после которых добавляется сепаратор
+        separator_placement = [3, 8]  # места после которых добавляется сепаратор
         for i, action in enumerate(self.slice_actions):  # формируем панель инструментов
             self.slice_toolbar.addAction(action)
             if i in separator_placement:
                 self.slice_toolbar.addSeparator()
+
+    def change_input_data(self, image_list):
+        print(image_list)
+
+    def slice_toggle_toolbar(self, int_code):
+        """
+        Настройка доступа к инструментам ручного кадрирования
+        switch = 0, отключить всё; switch = 1, включить только первые два; 2 - включить все инструменты.
+        """
+        logic = False
+        if int_code == 0:
+            logic = False
+        elif int_code == 2:
+            logic = True
+        for action in self.slice_actions:
+            action.setEnabled(logic)
+        if int_code == 1:
+            self.slice_actions[0].setEnabled(True)
+            self.slice_actions[1].setEnabled(True)
 
 
 if __name__ == '__main__':

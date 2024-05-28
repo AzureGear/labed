@@ -1,4 +1,4 @@
-from PyQt5.QtCore import Qt, QSettings, QPoint, QSize
+from qdarktheme.qtpy import QtCore
 from utils import config
 
 
@@ -8,13 +8,19 @@ class AppSettings:
     """
 
     def __init__(self):
-        self.settings = QSettings(config.ORGANIZATION, config.APPLICATION)
+        self.settings = QtCore.QSettings(config.ORGANIZATION, config.APPLICATION)
 
     def read_ui_stack_widget_cur_tab(self):  # активный виджет для боковой панели [r]
         return self.settings.value('ui/ui_stack_widget_current_tab', 0)
 
     def write_ui_stack_widget_cur_tab(self, ui_tab):  # активный виджет для боковой панели [w]
         self.settings.setValue('ui/ui_stack_widget_current_tab', ui_tab)
+
+    def read_ui_proc_page(self):  # активная страница для 1 виджета, если он выбран [r]
+        return self.settings.value('ui/ui_proc_page', 0)
+
+    def write_ui_proc_page(self, proc_page):  # активная страница для 1 виджета, если он выбран [w]
+        self.settings.setValue('ui/ui_proc_page', proc_page)
 
     def read_lang(self):  # язык [r]
         return self.settings.value('ui/language', 'English')
@@ -30,9 +36,9 @@ class AppSettings:
 
     def read_ui_position(self):  # позиция, размер и состояние окна приложения [r]
         # if len(screeninfo.get_monitors()) == 1: # TODO: что если отключили монитор?
-        position = self.settings.value('ui/base_gui_position', QPoint(250, 250))
-        size = self.settings.value('ui/base_gui_size', QSize(900, 565))
-        state = self.settings.value('ui/base_gui_state', Qt.WindowNoState)  # QWindow
+        position = self.settings.value('ui/base_gui_position', QtCore.QPoint(250, 250))
+        size = self.settings.value('ui/base_gui_size', QtCore.QSize(900, 565))
+        state = self.settings.value('ui/base_gui_state', QtCore.Qt.WindowNoState)  # QWindow
         return position, size, state
 
     def write_ui_position(self, position, size, state):  # позиция, размер и состояние окна приложения [w]
