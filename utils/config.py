@@ -30,11 +30,11 @@ UI_BASE_VIEW = {
     "top_dock": [False, False, False, False, True, True],
     "files_dock": [True, True, True, False, False, False]
 }
-# base_image_viewer
-UI_BASE_IMAGE_VIEWER = {
-    "top_dock": [False, False, False, False, True, True],
-    "files_dock": [True, True, True, False, False, False]
-}
+# # base_image_viewer
+# UI_BASE_IMAGE_VIEWER = {
+#     "top_dock": [False, False, False, False, True, True],
+#     "files_dock": [True, True, True, False, False, False]
+# }
 
 UI_OUTPUT_TYPES = ["SAMA.json"]  # типы выходных данных
 UI_READ_LINES = 35  # количество читаемых строк в проектах *.json для предпросмотра

@@ -1,7 +1,7 @@
 from qdarktheme.qtpy import QtCore
-from qdarktheme.qtpy import QtGui  # QAction, QActionGroup, QWindow, QColor, QPixmap, QIcon
-from qdarktheme.qtpy import QtWidgets  # QApplication, QToolBar, QToolButton, QWidget, QMainWindow, QStackedWidget,
-#  QStatusBar, QMenuBar, QSizePolicy, QMessageBox, QLabel, QMenu
+from qdarktheme.qtpy import QtGui
+from qdarktheme.qtpy import QtWidgets
+
 from utils import config
 from PyQt5 import QtWidgets
 import qdarktheme

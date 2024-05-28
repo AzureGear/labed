@@ -33,6 +33,9 @@
 # glyph_lay_cascade: Pixel perfect
 # glyph_lay_off: Pixel perfect
 # glyph_lay_tiled: Pixel perfect
+# glyph_point_add: Pixel perfect
+# glyph_point_move: me & Pixel perfect
+# glyph_point_remove: Pixel perfect
 
 # glyph_upload: KP Arts
 # glyph_add: KP Arts
@@ -61,3 +64,4 @@
 # glyph_nuclear_power: Freepik
 # glyph_language: Freepik
 # glyph_check_all: Freepik
+# glyph_resize: Freepik

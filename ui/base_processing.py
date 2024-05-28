@@ -281,46 +281,6 @@ class ProcessingUI(QtWidgets.QWidget):
         if len(self.slice_input_file_path.text()) > 0:
             self.slice_load_projects_data()
 
-    def slice_setup_toolbar(self):
-        self.slice_actions = (
-            QtGui.QAction(coloring_icon("glyph_folder", the_color), "Open"),  # открыть
-            QtGui.QAction(coloring_icon("glyph_add", the_color), "New"),  # новый
-            QtGui.QAction(coloring_icon("glyph_save", the_color), "Save"),  # сохранить
-            QtGui.QAction(coloring_icon("glyph_time-save", the_color), "Autosave"),  # автосохранение
-            QtGui.QAction(coloring_icon("glyph_crop", the_color), "Fit image"),  # изображение по размеру окна
-            QtGui.QAction(coloring_icon("glyph_hand", the_color), "Hand"),  # перемещение по снимку
-            QtGui.QAction(coloring_icon("glyph_merge", the_color), "Add"),  # добавить метку
-            QtGui.QAction(coloring_icon("glyph_merge", the_color), "Move"),  # передвинуть метку
-            QtGui.QAction(coloring_icon("glyph_merge", the_color), "Delete"),  # удалить метку
-            QtGui.QAction(coloring_icon("glyph_merge", the_color), "Change crop size"),  # сменить размер кадрирования
-            QtGui.QAction(coloring_icon("glyph_cutter", the_color), "Slice"))  # разрезать снимки
-
-        self.slice_actions[3].setCheckable(True)  # у автосохранения делаем кнопку нажимания
-
-        # Настройка панели инструментов
-        self.slice_toolbar = QtWidgets.QToolBar("Manual visual cropping toolbar")  # панель инструментов кадрирования
-        self.slice_toolbar.setIconSize(QtCore.QSize(30, 30))
-        self.slice_toolbar.setFloatable(False)
-        self.slice_toolbar.toggleViewAction().setVisible(False)  # чтобы панель случайно не отключали
-        separator_placement = [3, 5, 8]  # места после которых добавляется сепаратор
-        for i, action in enumerate(self.slice_actions):
-            self.slice_toolbar.addAction(action)
-            if i in separator_placement:
-                self.slice_toolbar.addSeparator()
-        # self.slice_toolbar.addAction(self.slice_actions[0])
-        # self.slice_toolbar.addAction(self.slice_actions[1])
-        # self.slice_toolbar.addAction(self.slice_actions[2])
-        # self.slice_toolbar.addAction(self.slice_actions[3])
-        # self.slice_toolbar.addSeparator()
-        # self.slice_toolbar.addAction(self.slice_actions[4])
-        # self.slice_toolbar.addAction(self.slice_actions[5])
-        # self.slice_toolbar.addSeparator()
-        # self.slice_toolbar.addAction(self.slice_actions[6])
-        # self.slice_toolbar.addAction(self.slice_actions[7])
-        # self.slice_toolbar.addAction(self.slice_actions[8])
-        # self.slice_toolbar.addSeparator()
-        # self.slice_toolbar.addAction(self.slice_actions[9])
-        # self.slice_toolbar.addAction(self.slice_actions[10])
 
     def slice_exec_run(self):  # процедура разрезания
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)  # ставим курсор ожидание
@@ -355,7 +315,7 @@ class ProcessingUI(QtWidgets.QWidget):
         if not self.json_obj.good_file:
             self.signal_message.emit("Выбранный файл не является корректным либо не содержит необходимых данных")
             self.slice_exec.setEnabled(False)  # отключаем возможность Разрезать
-            self.slice_toggle_toolbar(False)  # настраиваем состояние инструментов
+            self.slice_toggle_toolbar(0)  # настраиваем состояние инструментов
             return
         self.slice_exec.setEnabled(True)
         model_data = []  # данные для отображения
@@ -367,20 +327,24 @@ class ProcessingUI(QtWidgets.QWidget):
         header = self.slice_tab_labels.horizontalHeader()  # настраиваем отображение столбцов
         header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
         header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
-        self.slice_toggle_toolbar(True)  # настраиваем состояние инструментов
+        self.slice_toggle_toolbar(1)  # настраиваем состояние инструментов
         # TODO: добавить загрузку перечня изображений в лист ручного разрезания
 
-    def slice_toggle_toolbar(self, switch):  # включить/выключить инструменты при загрузке данных
+    def slice_toggle_toolbar(self, switch):
+        """
+        Настройка доступа к инструментам ручного кадрирования
+        switch = 0, отключить всё; switch = 1, включить только первые два; 2 - включить все инструменты.
+        """
+        logic = False
+        if switch == 0:
+            logic = False
+        elif switch == 2:
+            logic = True
         for action in self.slice_actions:
-            action.setEnabled(switch)
-        self.slice_actions[0].setEnabled(True)
-        self.slice_actions[1].setEnabled(True)
-        # else:  # нет данных
-        #     self.set_instrument(self.tb_info_dataset, False)
-        #     self.set_instrument(self.actions_show_data, False)
-        #     self.set_instrument(self.actions_labels, False)
-        #     self.set_instrument(self.actions_control_images, False)
-        #     self.set_instrument(self.action_shuffle_data, False)
+            action.setEnabled(logic)
+        if switch == 1:
+            self.slice_actions[0].setEnabled(True)
+            self.slice_actions[1].setEnabled(True)
 
     def slice_write_default_overlap_pols(self):
         self.settings.write_default_slice_overlap_pols(self.slice_overlap_pols_default.value())
