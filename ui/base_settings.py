@@ -20,8 +20,8 @@ class SettingsUI(QWidget):
         super().__init__()
         self.line_general_datasets_dir = None
         self.line_default_output_dir = None
-        self.output_dir = QLabel('Default output dir:')
         self.datasets_dir = QLabel('Default datasets directory:')
+        self.output_dir = QLabel('Default output dir:')
         self.chk_load_sub_dirs = QCheckBox('Load subdirectories, when use "Load image dir"')
         self.tab_widget = QTabWidget()  # создаём виджет со вкладками
         self.settings = None
@@ -55,7 +55,7 @@ class SettingsUI(QWidget):
         self.line_general_datasets_dir.setText(self.settings.read_datasets_dir())  # устанавливаем сохраненное значение
         self.line_general_datasets_dir.textChanged.connect(
             lambda: self.settings.write_datasets_dir(self.line_general_datasets_dir.text()))  # автосохранение
-        page_common_layout.addRow(self.output_dir, self.line_general_datasets_dir)  # добавляем виджет
+        page_common_layout.addRow(self.datasets_dir, self.line_general_datasets_dir)  # добавляем виджет
 
         # QLineEdit для хранения выходных результатов
         self.line_default_output_dir = AzButtonLineEdit("glyph_folder", the_colors,
@@ -64,7 +64,7 @@ class SettingsUI(QWidget):
         self.line_default_output_dir.setText(self.settings.read_default_output_dir())
         self.line_default_output_dir.textChanged.connect(
             lambda: self.settings.write_default_output_dir(self.line_default_output_dir.text()))
-        page_common_layout.addRow(self.datasets_dir, self.line_default_output_dir)
+        page_common_layout.addRow(self.output_dir, self.line_default_output_dir)
 
         # QCheckBox загружать ли подкаталоги при загрузке директории в Просмотре датасета
         self.chk_load_sub_dirs.setChecked(bool(self.settings.read_load_sub_dir()))

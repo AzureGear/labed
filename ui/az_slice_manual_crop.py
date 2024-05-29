@@ -1,13 +1,11 @@
 from PyQt5 import QtCore
 from PyQt5 import QtWidgets
 from PyQt5 import QtGui
+from utils import AppSettings, UI_COLORS, UI_AZ_SLICE_MANUAL, load, save
+from ui import AzImageViewer, AzFileDialog, new_act
 import sys
-from utils import AppSettings, UI_COLORS, UI_AZ_SLICE_MANUAL
-from ui import AzImageViewer, AzAction, coloring_icon, AzFileDialog, new_act
+import os
 
-# import re
-# import random
-# import natsort
 # current_folder = os.path.dirname(os.path.abspath(__file__))  # каталога проекта + /ui/
 
 the_color = UI_COLORS.get("processing_color")
@@ -44,7 +42,7 @@ class AzManualSlice(QtWidgets.QMainWindow):
 
         # элемент GUI с отображением текущего проекта хранения точек ручного кадрирования (ХТРК)
         self.top_dock = QtWidgets.QDockWidget("Visual manual cropping project name")  # контейнер для информации ХТРК
-        self.label_info = QtWidgets.QLabel("Current manual project:")  # TODO: хранить имя проекта
+        self.label_info = QtWidgets.QLabel("Current manual project:")
         self.top_dock.setWidget(self.label_info)  # устанавливаем в контейнер QLabel
         self.addDockWidget(QtCore.Qt.DockWidgetArea.TopDockWidgetArea, self.top_dock)
         # self.top_dock.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
@@ -101,26 +99,31 @@ class AzManualSlice(QtWidgets.QMainWindow):
             new_act(self, "Change crop size", "glyph_resize", the_color),  # сменить размер кадрирования
             new_act(self, "Slice", "glyph_cutter", the_color))  # разрезать снимки
 
-    def hand(self):  # автосохранение
+    def hand(self):  # движение ручкой
         pass
 
-    def point_add(self):  # автосохранение
+    def point_add(self):  # удалить точку
         pass
 
-    def point_move(self):  # автосохранение
+    def point_move(self):  # передвинуть точку
         pass
 
-    def point_delete(self):  # автосохранение
+    def point_delete(self):  # добавить точку
         pass
 
-    def open_project(self):  # сохранение
-
-        self.signal_message.emit("Загружен проект '%s'" % project_name)
+    def open_project(self):  # открыть проект
+        sel_file = AzFileDialog(self, "Загрузить существующий проект ручного кадрирования",
+                                self.settings.read_last_dir(), False,
+                                filter="Manual crop projects (*.json_mc)", initial_filter="json_mc (*.json_mc)")
+        if sel_file is not None:
+            if os.path.exists(sel_file):
+                self.label_info.setText(sel_file)
+                self.signal_message.emit("Загружен проект '%s'" % sel_file)
 
     def autosave(self):  # автосохранение
         pass
 
-    def save(self):
+    def save(self):  # сохранение
         pass
 
     def setup_files_widget(self):
@@ -167,11 +170,9 @@ class AzManualSlice(QtWidgets.QMainWindow):
         for i in range(5, 9):  # группировка, чтобы активно было только одной действие
             group_acts.addAction(self.slice_actions[i])
 
-    # @QtCore.pyqtSlot()
     def change_input_data(self, image_list):
         print(image_list)
 
-    # @QtCore.pyqtSlot()
     def slice_toggle_toolbar(self, int_code):
         """
         Настройка доступа к инструментам ручного кадрирования
@@ -180,6 +181,7 @@ class AzManualSlice(QtWidgets.QMainWindow):
         logic = False
         if int_code == 0:
             logic = False
+            self.clear()
         elif int_code == 2:
             logic = True
         for action in self.slice_actions:
@@ -188,6 +190,9 @@ class AzManualSlice(QtWidgets.QMainWindow):
             self.slice_actions[0].setEnabled(True)
             self.slice_actions[1].setEnabled(True)
 
+    def clear(self):
+        self.label_info.setText("")
+        self.files_list.clear()
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)

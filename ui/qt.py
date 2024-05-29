@@ -5,6 +5,7 @@ from PyQt5 import QtGui
 from utils import AppSettings
 from utils import UI_COLORS
 import os
+import re
 
 here = osp.dirname(osp.abspath(__file__))
 default_color = UI_COLORS.get("default_color")
@@ -134,7 +135,6 @@ class _TableModel(QtCore.QAbstractTableModel):  # Реализация qdarkthem
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-
 class AzTableModel(QtCore.QAbstractTableModel):
     """
     Модель для отображения табличных данных, принимает лист листов [[x1, y1], [x2, y2]... ]
@@ -204,7 +204,6 @@ class AzTableModel(QtCore.QAbstractTableModel):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-
 class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Романа Хабарова
     """
     Виджет для отображения изображений *.jpg, *.png и т.д.
@@ -232,8 +231,6 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-
-
 class AzSpinBox(QtWidgets.QSpinBox):
     """
     Упрощённая реализация числового виджета
@@ -258,15 +255,11 @@ class AzSpinBox(QtWidgets.QSpinBox):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-
-@staticmethod
 def natural_order(val):  # естественная сортировка
     return [int(text) if text.isdigit() else text.lower() for text in re.split('(\d+)', val)]
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-
-@staticmethod
 def AzFileDialog(self, caption=None, last_dir=None, dir_only=False, filter=None, initial_filter=None,
                  save_dir=True, parent=None):
     """ Базовые варианты диалоговых окон """
@@ -288,8 +281,6 @@ def AzFileDialog(self, caption=None, last_dir=None, dir_only=False, filter=None,
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-
-@staticmethod
 def coloring_icon(path, color):
     """
     Перекрашивает иконку в заданный цвет, возвращает QIcon
@@ -304,7 +295,6 @@ def coloring_icon(path, color):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-
 def new_icon(icon):
     """Создает и возвращает иконку по её наименованию"""
     icons_dir = osp.join(here, "../icons")
@@ -337,14 +327,12 @@ def new_act(parent, text, icon=None, color=None, slot=None, checkable=False, che
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-
 def new_pixmap(path):
     icons_dir = osp.join(here, "../icons")
     return QtGui.QPixmap(osp.join(":/", icons_dir, "%s.png" % path))
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-
 def new_button(parent, obj="pb", text=None, icon=None, color=None, slot=None, checkable=False, checked=False):
     """
     Создание и настройка кнопки PyQt5
@@ -371,7 +359,6 @@ def new_button(parent, obj="pb", text=None, icon=None, color=None, slot=None, ch
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-
 def labelValidator():
     return QtGui.QRegExpValidator(QtCore.QRegExp(r"^[^ \t].+"), None)
     # regexp = QtCore.QRegExp(r'^[[:ascii:]]+$')  # проверка имени файла на символы
