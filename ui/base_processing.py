@@ -1,8 +1,9 @@
-from qdarktheme.qtpy import QtCore
-from qdarktheme.qtpy import QtWidgets
-from qdarktheme.qtpy import QtGui
+from PyQt5 import QtCore
+from PyQt5 import QtWidgets
+from PyQt5 import QtGui
 from utils import AppSettings, convert_to_sama, UI_COLORS, UI_OUTPUT_TYPES, UI_READ_LINES, dn_crop
-from ui import coloring_icon, AzFileDialog, natural_order, AzButtonLineEdit, AzSpinBox, AzTableModel, AzManualSlice
+from ui import new_act, coloring_icon, AzFileDialog, natural_order, AzButtonLineEdit, AzSpinBox, AzTableModel, \
+    AzManualSlice
 from datetime import datetime
 import os
 
@@ -70,11 +71,11 @@ class ProcessingUI(QtWidgets.QWidget):
         self.signal_slice_data.connect(self.manual_wid.change_input_data)
         self.signal_slice_manual.connect(self.manual_wid.slice_toggle_toolbar)  # сигнал об изменении исходных данных
 
-    @QtCore.Slot()
+    @QtCore.pyqtSlot()
     def translate_signal(self, message):
         self.signal_message.emit(message)
 
-    @QtCore.Slot()
+    @QtCore.pyqtSlot()
     def change_tab(self):
         # TODO: make saver for tab
         pass
@@ -83,16 +84,12 @@ class ProcessingUI(QtWidgets.QWidget):
         self.ui_tab_merge = self.tab_basic_setup(complex=True)  # создаём "сложный" виджет
         # Действия для страницы
         self.merge_actions = (
-            QtGui.QAction(coloring_icon("glyph_add", the_color), "Add files", triggered=self.merge_add_files),
-            QtGui.QAction(coloring_icon("glyph_delete3", the_color), "Remove files",
-                          triggered=self.merge_remove_files),
-            QtGui.QAction(coloring_icon("glyph_check_all", the_color), "Select all",
-                          triggered=self.merge_select_all),
-            QtGui.QAction(coloring_icon("glyph_delete2", the_color), "Clear list", triggered=self.merge_clear),
-            QtGui.QAction(coloring_icon("glyph_merge", the_color), "Merge selected files",
-                          triggered=self.merge_combine),
-            QtGui.QAction(coloring_icon("glyph_folder_clear", the_color), "Open output dir",
-                          triggered=self.merge_open_output))
+            new_act(self, "Add files", "glyph_add", the_color, self.merge_add_files),
+            new_act(self, "Remove files", "glyph_delete3", the_color, self.merge_remove_files),
+            new_act(self, "Select all", "glyph_check_all", the_color, self.merge_select_all),
+            new_act(self, "Clear list", "glyph_delete2", the_color, self.merge_clear),
+            new_act(self, "Merge selected files", "glyph_merge", the_color, self.merge_combine),
+            new_act(self, "Open output dir", "glyph_folder_clear", the_color, self.merge_open_output))
         self.merge_output_label = QtWidgets.QLabel("Output type:")
         self.merge_output_list = QtWidgets.QComboBox()  # список выходных данных
         self.merge_output_list.addItems(UI_OUTPUT_TYPES)  # перечень вариантов для списка
@@ -153,17 +150,17 @@ class ProcessingUI(QtWidgets.QWidget):
         self.ui_tab_merge.setCentralWidget(wid)  # устанавливаем главный виджет страницы "Слияние"
         self.merge_toggle_instruments()  # устанавливаем доступные инструменты
 
-    @QtCore.Slot()
+    @QtCore.pyqtSlot()
     def merge_output_file_path_change(self):
         self.merge_output_dir = self.merge_output_file_path.text()
 
-    @QtCore.Slot()
+    @QtCore.pyqtSlot()
     def merge_toggle_output_file(self):
         self.merge_output_file_path.setEnabled(self.merge_output_file_check.checkState())
         if not self.merge_output_file_check.isChecked():
             self.merge_output_file_path.setText(self.settings.read_default_output_dir())
 
-    @QtCore.Slot()
+    @QtCore.pyqtSlot()
     def merge_selection_files_change(self):  # загрузка данных *.json в предпросмотр
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)  # ставим курсор ожидание
         try:
@@ -291,7 +288,7 @@ class ProcessingUI(QtWidgets.QWidget):
         if len(self.slice_input_file_path.text()) > 0:
             self.slice_load_projects_data()
 
-    @QtCore.Slot()
+    @QtCore.pyqtSlot()
     def slice_exec_run(self):  # процедура разрезания
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)  # ставим курсор ожидание
         try:
@@ -339,15 +336,15 @@ class ProcessingUI(QtWidgets.QWidget):
         header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
         self.signal_slice_manual.emit(1)  # инструменты первично доступны
 
-    @QtCore.Slot()
+    @QtCore.pyqtSlot()
     def slice_write_default_overlap_pols(self):
         self.settings.write_default_slice_overlap_pols(self.slice_overlap_pols_default.value())
 
-    @QtCore.Slot()
+    @QtCore.pyqtSlot()
     def slice_write_overlap_window(self):
         self.settings.write_slice_window_overlap(self.slice_overlap_window.value())
 
-    @QtCore.Slot()
+    @QtCore.pyqtSlot()
     def slice_toggle_output_file(self):
         self.slice_output_file_path.setEnabled(self.slice_output_file_check.checkState())
         if not self.slice_output_file_check.isChecked():
@@ -381,7 +378,6 @@ class ProcessingUI(QtWidgets.QWidget):
             if len(self.merge_files_list.selectedItems()) > 1:  # выбрано более 2х файлов
                 self.merge_actions[4].setEnabled(True)
 
-    @QtCore.Slot()
     def merge_add_files(self):
         sel_files = AzFileDialog(self, "Select project files to add", self.settings.read_last_dir(), False,
                                  filter="LabelMe projects (*.json)", initial_filter="json (*.json)")
@@ -394,7 +390,6 @@ class ProcessingUI(QtWidgets.QWidget):
             item = QtWidgets.QListWidgetItem(filename)
             self.merge_files_list.addItem(item)
 
-    @QtCore.Slot()
     def merge_remove_files(self):
         sel_items = self.merge_files_list.selectedItems()
         if len(sel_items) <= 0:
@@ -405,14 +400,12 @@ class ProcessingUI(QtWidgets.QWidget):
         if self.merge_files_list.count() <= 0:
             self.merge_label.setText("")
 
-    @QtCore.Slot()
     def merge_clear(self):
         self.merge_files_list.clear()
         self.merge_toggle_instruments()
         if self.merge_files_list.count() <= 0:
             self.merge_label.setText("")
 
-    @QtCore.Slot()
     def merge_combine(self):
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)  # ставим курсор ожидание
         try:
@@ -440,11 +433,9 @@ class ProcessingUI(QtWidgets.QWidget):
         finally:
             QtWidgets.QApplication.restoreOverrideCursor()
 
-    @QtCore.Slot()
     def merge_select_all(self):
         self.merge_files_list.selectAll()
 
-    @QtCore.Slot()
     def merge_open_output(self):
         os.startfile(self.merge_output_dir)  # открываем каталог средствами системы
 

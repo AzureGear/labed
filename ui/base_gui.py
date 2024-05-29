@@ -1,15 +1,17 @@
-from qdarktheme.qtpy import QtCore
-from qdarktheme.qtpy import QtGui
-from qdarktheme.qtpy import QtWidgets
-
-from utils import config
+# from qdarktheme.qtpy import QtCore
+# from qdarktheme.qtpy import QtGui
+# from qdarktheme.qtpy import QtWidgets
+from PyQt5 import QtCore
 from PyQt5 import QtWidgets
+from PyQt5 import QtGui
+from utils import config
+
 import qdarktheme
 import sys
 import os
 from utils import APP_MIN_SIZE, UI_COLORS, AppSettings
 from ui import SettingsUI, ViewDatasetUI, ExperimentUI, ProcessingUI, AutomationUI
-from ui import new_icon, coloring_icon, AzAction
+from ui import new_icon, new_act, coloring_icon, AzAction
 
 from qdarktheme.widget_gallery._ui.frame_ui import FrameUI
 from qdarktheme.widget_gallery._ui.widgets_ui import WidgetsUI
@@ -80,13 +82,13 @@ class _BaseGUI:
             AzAction("Automation", "glyph_highlight", UI_COLORS.get("automation_color"), the_color),
             AzAction("Settings", "glyph_gear", UI_COLORS.get("settings_color"), the_color)
         )
-
+        # Переключатель тем
         self.action_switch_theme = AzAction("Switch theme", "glyph_black-and-white", the_color, the_color)
 
         # Actions для меню
-        self.action_exit = QtGui.QAction("Exit")
-        self.actions_theme = [QtGui.QAction(theme, main_widget) for theme in ["dark", "light"]]
-        self.action_help = (QtGui.QAction("Help"))
+        self.action_exit = new_act(main_widget, "Exit")
+        self.actions_theme = [new_act(main_widget, theme) for theme in ["dark", "light"]]
+        self.action_help = (new_act(main_widget, "Help"))
 
         # Создаем кнопки
         tool_btn_lang = QtWidgets.QToolButton()  # создаем кнопки
@@ -98,8 +100,7 @@ class _BaseGUI:
         for file in os.listdir(os.path.join(current_folder, "../" + config.LOCALIZATION_FOLDER)):
             if file.endswith(".qm"):  # файлы локализаций *.qm
                 only_file_name = os.path.splitext(file)[0]  # удаляем расширение
-                self.actions_switch_lang.append(
-                    QtGui.QAction(text=only_file_name))  # формируем набор QAction для локализаций
+                self.actions_switch_lang.append(QtWidgets.QAction(text=only_file_name))  # набор QAction для локализаций
         tool_btn_lang.addActions(self.actions_switch_lang)  # передаем его кнопке
 
         # Группировка виджетов
@@ -109,7 +110,7 @@ class _BaseGUI:
         statusbar = QtWidgets.QStatusBar()  # статусная строка
         menubar = QtWidgets.QMenuBar()  # панель меню
 
-        action_group_toolbar = QtGui.QActionGroup(main_widget)  # группа действий для панели режимов
+        action_group_toolbar = QtWidgets.QActionGroup(main_widget)  # группа действий для панели режимов
         for action in self.actions_page_side_panel:
             action.setCheckable(True)
             action_group_toolbar.addAction(action)  # соединяем действия боковой панели в группу
@@ -306,7 +307,7 @@ class BaseGUI(QtWidgets.QMainWindow):
         self.label.resize(self.pixmap.width(),
                           self.pixmap.height())
 
-    @QtCore.Slot()
+    @QtCore.pyqtSlot()
     # Смена языка
     def change_lang(self):
         action_name: str = self.sender().text()
@@ -320,7 +321,7 @@ class BaseGUI(QtWidgets.QMainWindow):
             self.settings.write_lang(action_name)  # записываем в настройки выбранный язык
             self.statusBar().showMessage(action_name)
 
-    @QtCore.Slot()
+    @QtCore.pyqtSlot()
     # Смена темы
     def change_theme(self):
         current_theme = ""
@@ -334,7 +335,7 @@ class BaseGUI(QtWidgets.QMainWindow):
         self.settings.write_ui_theme(self._theme)  # сохраняем настройки темы
         self.statusBar().showMessage(current_theme)  # извещаем пользователя
 
-    @QtCore.Slot()
+    @QtCore.pyqtSlot()
     # Смена виджетов для панели режимов
     def change_page(self, index=None):
         if not index:
@@ -347,12 +348,12 @@ class BaseGUI(QtWidgets.QMainWindow):
             else:
                 self._ui.stack_widget.setCurrentIndex(index)
 
-    @QtCore.Slot()
+    @QtCore.pyqtSlot()
     # Аккуратный выход
     def slot_exit(self):
         self.close()  # вызываем закрытие приложения
 
-    @QtCore.Slot()
+    @QtCore.pyqtSlot()
     # Тестовый слот
     def test_slot(self):
         self.statusBar().showMessage(str(self.settings.read_ui_stack_widget_cur_tab()))

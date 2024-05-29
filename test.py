@@ -1,3 +1,13 @@
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Разница между сигналами в pySide и PyQt5
+# my_custom_signal = pyqtSignal()  # PyQt5
+my_custom_signal = Signal()  # PySide2
+
+my_other_signal = pyqtSignal(int)  # PyQt5
+my_other_signal = Signal(int)  # PySide2
+
+# ----------------------------------------------------------------------------------------------------------------------
 # hor_spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
 # Спейсер, спайсер
 

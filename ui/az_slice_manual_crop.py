@@ -1,9 +1,10 @@
-from qdarktheme.qtpy import QtCore
-from qdarktheme.qtpy import QtWidgets
-from qdarktheme.qtpy import QtGui
+from PyQt5 import QtCore
+from PyQt5 import QtWidgets
+from PyQt5 import QtGui
 import sys
 from utils import AppSettings, UI_COLORS, UI_AZ_SLICE_MANUAL
 from ui import AzImageViewer, AzAction, coloring_icon, AzFileDialog, new_act
+
 # import re
 # import random
 # import natsort
@@ -89,24 +90,26 @@ class AzManualSlice(QtWidgets.QMainWindow):
 
     def setup_actions(self):  # перечень инструментов
         self.slice_actions = (
-            new_act(self, "Open", self.open_project, icon="glyph_folder", color=the_color),  # открыть
-            QtGui.QAction(coloring_icon("glyph_add", the_color), "New"),  # новый
-            QtGui.QAction(coloring_icon("glyph_save", the_color), "Save"),  # сохранить
-            QtGui.QAction(coloring_icon("glyph_time-save", the_color), "Autosave"),  # автосохранение
-            QtGui.QAction(coloring_icon("glyph_crop", the_color), "Fit image"),  # изображение по размеру окна
-            QtGui.QAction(coloring_icon("glyph_hand", the_color), "Hand"),  # перемещение по снимку
-            QtGui.QAction(coloring_icon("glyph_point_add", the_color), "Add"),  # добавить метку
-            QtGui.QAction(coloring_icon("glyph_point_move", the_color), "Move"),  # передвинуть метку
-            QtGui.QAction(coloring_icon("glyph_point_remove", the_color), "Delete"),  # удалить метку
-            QtGui.QAction(coloring_icon("glyph_resize", the_color), "Change crop size"),  # сменить размер кадрирования
-            QtGui.QAction(coloring_icon("glyph_cutter", the_color), "Slice"))  # разрезать снимки
-        self.slice_actions[3].setCheckable(True)  # у автосохранения делаем кнопку нажимания...
-        self.slice_actions[3].setChecked(True)  # ...и включаем его по умолчанию
+            new_act(self, "Open", "glyph_folder", the_color, self.open_project),  # открыть
+            new_act(self, "New", "glyph_add", the_color),  # новый
+            new_act(self, "Save", "glyph_save", the_color, self.save),  # сохранить
+            new_act(self, "Autosave", "glyph_time-save", the_color, self.autosave, True, True),  # автосохранение
+            new_act(self, "Fit image", "glyph_crop", the_color),  # изображение по размеру окна
+            new_act(self, "Hand", "glyph_hand", the_color),  # перемещение по снимку
+            new_act(self, "Add", "glyph_point_add", the_color),  # добавить метку
+            new_act(self, "Move", "glyph_point_move", the_color),  # передвинуть метку
+            new_act(self, "Delete", "glyph_point_remove", the_color),  # удалить метку
+            new_act(self, "Change crop size", "glyph_resize", the_color),  # сменить размер кадрирования
+            new_act(self, "Slice", "glyph_cutter", the_color))  # разрезать снимки
 
-        # QtGui.QAction(coloring_icon("glyph_folder", the_color), "Open", triggered=self.open_project)
+    def open_project(self):  # сохранение
+        self.signal_message.emit("Test")
 
-    def open_project(self):
-        self.signal_message.emit("Test!")
+    def autosave(self):  # автосохранение
+        pass
+
+    def save(self):
+        pass
 
     def setup_files_widget(self):
         # Настройка правого (по умолчанию) виджета для отображения перечня файлов датасета
@@ -121,6 +124,7 @@ class AzManualSlice(QtWidgets.QMainWindow):
         self.files_dock.setWidget(self.files_list)  # устанавливаем виджет перечня файлов
         self.files_list.itemSelectionChanged.connect(self.file_selection_changed)  # выбора файла в QWidgetList
 
+    # @QtCore.pyqtSlot()
     def file_selection_changed(self):  # метод смены файла
         items = self.files_list.selectedItems()
         if not items:
@@ -150,9 +154,11 @@ class AzManualSlice(QtWidgets.QMainWindow):
             if i in separator_placement:
                 self.slice_toolbar.addSeparator()
 
+    # @QtCore.pyqtSlot()
     def change_input_data(self, image_list):
         print(image_list)
 
+    # @QtCore.pyqtSlot()
     def slice_toggle_toolbar(self, int_code):
         """
         Настройка доступа к инструментам ручного кадрирования

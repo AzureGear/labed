@@ -20,6 +20,7 @@ UI_COLORS = {
     "datasets_change_color": "goldenrod",
     "automation_color": "darkorange",
     "settings_color": "deepskyblue",
+    "default_color": "grey"
 }
 
 # настройки Интерфейса со структурой:

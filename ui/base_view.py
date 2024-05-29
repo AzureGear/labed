@@ -1,8 +1,8 @@
-from qdarktheme.qtpy import QtCore
-from qdarktheme.qtpy import QtWidgets
-from qdarktheme.qtpy import QtGui
+from PyQt5 import QtCore
+from PyQt5 import QtWidgets
+from PyQt5 import QtGui
 from utils import AppSettings, UI_COLORS, UI_BASE_VIEW
-from ui import AzImageViewer, AzAction, coloring_icon, AzFileDialog
+from ui import AzImageViewer, new_act, coloring_icon, AzFileDialog
 import os
 import re
 import random
@@ -73,7 +73,7 @@ class ViewDatasetUI(QtWidgets.QWidget):
         layout.setContentsMargins(4, 4, 4, 4)  # визуально граница на 1 пиксель меньше для состыковки с другими
         layout.addWidget(main_win)  # добавляем наш QMainWindow
 
-    @QtCore.Slot()
+    @QtCore.pyqtSlot()
     def show_info(self):
         if self.tb_info_dataset.isChecked():
             self.top_dock.setHidden(False)
@@ -124,7 +124,7 @@ class ViewDatasetUI(QtWidgets.QWidget):
             for obj in item:
                 self.set_instrument(obj, b)
 
-    @QtCore.Slot()
+    @QtCore.pyqtSlot()
     def open_project(self):  # загрузить датасет
         pass
         # os.scandir(folderPath)
@@ -137,7 +137,7 @@ class ViewDatasetUI(QtWidgets.QWidget):
         # # images = natsort.os_sorted(images)
         # return images
 
-    @QtCore.Slot()
+    @QtCore.pyqtSlot()
     def open_last_data(self):  # загрузка последних использованных данных
         last_data = self.settings.read_last_load_data()
         if self.current_data_dir == last_data:
@@ -148,7 +148,7 @@ class ViewDatasetUI(QtWidgets.QWidget):
         else:
             self.signal_message.emit("Использованные ранее данные отсутствуют")
 
-    @QtCore.Slot()
+    @QtCore.pyqtSlot()
     def open_dir(self, _value=False, dir_path=None, no_dialog=False):  # загрузить каталог изображений
         sel_dir = None  # каталог с данными по умолчанию
         if no_dialog:
@@ -217,7 +217,7 @@ class ViewDatasetUI(QtWidgets.QWidget):
         # images = natsort.os_sorted(images)
         return images
 
-    @QtCore.Slot()
+    @QtCore.pyqtSlot()
     def file_search_changed(self):
         self.files_list.clear()  # очищаем список
         self.files_list.clearSelection()  # убираем выделение
@@ -239,7 +239,7 @@ class ViewDatasetUI(QtWidgets.QWidget):
         if index.isValid():  # проверяем валидность индекса
             self.files_list.setCurrentIndex(index)
 
-    @QtCore.Slot()
+    @QtCore.pyqtSlot()
     def file_selection_changed(self):  # метод смены файла
         items = self.files_list.selectedItems()
         if not items:
@@ -270,7 +270,7 @@ class ViewDatasetUI(QtWidgets.QWidget):
         self.toolbar.addSeparator()
         self.toolbar.addAction(self.action_shuffle_data)
 
-    @QtCore.Slot()
+    @QtCore.pyqtSlot()
     def mdi_windows_1x(self):
         if len(self.mdi.subWindowList()) == 1: self.mdi_show_sub_windows()  # открыто одно окно
         if len(self.mdi.subWindowList()) > 0:  # есть открытые
@@ -284,7 +284,7 @@ class ViewDatasetUI(QtWidgets.QWidget):
             return
         self.mdi_add_window()  # если открытых нет
 
-    @QtCore.Slot()
+    @QtCore.pyqtSlot()
     def mdi_add_window(self):
         if self.current_file is None:
             self.signal_message.emit("Ошибка загрузки файла")
@@ -308,11 +308,11 @@ class ViewDatasetUI(QtWidgets.QWidget):
         finally:
             QApplication.restoreOverrideCursor()
 
-    @QtCore.Slot()
+    @QtCore.pyqtSlot()
     def mdi_windows_4x(self):
         self.mdi_set_windows(4)
 
-    @QtCore.Slot()
+    @QtCore.pyqtSlot()
     def mdi_windows_16x(self):
         self.mdi_set_windows(16)
 
@@ -348,7 +348,7 @@ class ViewDatasetUI(QtWidgets.QWidget):
         if len(items) > 0:
             self.files_list.setCurrentItem(items[0])
 
-    @QtCore.Slot()
+    @QtCore.pyqtSlot()
     def mdi_show_sub_windows(self):
         if self.actions_adjust[2].isChecked():  # не следить за расположением
             return
@@ -357,11 +357,11 @@ class ViewDatasetUI(QtWidgets.QWidget):
         elif self.actions_adjust[1].isChecked():  # установлен режим Cascade
             self.mdi.cascadeSubWindows()
 
-    @QtCore.Slot()
+    @QtCore.pyqtSlot()
     def move_image_right(self):
         self.files_step_image(True)
 
-    @QtCore.Slot()
+    @QtCore.pyqtSlot()
     def move_image_left(self):
         self.files_step_image(False)
 
@@ -369,14 +369,11 @@ class ViewDatasetUI(QtWidgets.QWidget):
         # Actions
         # Действия для загрузки данных
         self.actions_load = (
-            QtWidgets.QAction(coloring_icon("glyph_folder_recent", the_color), "Load last data",
-                              triggered=self.open_last_data),
-            QtWidgets.QAction(coloring_icon("glyph_folder_clear", the_color), "Load dir", triggered=self.open_dir),
+            new_act(self, "Load last data", "glyph_folder_recent", the_color, self.open_last_data),
+            new_act(self, "Load dir", "glyph_folder_clear", the_color, self.open_dir),
             # загрузить каталог
-            QtWidgets.QAction(coloring_icon("glyph_folder_dataset", the_color), "Load dataset",
-                              triggered=self.open_project))
-        self.action_load_presets = QtWidgets.QAction(coloring_icon("glyph_folder_preset", the_color),
-                                                     "Load preset dataset")
+            new_act(self, "Load dataset", "glyph_folder_dataset", the_color, self.open_project))
+        self.action_load_presets = new_act(self, "Load preset dataset", "glyph_folder_preset", the_color)
         self.tb_load_preset = QtWidgets.QToolButton()  # кнопка загрузки предустановленных датасетов
         self.tb_load_preset.setText("Load preset dataset")
         self.tb_load_preset.setIcon(coloring_icon('glyph_folder_preset', the_color))
@@ -392,52 +389,44 @@ class ViewDatasetUI(QtWidgets.QWidget):
 
         # Действия для отображения загруженных данных из датасетов (картинок) в окнах QMdiSubWindow()
         self.actions_show_data = (
-            QtWidgets.QAction(coloring_icon("glyph_image", the_color), "One window", triggered=self.mdi_windows_1x),
-            QtWidgets.QAction(coloring_icon("glyph_add_image", the_color), "Add window", triggered=self.mdi_add_window),
-            QtWidgets.QAction(coloring_icon("glyph_image_4x", the_color), "4x windows", triggered=self.mdi_windows_4x),
-            QtWidgets.QAction(coloring_icon("glyph_image_16x", the_color), "16x windows",
-                              triggered=self.mdi_windows_16x))
+            new_act(self, "One window", "glyph_image", the_color, self.mdi_windows_1x),
+            new_act(self, "Add window", "glyph_add_image", the_color, self.mdi_add_window),
+            new_act(self, "4x windows", "glyph_image_4x", the_color, self.mdi_windows_4x),
+            new_act(self, "16x windows", "glyph_image_16x", the_color, self.mdi_windows_16x))
 
         # Действия для расположения окон QMdiSubWindow()
         self.actions_adjust = (
-            QtWidgets.QAction(coloring_icon("glyph_lay_tiled", the_color), "Tiled",
-                              triggered=self.mdi_show_sub_windows),
-            QtWidgets.QAction(coloring_icon("glyph_lay_cascade", the_color), "Cascade",
-                              triggered=self.mdi_show_sub_windows),
-            QtWidgets.QAction(coloring_icon("glyph_lay_off", the_color), "Disable layout",
-                              triggered=self.mdi_show_sub_windows))
+            new_act(self, "Tiled", "glyph_lay_tiled", the_color, self.mdi_show_sub_windows, True, True),
+            new_act(self, "Cascade", "glyph_lay_cascade", the_color, self.mdi_show_sub_windows, True),
+            new_act(self, "Disable layout", "glyph_lay_off", the_color, self.mdi_show_sub_windows, True))
 
-        action_group_adjust = QtWidgets.QActionGroup(
-            self)  # объединяем в группу для расположения каскадом, мозаикой или выкл.
+        action_group_adjust = QtWidgets.QActionGroup(self)  # общая группа: расположение каскадом, мозаикой или выкл.
         for action in self.actions_adjust:
-            action.setCheckable(True)
             action_group_adjust.addAction(action)
-        self.actions_adjust[0].setChecked(True)  # включаем по умолчанию каскадом
 
         # Действия для меток и имён
-        self.actions_labels = (
-            QtWidgets.QAction(coloring_icon("glyph_label", the_color), "Show labels"),
-            QtWidgets.QAction(coloring_icon("glyph_signature", the_color), "Show filenames"))
+        self.actions_labels = (new_act(self, "Show labels", "glyph_label", the_color),
+                               new_act(self, "Show filenames", "glyph_signature", the_color))
         for action in self.actions_labels:
             action.setCheckable(True)
 
-        self.actions_control_images = (
-            QtWidgets.QAction(coloring_icon("glyph_left_arrow", the_color), "Preview", triggered=self.move_image_left),
-            QtWidgets.QAction(coloring_icon("glyph_right_arrow", the_color), "Next", triggered=self.move_image_right))
+        self.actions_control_images = (new_act(self, "Preview", "glyph_left_arrow", the_color, self.move_image_left),
+                                       new_act(self, "Next", "glyph_right_arrow", the_color, self.move_image_right))
 
-        self.action_shuffle_data = QtWidgets.QAction(coloring_icon("glyph_dice", the_color), "Shuffle data",
-                                                     triggered=self.mdi_shuffle)  # отображаемые данные
+        self.action_shuffle_data = new_act(self, "Shuffle data", "glyph_dice", the_color,
+                                           self.mdi_shuffle)  # отображаемые данные
 
-    def load_file(self, filename=None):  # загрузить для отображения новый графический файл
-        if filename is None:  # файла нет
-            return
-        self.current_file = filename  # устанавливаем свойство текущего файла
 
-        if len(self.mdi.subWindowList()) <= 0:  # активного окна для загрузки файла нет
-            return
-        # выбранный в окне файлов объект не загружен в активное окно и открыто хотя бы одно окно
-        active_mdi = self.mdi.activeSubWindow()
-        if active_mdi.windowTitle() != filename and len(self.mdi.subWindowList()) > 0:
-            self.mdi_window_set_image(active_mdi, filename)
-        # self.files_list.repaint()
-        # return
+def load_file(self, filename=None):  # загрузить для отображения новый графический файл
+    if filename is None:  # файла нет
+        return
+    self.current_file = filename  # устанавливаем свойство текущего файла
+
+    if len(self.mdi.subWindowList()) <= 0:  # активного окна для загрузки файла нет
+        return
+    # выбранный в окне файлов объект не загружен в активное окно и открыто хотя бы одно окно
+    active_mdi = self.mdi.activeSubWindow()
+    if active_mdi.windowTitle() != filename and len(self.mdi.subWindowList()) > 0:
+        self.mdi_window_set_image(active_mdi, filename)
+    # self.files_list.repaint()
+    # return

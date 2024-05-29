@@ -1,6 +1,5 @@
 from .qt import new_icon
 from .qt import coloring_icon
-from .qt import newPixmap
 from .qt import new_button
 from .qt import new_act
 from .qt import labelValidator

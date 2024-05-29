@@ -1,11 +1,13 @@
 import os.path as osp
-from qtpy import QtCore
-from qtpy import QtGui
-from qtpy import QtWidgets
+from PyQt5 import QtCore
+from PyQt5 import QtWidgets
+from PyQt5 import QtGui
 from utils import AppSettings
+from utils import UI_COLORS
 import os
 
 here = osp.dirname(osp.abspath(__file__))
+default_color = UI_COLORS.get("default_color")
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -100,7 +102,7 @@ def coloring_icon(path, color):
     return: QIcon;
     Работа с svg не проверена, также следует учесть, что метод работает с иконками с заливкой черным цветом
     """
-    pixmap = newPixmap(path)  # иконка, которую будем перекрашивать
+    pixmap = new_pixmap(path)  # иконка, которую будем перекрашивать
     mask = pixmap.createMaskFromColor(QtGui.QColor('black'), QtCore.Qt.MaskOutColor)  # по умолчанию цвет иконок черный
     pixmap.fill(QtGui.QColor(color))  # меняем цвет иконки...
     pixmap.setMask(mask)  # ...по маске
@@ -115,8 +117,8 @@ def new_icon(icon):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-def new_act(parent, text, slot=None, shortcut=None, icon=None, color=None, tip=None, checkable=False, enabled=True,
-            checked=False):
+def new_act(parent, text, icon=None, color=None, slot=None, checkable=False, checked=False, enabled=True, shortcut=None,
+            tip=None):
     """Create a new action and assign callbacks, shortcuts, etc."""
     a = QtWidgets.QAction(text, parent)
     if icon is not None:
@@ -141,17 +143,29 @@ def new_act(parent, text, slot=None, shortcut=None, icon=None, color=None, tip=N
 
 # ----------------------------------------------------------------------------------------------------------------------
 
-def newPixmap(path):
+def new_pixmap(path):
     icons_dir = osp.join(here, "../icons")
     return QtGui.QPixmap(osp.join(":/", icons_dir, "%s.png" % path))
 
 
 # ----------------------------------------------------------------------------------------------------------------------
 
-def new_button(object="pushbutton", text=None, icon=None, color=None, slot=None):
-    b = QtWidgets.QPushButton(text)
+def new_button(object="pb", text=None, icon=None, color=None, slot=None, checkable=False, checked=False):
+    """
+    Создание и настройка кнопки PyQt5
+    object: pb (QPushButton), tb (QToolButton)
+    """
+    b = None
+    if object == "tb":
+        b = QtWidgets.QToolButton()
+    elif object == "pb":
+        b = QtWidgets.QPushButton(text)
+    else:
+        return None
     if icon is not None:
-        b.setIcon(new_icon(icon))
+        if color is None:
+            color = default_color
+        b.setIcon(coloring_icon(icon, color))
     if slot is not None:
         b.clicked.connect(slot)
     return b
