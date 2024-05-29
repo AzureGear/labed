@@ -17,7 +17,7 @@ class AppSettings:
         self.settings.setValue('ui/ui_stack_widget_current_tab', ui_tab)
 
     def read_ui_proc_page(self):  # активная страница для 1 виджета, если он выбран [r]
-        return self.settings.value('ui/ui_proc_page', 0)
+        return self.settings.value('ui/ui_proc_page', 3)
 
     def write_ui_proc_page(self, proc_page):  # активная страница для 1 виджета, если он выбран [w]
         self.settings.setValue('ui/ui_proc_page', proc_page)

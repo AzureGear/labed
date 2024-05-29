@@ -11,7 +11,7 @@ import sys
 import os
 from utils import APP_MIN_SIZE, UI_COLORS, AppSettings
 from ui import SettingsUI, ViewDatasetUI, ExperimentUI, ProcessingUI, AutomationUI
-from ui import new_icon, new_act, coloring_icon, AzAction
+from ui import new_icon, new_act, new_button, coloring_icon, AzAction
 
 from qdarktheme.widget_gallery._ui.frame_ui import FrameUI
 from qdarktheme.widget_gallery._ui.widgets_ui import WidgetsUI
@@ -90,11 +90,9 @@ class _BaseGUI:
         self.actions_theme = [new_act(main_widget, theme) for theme in ["dark", "light"]]
         self.action_help = (new_act(main_widget, "Help"))
 
-        # Создаем кнопки
-        tool_btn_lang = QtWidgets.QToolButton()  # создаем кнопки
-
         # Выбор языка
-        tool_btn_lang.setIcon(coloring_icon('glyph_language', the_color))  # кнопка выбора языка
+        tool_btn_lang = new_button(main_widget, "tb", icon='glyph_language',
+                                   color=the_color)  # создаем кнопку смены языка
         tool_btn_lang.setPopupMode(QtWidgets.QToolButton.ToolButtonPopupMode.InstantPopup)  # со всплывающим меню
         self.actions_switch_lang = []  # перечень QActions для доступных переводов (сделаем динамическое меню)
         for file in os.listdir(os.path.join(current_folder, "../" + config.LOCALIZATION_FOLDER)):
@@ -173,10 +171,11 @@ class BaseGUI(QtWidgets.QMainWindow):
 
         # Signals
         self._ui.action_exit.triggered.connect(self.slot_exit)  # выход из программы
-        self._ui.action_help.triggered.connect(self.test_slot)
         self._ui.action_switch_theme.triggered.connect(self.change_theme)
         self._ui.ui_processing.signal_message.connect(self.show_statusbar_msg)  # вкладка Обработка
-        self._ui.ui_viewdataset.signal_message.connect(self.show_statusbar_msg)  # вкладка Просмотр данных
+        # Ручное кадрирование во вкладке Обработка
+        self._ui.ui_processing.manual_wid.signal_message.connect(self.show_statusbar_msg)
+        self._ui.ui_viewdataset.signal_message.connect(self.show_statusbar_msg)  # вкладка Просмотр да нных
         for action in self._ui.actions_switch_lang:  # соединяем смену языка
             action.triggered.connect(self.change_lang)
         for i, action in enumerate(self._ui.actions_page_side_panel):
@@ -193,7 +192,8 @@ class BaseGUI(QtWidgets.QMainWindow):
         # стиль границ острый, можно и сглаженный: "rounded"
         qdarktheme.setup_theme(self._theme, 'sharp',
                                additional_qss=qss_light if self._theme == "dark" else qss_dark)
-        if self._theme == "light": self._ui.action_switch_theme.setChecked(True)  # кнопка зажата
+        if self._theme == "light":
+            self._ui.action_switch_theme.setChecked(True)  # кнопка зажата
         self._ui.stack_widget.setCurrentIndex(self.settings.read_ui_stack_widget_cur_tab())  # загрузка вкладки
         # активация сохранённой по нумеру вкладки
         self._ui.actions_page_side_panel[self.settings.read_ui_stack_widget_cur_tab()].setChecked(True)
@@ -243,20 +243,38 @@ class BaseGUI(QtWidgets.QMainWindow):
         pc.merge_actions[4].setText(QtWidgets.QApplication.translate('BaseGUI', "Merge selected files"))
         pc.merge_actions[5].setText(QtWidgets.QApplication.translate('BaseGUI', "Open output folder"))
         pc.merge_output_label.setText(QtWidgets.QApplication.translate('BaseGUI', "Output type:"))
-        pc.merge_output_file_check.setText("Set user output file path other than default:")
+        pc.merge_output_file_check.setText(
+            QtWidgets.QApplication.translate('BaseGUI', "Set user output file path other than default:"))  # noqa
         pc.merge_toolbar.setWindowTitle(
-            QtWidgets.QApplication.translate('BaseGUI', "Toolbar for merging project files"))
+            QtWidgets.QApplication.translate('BaseGUI', "Toolbar for merging project files"))  # noqa
         # Processing - Cutting Images (crop)
-        pc.slice_input_file_label.setText("Path to file project *.json:")
-        pc.slice_output_file_check.setText("Set user output file path other than default:")
-        pc.slice_scan_size_label.setText("Scan size:")
-        pc.slice_overlap_window_label.setText("Scanning window overlap percentage:")
-        pc.slice_overlap_pols_default_label.setText("Default overlap percentage for classes:")
+        pc.slice_input_file_label.setText(QtWidgets.QApplication.translate('BaseGUI', "Path to file project *.json:"))
+        pc.slice_output_file_check.setText(
+            QtWidgets.QApplication.translate('BaseGUI', "Set user output file path other than default:"))  # noqa
+        pc.slice_scan_size_label.setText(QtWidgets.QApplication.translate('BaseGUI', "Scan size:"))
+        pc.slice_overlap_window_label.setText(
+            QtWidgets.QApplication.translate('BaseGUI', "Scanning window overlap percentage:"))  # noqa
+        pc.slice_overlap_pols_default_label.setText(
+            QtWidgets.QApplication.translate('BaseGUI', "Default overlap percentage for classes:"))  # noqa
+        pc.slice_smart_crop.setText(
+            QtWidgets.QApplication.translate('BaseGUI', "Simplified grid framing (no smart grouping)"))  # noqa
+        pc.slice_exec.setText(QtWidgets.QApplication.translate('BaseGUI', " Automatically crop images"))
+        pc.slice_open_result.setText(QtWidgets.QApplication.translate('BaseGUI', " Open results"))
+        pc.manual_wid.slice_toolbar.setWindowTitle(
+            QtWidgets.QApplication.translate('BaseGUI', "Toolbar for manual cropping"))  # noqa
+        pc.manual_wid.files_dock.setWindowTitle(QtWidgets.QApplication.translate('BaseGUI', "Files List"))
+        pc.manual_wid.top_dock.setWindowTitle(
+            QtWidgets.QApplication.translate('BaseGUI', "Visual manual cropping project name"))  # noqa
+        pc.manual_wid.label_info.setText(QtWidgets.QApplication.translate('BaseGUI', "Current manual project:"))
+        pc.slice_up_group.setTitle(QtWidgets.QApplication.translate('BaseGUI', "Automatic image cropping"))
+        pc.slice_down_group.setTitle(QtWidgets.QApplication.translate('BaseGUI', "Manual visual image cropping"))
 
         # Baseview
         bv = self._ui.ui_viewdataset
         bv.tb_info_dataset.setText(QtWidgets.QApplication.translate('BaseGUI', ' Info'))
+        bv.tb_info_dataset.setToolTip(QtWidgets.QApplication.translate('BaseGUI', 'Show dataset information'))
         bv.tb_load_preset.setText(QtWidgets.QApplication.translate('BaseGUI', 'Load preset dataset'))
+        bv.tb_load_preset.setToolTip(bv.tb_load_preset.text())
         bv.actions_load[0].setText(QtWidgets.QApplication.translate('BaseGUI', 'Load last data'))
         bv.actions_load[1].setText(QtWidgets.QApplication.translate('BaseGUI', 'Load dir'))
         bv.actions_load[2].setText(QtWidgets.QApplication.translate('BaseGUI', 'Load dataset'))
@@ -293,20 +311,6 @@ class BaseGUI(QtWidgets.QMainWindow):
             self._retranslate_ui()  # что именно переводим
         super(BaseGUI, self).changeEvent(event)
 
-    def setExampleGUI(self):
-        # creating label
-        self.label = QtWidgets.QLabel(self)
-
-        # loading image
-        self.pixmap = QtGui.QPixmap("../test.jpg")
-
-        # adding image to label
-        self.label.setPixmap(self.pixmap)
-
-        # Optional, resize label to image size
-        self.label.resize(self.pixmap.width(),
-                          self.pixmap.height())
-
     @QtCore.pyqtSlot()
     # Смена языка
     def change_lang(self):
@@ -324,7 +328,6 @@ class BaseGUI(QtWidgets.QMainWindow):
     @QtCore.pyqtSlot()
     # Смена темы
     def change_theme(self):
-        current_theme = ""
         if self._ui.action_switch_theme.isChecked():
             self._theme = self._ui.actions_theme[1].text()  # зажатая кнопка темы
             current_theme = "☀"
@@ -352,11 +355,6 @@ class BaseGUI(QtWidgets.QMainWindow):
     # Аккуратный выход
     def slot_exit(self):
         self.close()  # вызываем закрытие приложения
-
-    @QtCore.pyqtSlot()
-    # Тестовый слот
-    def test_slot(self):
-        self.statusBar().showMessage(str(self.settings.read_ui_stack_widget_cur_tab()))
 
 
 if __name__ == '__main__':

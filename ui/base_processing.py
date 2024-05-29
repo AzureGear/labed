@@ -2,7 +2,8 @@ from PyQt5 import QtCore
 from PyQt5 import QtWidgets
 from PyQt5 import QtGui
 from utils import AppSettings, convert_to_sama, UI_COLORS, UI_OUTPUT_TYPES, UI_READ_LINES, dn_crop
-from ui import new_act, coloring_icon, AzFileDialog, natural_order, AzButtonLineEdit, AzSpinBox, AzTableModel, \
+from ui import new_act, new_button, coloring_icon, AzFileDialog, natural_order, AzButtonLineEdit, AzSpinBox, \
+    AzTableModel, \
     AzManualSlice
 from datetime import datetime
 import os
@@ -28,7 +29,6 @@ class ProcessingUI(QtWidgets.QWidget):
         layout.setContentsMargins(5, 0, 5, 5)  # уменьшаем границу
         self.tab_widget = QtWidgets.QTabWidget()  # виджет со вкладками-страницами обработки
         self.tab_widget.setIconSize(QtCore.QSize(24, 24))
-        self.tab_widget.currentChanged.connect(self.change_tab)
         layout.addWidget(self.tab_widget)  # добавляем виджет со вкладками в расположение
 
         # Матрешка виджетов
@@ -64,21 +64,18 @@ class ProcessingUI(QtWidgets.QWidget):
             # print("added tab: " + self.tab_widget.tabText(i))
             self.tab_widget.setTabToolTip(i, elem[3])
 
-        # Signals - настраиваем соединение сигналов
-        self.manual_wid.signal_message.connect(self.translate_signal)  # связываем сигнал с сигналом для сообщений
+        # Загрузка последней активной вкладки "Обработки"
+        self.tab_widget.setCurrentIndex(self.settings.read_ui_proc_page())
+
+        # Signals
+        self.tab_widget.currentChanged.connect(self.change_tab)  # изменение вкладки
 
         # Сигналы для AzManualSlice
         self.signal_slice_data.connect(self.manual_wid.change_input_data)
-        self.signal_slice_manual.connect(self.manual_wid.slice_toggle_toolbar)  # сигнал об изменении исходных данных
 
     @QtCore.pyqtSlot()
-    def translate_signal(self, message):
-        self.signal_message.emit(message)
-
-    @QtCore.pyqtSlot()
-    def change_tab(self):
-        # TODO: make saver for tab
-        pass
+    def change_tab(self):  # сохранение последней активной вкладки "Обработки"
+        self.settings.write_ui_proc_page(self.tab_widget.currentIndex())
 
     def tab_merge_setup(self):  # настройка страницы "Слияние"
         self.ui_tab_merge = self.tab_basic_setup(complex=True)  # создаём "сложный" виджет
@@ -228,14 +225,13 @@ class ProcessingUI(QtWidgets.QWidget):
         self.slice_output_file_path.setEnabled(False)
         self.slice_output_file_check.clicked.connect(self.slice_toggle_output_file)  # соединяем - требуется настройка
         self.slice_output_file_path.setText(self.settings.read_default_output_dir())  # строка для выходного файла
-        self.slice_exec = QtWidgets.QPushButton(" Automatically crop images")
-        self.slice_exec.setIcon(coloring_icon("glyph_cutter", the_color))
-        self.slice_exec.clicked.connect(self.slice_exec_run)  # соединение с процедурой разрезания
-
-        self.slice_open_result = QtWidgets.QPushButton(" Open results")
-        self.slice_open_result.setIcon(coloring_icon("glyph_folder_clear", the_color))
-        self.slice_open_result.clicked.connect(lambda: os.startfile(self.slice_output_file_path.text()))
-        self.slice_overlap_pols = 0  # какой процент площади полигонов надо перекрыть окном
+        # кнопка получения результатов - автоматическое кадрирование
+        self.slice_exec = new_button(self, "pb", " Automatically crop images", "glyph_cutter", the_color,
+                                     self.slice_exec_run)
+        # кнопка открыть каталог результатов кадрирования
+        self.slice_open_result = new_button(self, "pb", " Open results", "glyph_folder_clear", the_color,
+                                            lambda: os.startfile(self.slice_output_file_path.text()))
+        # self.slice_overlap_pols = 0  # какой процент площади полигонов надо перекрыть окном
 
         self.slice_smart_crop = QtWidgets.QCheckBox("Упрощенное кадрирование сеткой (без интеллектуальной группировки)")
 
@@ -263,9 +259,11 @@ class ProcessingUI(QtWidgets.QWidget):
         self.slice_up_group.setLayout(slice_auto_form)
 
         # элементы для нижнего виджета
-        self.manual_wid = AzManualSlice()
+        self.manual_wid = AzManualSlice(self)
         slice_manual_lay = QtWidgets.QVBoxLayout()
         slice_manual_lay.addWidget(self.manual_wid)
+        # сигнал об изменении исходных данных - соединение идёт здесь, чтобы он успевал обрабатывать данные автозагрузки
+        self.signal_slice_manual.connect(self.manual_wid.slice_toggle_toolbar)
 
         # нижний виджет -  ручная обработка
         self.slice_down_group = QtWidgets.QGroupBox("Manual visual image cropping")
@@ -323,6 +321,7 @@ class ProcessingUI(QtWidgets.QWidget):
             self.signal_message.emit("Выбранный файл не является корректным либо не содержит необходимых данных")
             self.slice_exec.setEnabled(False)  # отключаем возможность Разрезать
             self.signal_slice_manual.emit(0)  # инструменты отключены
+            print("try_to_load")
             return
         self.slice_exec.setEnabled(True)
         model_data = []  # данные для отображения

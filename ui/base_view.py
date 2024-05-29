@@ -2,7 +2,7 @@ from PyQt5 import QtCore
 from PyQt5 import QtWidgets
 from PyQt5 import QtGui
 from utils import AppSettings, UI_COLORS, UI_BASE_VIEW
-from ui import AzImageViewer, new_act, coloring_icon, AzFileDialog
+from ui import AzImageViewer, new_act, new_button, AzFileDialog
 import os
 import re
 import random
@@ -38,7 +38,6 @@ class ViewDatasetUI(QtWidgets.QWidget):
 
         self.top_dock = QtWidgets.QDockWidget("")  # контейнер для информации о датасете
         self.top_dock.setWidget(self.label_info)  # устанавливаем в контейнер QLabel
-        self.tb_info_dataset.clicked.connect(self.show_info)  # соединяем с выводом инфо о датасете
         self.toggle_instruments()
 
         # Настроим все QDockWidgets для нашего main_win
@@ -195,7 +194,7 @@ class ViewDatasetUI(QtWidgets.QWidget):
             raise e
             print("Error {}".format(e.args[0]))
         finally:
-            QApplication.restoreOverrideCursor()
+            QtWidgets.QApplication.restoreOverrideCursor()
 
     def fill_files_list(self, filenames):  # формируем перечень из list'а для QListWidget
         for filename in filenames:
@@ -306,7 +305,7 @@ class ViewDatasetUI(QtWidgets.QWidget):
             raise e
             print("Error {}".format(e.args[0]))
         finally:
-            QApplication.restoreOverrideCursor()
+            QtWidgets.QApplication.restoreOverrideCursor()
 
     @QtCore.pyqtSlot()
     def mdi_windows_4x(self):
@@ -374,16 +373,12 @@ class ViewDatasetUI(QtWidgets.QWidget):
             # загрузить каталог
             new_act(self, "Load dataset", "glyph_folder_dataset", the_color, self.open_project))
         self.action_load_presets = new_act(self, "Load preset dataset", "glyph_folder_preset", the_color)
-        self.tb_load_preset = QtWidgets.QToolButton()  # кнопка загрузки предустановленных датасетов
-        self.tb_load_preset.setText("Load preset dataset")
-        self.tb_load_preset.setIcon(coloring_icon('glyph_folder_preset', the_color))
+        # кнопка загрузки предустановленных датасетов
+        self.tb_load_preset = new_button(self, "tb", "Load preset dataset", "glyph_folder_preset", the_color)
         self.tb_load_preset.setPopupMode(QtWidgets.QToolButton.ToolButtonPopupMode.InstantPopup)  # со всплывающим меню
-
-        self.tb_info_dataset = QtWidgets.QToolButton()  # кнопка информации о датасете
-        self.tb_info_dataset.setText(" Info")
-        self.tb_info_dataset.setIcon(coloring_icon("glyph_info", the_color))
-        self.tb_info_dataset.setCheckable(True)
-
+        # Кнопка информация о датасете
+        self.tb_info_dataset = QtWidgets.QToolButton()
+        self.tb_info_dataset = new_button(self, "tb", " Info", "glyph_info", the_color, self.show_info, True)
         self.tb_info_dataset.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         # self.tb_load_preset.addActions(self.actions_load)
 
@@ -416,17 +411,16 @@ class ViewDatasetUI(QtWidgets.QWidget):
         self.action_shuffle_data = new_act(self, "Shuffle data", "glyph_dice", the_color,
                                            self.mdi_shuffle)  # отображаемые данные
 
+    def load_file(self, filename=None):  # загрузить для отображения новый графический файл
+        if filename is None:  # файла нет
+            return
+        self.current_file = filename  # устанавливаем свойство текущего файла
 
-def load_file(self, filename=None):  # загрузить для отображения новый графический файл
-    if filename is None:  # файла нет
-        return
-    self.current_file = filename  # устанавливаем свойство текущего файла
-
-    if len(self.mdi.subWindowList()) <= 0:  # активного окна для загрузки файла нет
-        return
-    # выбранный в окне файлов объект не загружен в активное окно и открыто хотя бы одно окно
-    active_mdi = self.mdi.activeSubWindow()
-    if active_mdi.windowTitle() != filename and len(self.mdi.subWindowList()) > 0:
-        self.mdi_window_set_image(active_mdi, filename)
-    # self.files_list.repaint()
-    # return
+        if len(self.mdi.subWindowList()) <= 0:  # активного окна для загрузки файла нет
+            return
+        # выбранный в окне файлов объект не загружен в активное окно и открыто хотя бы одно окно
+        active_mdi = self.mdi.activeSubWindow()
+        if active_mdi.windowTitle() != filename and len(self.mdi.subWindowList()) > 0:
+            self.mdi_window_set_image(active_mdi, filename)
+        # self.files_list.repaint()
+        # return

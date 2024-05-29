@@ -24,10 +24,9 @@ class AzManualSlice(QtWidgets.QMainWindow):
         super().__init__()
         # по правилам pep8
         self.image_widget = None
-        self.slice_toolbar = None
-        self.slice_actions = None
-        self.files_dock = None
-        self.files_list = None
+        self.slice_toolbar = QtWidgets.QToolBar("Manual visual cropping toolbar")  # панель инструментов кадрирования
+        self.slice_actions = ()
+        self.files_list = QtWidgets.QListWidget()  # Правый (по умолчанию) виджет для отображения перечня файлов
 
         self.settings = AppSettings()  # настройки программы
         self.setup_actions()  # настраиваем QActions
@@ -95,15 +94,28 @@ class AzManualSlice(QtWidgets.QMainWindow):
             new_act(self, "Save", "glyph_save", the_color, self.save),  # сохранить
             new_act(self, "Autosave", "glyph_time-save", the_color, self.autosave, True, True),  # автосохранение
             new_act(self, "Fit image", "glyph_crop", the_color),  # изображение по размеру окна
-            new_act(self, "Hand", "glyph_hand", the_color),  # перемещение по снимку
-            new_act(self, "Add", "glyph_point_add", the_color),  # добавить метку
-            new_act(self, "Move", "glyph_point_move", the_color),  # передвинуть метку
-            new_act(self, "Delete", "glyph_point_remove", the_color),  # удалить метку
+            new_act(self, "Hand", "glyph_hand", the_color, self.hand, True),  # перемещение по снимку
+            new_act(self, "Add", "glyph_point_add", the_color, self.point_add, True),  # добавить метку
+            new_act(self, "Move", "glyph_point_move", the_color, self.point_move, True),  # передвинуть метку
+            new_act(self, "Delete", "glyph_point_remove", the_color, self.point_delete, True),  # удалить метку
             new_act(self, "Change crop size", "glyph_resize", the_color),  # сменить размер кадрирования
             new_act(self, "Slice", "glyph_cutter", the_color))  # разрезать снимки
 
+    def hand(self):  # автосохранение
+        pass
+
+    def point_add(self):  # автосохранение
+        pass
+
+    def point_move(self):  # автосохранение
+        pass
+
+    def point_delete(self):  # автосохранение
+        pass
+
     def open_project(self):  # сохранение
-        self.signal_message.emit("Test")
+
+        self.signal_message.emit("Загружен проект '%s'" % project_name)
 
     def autosave(self):  # автосохранение
         pass
@@ -113,7 +125,6 @@ class AzManualSlice(QtWidgets.QMainWindow):
 
     def setup_files_widget(self):
         # Настройка правого (по умолчанию) виджета для отображения перечня файлов датасета
-        self.files_list = QtWidgets.QListWidget()
         # right_layout = QtWidgets.QVBoxLayout()
         # right_layout.setContentsMargins(0, 0, 0, 0)
         # right_layout.setSpacing(0)
@@ -144,7 +155,6 @@ class AzManualSlice(QtWidgets.QMainWindow):
 
     def setup_toolbar(self):
         # Настройка панели инструментов
-        self.slice_toolbar = QtWidgets.QToolBar("Manual visual cropping toolbar")  # панель инструментов кадрирования
         self.slice_toolbar.setIconSize(QtCore.QSize(30, 30))
         self.slice_toolbar.setFloatable(False)
         self.slice_toolbar.toggleViewAction().setVisible(False)  # чтобы панель случайно не отключали
@@ -153,6 +163,9 @@ class AzManualSlice(QtWidgets.QMainWindow):
             self.slice_toolbar.addAction(action)
             if i in separator_placement:
                 self.slice_toolbar.addSeparator()
+        group_acts = QtWidgets.QActionGroup(self)
+        for i in range(5, 9):  # группировка, чтобы активно было только одной действие
+            group_acts.addAction(self.slice_actions[i])
 
     # @QtCore.pyqtSlot()
     def change_input_data(self, image_list):
