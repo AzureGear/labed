@@ -172,10 +172,14 @@ class BaseGUI(QtWidgets.QMainWindow):
         # Signals
         self._ui.action_exit.triggered.connect(self.slot_exit)  # выход из программы
         self._ui.action_switch_theme.triggered.connect(self.change_theme)
+        # Сигнал - при изменении каталога выходных данных по умолчанию
+        self._ui.ui_settings.signal_default_dir_change.connect(self._ui.ui_processing.default_output_dir_change)
+        # Сигнал - сообщение в статус-бар
         self._ui.ui_processing.signal_message.connect(self.show_statusbar_msg)  # вкладка Обработка
-        # Ручное кадрирование во вкладке Обработка
-        self._ui.ui_processing.manual_wid.signal_message.connect(self.show_statusbar_msg)
-        self._ui.ui_viewdataset.signal_message.connect(self.show_statusbar_msg)  # вкладка Просмотр да нных
+        self._ui.ui_processing.manual_wid.signal_message.connect(self.show_statusbar_msg)  # Ручное кадрирование
+        self._ui.ui_viewdataset.signal_message.connect(self.show_statusbar_msg)  # вкладка Просмотр данных
+
+
         for action in self._ui.actions_switch_lang:  # соединяем смену языка
             action.triggered.connect(self.change_lang)
         for i, action in enumerate(self._ui.actions_page_side_panel):

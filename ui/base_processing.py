@@ -18,8 +18,6 @@ class ProcessingUI(QtWidgets.QWidget):
     Класс виджета обработки датасетов
     """
     signal_message = QtCore.pyqtSignal(str)
-    signal_slice_manual = QtCore.pyqtSignal(int)  # сигнал для класса Ручного кадрирования настройки инструментов
-    signal_slice_data = QtCore.pyqtSignal(list)  # сигнал для класса Ручного кадрирования смены данных
 
     def __init__(self, parent):
         super().__init__()
@@ -69,9 +67,6 @@ class ProcessingUI(QtWidgets.QWidget):
 
         # Signals
         self.tab_widget.currentChanged.connect(self.change_tab)  # изменение вкладки
-
-        # Сигналы для AzManualSlice
-        self.signal_slice_data.connect(self.manual_wid.change_input_data)
 
     @QtCore.pyqtSlot()
     def change_tab(self):  # сохранение последней активной вкладки "Обработки"
@@ -262,8 +257,6 @@ class ProcessingUI(QtWidgets.QWidget):
         self.manual_wid = AzManualSlice(self)
         slice_manual_lay = QtWidgets.QVBoxLayout()
         slice_manual_lay.addWidget(self.manual_wid)
-        # сигнал об изменении исходных данных - соединение идёт здесь, чтобы он успевал обрабатывать данные автозагрузки
-        self.signal_slice_manual.connect(self.manual_wid.slice_toggle_toolbar)
 
         # нижний виджет -  ручная обработка
         self.slice_down_group = QtWidgets.QGroupBox("Manual visual image cropping")
@@ -320,8 +313,7 @@ class ProcessingUI(QtWidgets.QWidget):
         if not self.json_obj.good_file:
             self.signal_message.emit("Выбранный файл не является корректным либо не содержит необходимых данных")
             self.slice_exec.setEnabled(False)  # отключаем возможность Разрезать
-            self.signal_slice_manual.emit(0)  # инструменты отключены
-            print("try_to_load")
+            self.manual_wid.slice_toggle_toolbar(0)  # настраиваем панель Ручной резки
             return
         self.slice_exec.setEnabled(True)
         model_data = []  # данные для отображения
@@ -333,7 +325,8 @@ class ProcessingUI(QtWidgets.QWidget):
         header = self.slice_tab_labels.horizontalHeader()  # настраиваем отображение столбцов
         header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
         header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
-        self.signal_slice_manual.emit(1)  # инструменты первично доступны
+        self.manual_wid.slice_toggle_toolbar(1)  # инструменты первично доступны
+        self.manual_wid.update_input_data(self.json_obj)  # ранее он прошёл проверку на пригодность
 
     @QtCore.pyqtSlot()
     def slice_write_default_overlap_pols(self):
@@ -437,6 +430,13 @@ class ProcessingUI(QtWidgets.QWidget):
 
     def merge_open_output(self):
         os.startfile(self.merge_output_dir)  # открываем каталог средствами системы
+
+    def default_output_dir_change(self):
+        # изменение в настройках выходного каталога
+        if not self.merge_output_file_check.isChecked():
+            self.merge_toggle_output_file()
+        if not self.slice_output_file_check.isChecked():
+            self.slice_toggle_output_file()
 
 
 # ----------------------------------------------------------------------------------------------------------------------

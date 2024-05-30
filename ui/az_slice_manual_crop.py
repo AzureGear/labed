@@ -1,7 +1,7 @@
 from PyQt5 import QtCore
 from PyQt5 import QtWidgets
 from PyQt5 import QtGui
-from utils import AppSettings, UI_COLORS, UI_AZ_SLICE_MANUAL, load, save
+from utils import AppSettings, UI_COLORS, UI_AZ_SLICE_MANUAL, load, save, dn_crop
 from ui import AzImageViewer, AzFileDialog, new_act
 import sys
 import os
@@ -21,6 +21,7 @@ class AzManualSlice(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
         super().__init__()
         # по правилам pep8
+        self.input_file = None
         self.image_widget = None
         self.slice_toolbar = QtWidgets.QToolBar("Manual visual cropping toolbar")  # панель инструментов кадрирования
         self.slice_actions = ()
@@ -85,9 +86,13 @@ class AzManualSlice(QtWidgets.QMainWindow):
         finally:
             QtWidgets.QApplication.restoreOverrideCursor()
 
+    def update_input_data(self, dn_json_file):
+        self.input_file = dn_json_file
+        # функция json.ReadPolygons (int)
+    
     def setup_actions(self):  # перечень инструментов
         self.slice_actions = (
-            new_act(self, "Open", "glyph_folder", the_color, self.open_project),  # открыть
+            new_act(self, "Open", "glyph_folder", the_color, self.project_open),  # открыть
             new_act(self, "New", "glyph_add", the_color),  # новый
             new_act(self, "Save", "glyph_save", the_color, self.save),  # сохранить
             new_act(self, "Autosave", "glyph_time-save", the_color, self.autosave, True, True),  # автосохранение
@@ -111,14 +116,19 @@ class AzManualSlice(QtWidgets.QMainWindow):
     def point_delete(self):  # добавить точку
         pass
 
-    def open_project(self):  # открыть проект
+    def project_new(self):  # создать новый проект
+        if self.current_file is None:
+            self.signal_message.emit("Отсутствует загруженный проект *.json")
+            return
+
+    def project_open(self):  # открыть проект
         sel_file = AzFileDialog(self, "Загрузить существующий проект ручного кадрирования",
                                 self.settings.read_last_dir(), False,
                                 filter="Manual crop projects (*.json_mc)", initial_filter="json_mc (*.json_mc)")
         if sel_file is not None:
-            if os.path.exists(sel_file):
-                self.label_info.setText(sel_file)
-                self.signal_message.emit("Загружен проект '%s'" % sel_file)
+            if os.path.exists(sel_file[0]):
+                self.label_info.setText(sel_file[0])
+                self.signal_message.emit("Загружен проект ручного кадрирования '%s'" % sel_file[0])
 
     def autosave(self):  # автосохранение
         pass
