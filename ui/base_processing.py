@@ -2,7 +2,7 @@ from PyQt5 import QtCore
 from PyQt5 import QtWidgets
 from PyQt5 import QtGui
 from utils import AppSettings, convert_to_sama, UI_COLORS, UI_OUTPUT_TYPES, UI_READ_LINES, dn_crop
-from ui import new_act, new_button, coloring_icon, AzFileDialog, natural_order, AzButtonLineEdit, AzSpinBox, \
+from ui import new_act, new_button, coloring_icon, az_file_dialog, natural_order, AzButtonLineEdit, AzSpinBox, \
     AzTableModel, \
     AzManualSlice
 from datetime import datetime
@@ -176,6 +176,7 @@ class ProcessingUI(QtWidgets.QWidget):
             self.merge_toggle_instruments()
 
     def tab_slicing_setup(self):  # настройка страницы "Нарезка"
+        self.json_obj = None
         self.ui_tab_slicing = self.tab_basic_setup(complex=True)
         split = QtWidgets.QSplitter(QtCore.Qt.Vertical)  # вертикальный разделитель
         slice_auto_form = QtWidgets.QFormLayout()  # форма для расположения виджетов "автоматического разрезания"
@@ -309,11 +310,14 @@ class ProcessingUI(QtWidgets.QWidget):
             QtWidgets.QApplication.restoreOverrideCursor()
 
     def slice_load_projects_data(self):  # загрузка файла проекта
+        if self.json_obj is not None:
+            if self.slice_input_file_path.text() == self.json_obj.FullNameJsonFile:
+                return  # Файл не трогали, изменений неты
         self.json_obj = dn_crop.DNjson(self.slice_input_file_path.text())  # Файл проекта, реализация Дениса
         if not self.json_obj.good_file:
             self.signal_message.emit("Выбранный файл не является корректным либо не содержит необходимых данных")
             self.slice_exec.setEnabled(False)  # отключаем возможность Разрезать
-            self.manual_wid.slice_toggle_toolbar(0)  # настраиваем панель Ручной резки
+            self.manual_wid.update_input_data(None)  # передаём "Отсутствие" данных для настройки панели Ручной резки
             return
         self.slice_exec.setEnabled(True)
         model_data = []  # данные для отображения
@@ -325,8 +329,7 @@ class ProcessingUI(QtWidgets.QWidget):
         header = self.slice_tab_labels.horizontalHeader()  # настраиваем отображение столбцов
         header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
         header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
-        self.manual_wid.slice_toggle_toolbar(1)  # инструменты первично доступны
-        self.manual_wid.update_input_data(self.json_obj)  # ранее он прошёл проверку на пригодность
+        self.manual_wid.update_input_data(self.json_obj)  # Передаём данные, в т.ч. для настройки панели Ручной резки
 
     @QtCore.pyqtSlot()
     def slice_write_default_overlap_pols(self):
@@ -371,8 +374,8 @@ class ProcessingUI(QtWidgets.QWidget):
                 self.merge_actions[4].setEnabled(True)
 
     def merge_add_files(self):
-        sel_files = AzFileDialog(self, "Select project files to add", self.settings.read_last_dir(), False,
-                                 filter="LabelMe projects (*.json)", initial_filter="json (*.json)")
+        sel_files = az_file_dialog(self, "Select project files to add", self.settings.read_last_dir(), False,
+                                   filter="LabelMe projects (*.json)", initial_filter="json (*.json)")
         if sel_files:
             self.merge_fill_files(sel_files)
             self.merge_toggle_instruments()

@@ -1,11 +1,73 @@
+import sys
+from PyQt5.Qt import *
+
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        centralWidget = QWidget()
+        self.setCentralWidget(centralWidget)
+
+        self.label = QLabel()
+        self.pixmap = QPixmap("boy.jpg")
+        self.label.setPixmap(self.pixmap.scaled(self.label.size(),
+                                                Qt.KeepAspectRatio, Qt.SmoothTransformation))
+
+        self.label.setSizePolicy(QSizePolicy.Expanding,
+                                 QSizePolicy.Expanding)
+        self.label.setAlignment(Qt.AlignCenter)
+        self.label.setMinimumSize(100, 100)
+
+        self.pushButton = QPushButton('Выбрать изображение')
+        self.pushButton.clicked.connect(self.load_image)
+
+        layout = QGridLayout(centralWidget)
+        layout.addWidget(self.label)
+        layout.addWidget(self.pushButton)
+
+    def load_image(self):
+        imagePath, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select Image",
+            ".",
+            "Image Files (*.png *.jpg *.jpeg *.bmp)")
+        if imagePath:
+            self.pixmap = QPixmap(imagePath)
+            self.label.setPixmap(self.pixmap.scaled(
+                self.label.size(),
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation
+            ))
+
+    def resizeEvent(self, event):
+        scaledSize = self.label.size()
+        scaledSize.scale(self.label.size(), Qt.KeepAspectRatio)
+        if not self.label.pixmap() or scaledSize != self.label.pixmap().size():
+            self.updateLabel()
+
+    def updateLabel(self):
+        self.label.setPixmap(self.pixmap.scaled(
+            self.label.size(),
+            Qt.KeepAspectRatio,
+            Qt.SmoothTransformation
+        ))
+
+
+if __name__ == "__main__":
+    import sys
+
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec_())
 
 # ----------------------------------------------------------------------------------------------------------------------
-# Разница между сигналами в pySide и PyQt5
-# my_custom_signal = pyqtSignal()  # PyQt5
-my_custom_signal = Signal()  # PySide2
-
-my_other_signal = pyqtSignal(int)  # PyQt5
-my_other_signal = Signal(int)  # PySide2
+# # Разница между сигналами в pySide и PyQt5
+# # my_custom_signal = pyqtSignal()  # PyQt5
+# my_custom_signal = Signal()  # PySide2
+#
+# my_other_signal = pyqtSignal(int)  # PyQt5
+# my_other_signal = Signal(int)  # PySide2
 
 # ----------------------------------------------------------------------------------------------------------------------
 # hor_spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)

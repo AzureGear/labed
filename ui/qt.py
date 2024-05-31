@@ -225,9 +225,12 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
         """
         Задать новую картинку
         """
+        self.scene().clear()
         self._pixmap_item = QtWidgets.QGraphicsPixmapItem()
         self.scene().addItem(self._pixmap_item)
         self.pixmap_item.setPixmap(pixmap)
+
+
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -257,27 +260,6 @@ class AzSpinBox(QtWidgets.QSpinBox):
 # ----------------------------------------------------------------------------------------------------------------------
 def natural_order(val):  # естественная сортировка
     return [int(text) if text.isdigit() else text.lower() for text in re.split('(\d+)', val)]
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-def AzFileDialog(self, caption=None, last_dir=None, dir_only=False, filter=None, initial_filter=None,
-                 save_dir=True, parent=None):
-    """ Базовые варианты диалоговых окон """
-    settings = AppSettings()  # чтение настроек
-    save_dir = settings.read_last_dir()  # вспоминаем прошлый открытый каталог
-    if dir_only:
-        select_dir = QtWidgets.QFileDialog.getExistingDirectory(self, caption, last_dir)
-        if select_dir:
-            if save_dir:
-                settings.write_last_dir(select_dir)
-            return select_dir
-    else:
-        arr = QtWidgets.QFileDialog.getOpenFileNames(self, caption, last_dir, filter, initial_filter)
-        select_files = arr[0]
-        if len(arr[0]) > 0:
-            if save_dir:
-                settings.write_last_dir(os.path.dirname(select_files[0]))
-            return select_files
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -364,3 +346,73 @@ def labelValidator():
     # regexp = QtCore.QRegExp(r'^[[:ascii:]]+$')  # проверка имени файла на символы
     # validator = QtGui.QRegExpValidator(regexp, self.slice_output_file_path)  # создаём валидатор
     # self.slice_output_file_path.setValidator(validator)  # применяем его к нашей строке
+
+
+def AzCustomDialog(self, caption, message, yes=False, no=False, back=False, parent=None):
+    """
+    Кастомизация диалоговых окон (вопросы, диалоги)
+    """
+    dlg = QtWidgets.QMessageBox()
+    # self.dlg.setIcon(QtWidgets.QMessageBox.Information)
+    dlg.setWindowTitle(caption)
+    dlg.setInformativeText(message)
+    if yes:
+        dlg.addButton("Да", QtWidgets.QMessageBox.AcceptRole)
+    if no:
+        dlg.addButton("Нет", QtWidgets.QMessageBox.RejectRole)
+    if back:
+        dlg.addButton("Назад", QtWidgets.QMessageBox.RejectRole)
+    bttn = dlg.exec()
+    if dlg.clickedButton().text() == "Да":  # + text()
+        print("Да")
+        return 1
+    elif dlg.clickedButton().text() == "Нет":  # + text()
+        print("Нет")
+        return 1
+    else:
+        print("Назад")
+        return 0
+
+
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+def az_custom_dialog(caption, message, yes=False, no=False, back=False, add_question=False, parent=None):
+    """
+    Кастомизация диалоговых окон (вопросы, диалоги)
+    """
+    dlg = QtWidgets.QMessageBox(parent)
+    dlg.setWindowTitle(caption)
+    dlg.setInformativeText(message)
+
+    if yes:
+        dlg.addButton("Да", QtWidgets.QMessageBox.AcceptRole)
+    if no:
+        dlg.addButton("Нет", QtWidgets.QMessageBox.RejectRole)
+    if back:
+        dlg.addButton("Назад", QtWidgets.QMessageBox.RejectRole)
+    return dlg.exec()
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+def az_file_dialog(self, caption=None, last_dir=None, dir_only=False, filter=None, initial_filter=None,
+                   save_dir=True, parent=None):
+    """ Базовые варианты диалоговых окон (открыть, сохранить, указать путь и т.п.)"""
+    settings = AppSettings()  # чтение настроек
+    save_dir = settings.read_last_dir()  # вспоминаем прошлый открытый каталог
+    if dir_only:
+        select_dir = QtWidgets.QFileDialog.getExistingDirectory(self, caption, last_dir)
+        if select_dir:
+            if save_dir:
+                settings.write_last_dir(select_dir)
+            return select_dir
+    else:
+        arr = QtWidgets.QFileDialog.getOpenFileNames(self, caption, last_dir, filter, initial_filter)
+        select_files = arr[0]
+        if len(arr[0]) > 0:
+            if save_dir:
+                settings.write_last_dir(os.path.dirname(select_files[0]))
+            return select_files
+
+# ----------------------------------------------------------------------------------------------------------------------
+

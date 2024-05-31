@@ -2,7 +2,7 @@ from PyQt5 import QtCore
 from PyQt5 import QtWidgets
 from PyQt5 import QtGui
 from utils import AppSettings, UI_COLORS, UI_BASE_VIEW
-from ui import AzImageViewer, new_act, new_button, AzFileDialog
+from ui import AzImageViewer, new_act, new_button, az_file_dialog
 import os
 import re
 import random
@@ -158,7 +158,7 @@ class ViewDatasetUI(QtWidgets.QWidget):
             if last_dir and os.path.exists(last_dir):
                 using_folder = last_dir
             # каталог с данными получаем через диалог
-            sel_dir = AzFileDialog(self, "Select directory to load images", using_folder, True)
+            sel_dir = az_file_dialog(self, "Select directory to load images", using_folder, True)
         if sel_dir:
             self.settings.write_last_load_data(sel_dir)  # сохраняем последние добавленные данные
             self.prepear_for_load()  # подготавливаем: закрываем SubWindows, очищаем все
