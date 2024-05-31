@@ -88,23 +88,17 @@ class AzManualSlice(QtWidgets.QMainWindow):
             getattr(self, dock).setFeatures(features)  # применяем настроенные атрибуты [1-3]
 
     def set_image(self, image):  # загрузка снимка для отображения
-        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)
-        try:
-            # image_viewer = AzImageViewer()  # формируем контейнер
-            # image_viewer.set_pixmap(QtGui.QPixmap(image))  # помещаем туда изображение
-            # subwindow.setWidget(image_viewer)  # добавляем контейнер в окно QMdiSubWindow()
-            # subwindow.setWindowTitle(str(image))  # заголовок окна
-
-            # image_viewer = AzImageViewer()  # формируем контейнер
-            self.image_widget.set_pixmap(QtGui.QPixmap(image))  # помещаем туда изображение
-            # graphicsView->fitInView(QRectF(0, 0, width, height), Qt.KeepAspectRatio)
-            # self.image_widget = image_viewer  # добавляем контейнер в окно QMdiSubWindow() ### !!!
-        except Exception as e:
-            QtWidgets.QApplication.restoreOverrideCursor()
-            raise e
-            print("Error {}".format(e.args[0]))
-        finally:
-            QtWidgets.QApplication.restoreOverrideCursor()
+        # QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)
+        # try:
+        self.image_widget.set_pixmap(QtGui.QPixmap(image))  # помещаем туда изображение
+        # graphicsView->fitInView(QRectF(0, 0, width, height), Qt.KeepAspectRatio)
+        # self.image_widget = image_viewer  # добавляем контейнер в окно QMdiSubWindow() ### !!!
+        # except Exception as e:
+        #     QtWidgets.QApplication.restoreOverrideCursor()
+        #     raise e
+        #     print("Error {}".format(e.args[0]))
+        # finally:
+        #     QtWidgets.QApplication.restoreOverrideCursor()
 
     def update_input_data(self, dn_json_file: dn_crop.DNjson):
         if dn_json_file is None:  # файл проекта не содержит данных
@@ -124,7 +118,7 @@ class AzManualSlice(QtWidgets.QMainWindow):
             new_act(self, "New", "glyph_add", the_color, self.project_new),  # новый
             new_act(self, "Save", "glyph_save", the_color, self.save),  # сохранить
             new_act(self, "Autosave", "glyph_time-save", the_color, self.autosave, True, True),  # автосохранение
-            new_act(self, "Fit image", "glyph_crop", the_color),  # изображение по размеру окна
+            new_act(self, "Fit image", "glyph_crop", the_color, self.fit_image),  # изображение по размеру окна
             new_act(self, "Hand", "glyph_hand", the_color, self.hand, True),  # перемещение по снимку
             new_act(self, "Add", "glyph_point_add", the_color, self.point_add, True),  # добавить метку
             new_act(self, "Move", "glyph_point_move", the_color, self.point_move, True),  # передвинуть метку
@@ -218,17 +212,16 @@ class AzManualSlice(QtWidgets.QMainWindow):
         if item.text() == self.current_image_file:
             print("Выбрано точно такое же изображение")
             return
-        # загрузку производим из current_data_list (!)
+        sel_indexes = [i.row() for i in self.files_list.selectedIndexes()]  # выделенные объекты
+        index = sel_indexes[0]  # первый выделенный объект
         # new_file = str(os.path.join(self.current_data_dir, item.text()))
         # old_file = self.current_data_list[0]
-        sel_indexes = [i.row() for i in self.files_list.selectedIndexes()]
         # print(new_file)
         # print(old_file)
         # if new_file == old_file:
         #     print("They a equals!")
-        index = sel_indexes[0]  # первый выделенный объект
-        print("current index: " + str(index))
-        file_to_load = self.current_data_list[index]
+        # print("current index: " + str(index))
+        file_to_load = self.current_data_list[index]  # обращаемся к внутреннему списку объектов
         self.load_image_file(file_to_load)
 
     def setup_toolbar(self):
@@ -270,6 +263,10 @@ class AzManualSlice(QtWidgets.QMainWindow):
         if filename is None:  # файла нет
             return
         self.current_image_file = filename  # устанавливаем свойство текущего файла
+        if not os.path.exists(filename):
+            self.signal_message.emit(
+                "Изображение было перемещено, либо в проекте указан некорректный путь: " + filename)
+            return
         self.set_image(filename)
 
     def fill_files_list(self, filenames):  # формируем перечень из list'а для QListWidget

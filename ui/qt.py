@@ -217,6 +217,8 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
         self._pixmap_item = QtWidgets.QGraphicsPixmapItem()
         scene.addItem(self._pixmap_item)
 
+        self._zoom = 0
+
     @property
     def pixmap_item(self):
         return self._pixmap_item
@@ -229,7 +231,40 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
         self._pixmap_item = QtWidgets.QGraphicsPixmapItem()
         self.scene().addItem(self._pixmap_item)
         self.pixmap_item.setPixmap(pixmap)
+        self.fitInView(self.pixmap_item, QtCore.Qt.KeepAspectRatio)
 
+    def scaleView(self, scaleFactor):
+        factor = self.transform().scale(scaleFactor, scaleFactor).mapRect(QtCore.QRectF(0, 0, 1, 1)).width()
+        if factor < 0.5 or factor > 50:
+            return
+        self.scale(scaleFactor, scaleFactor)
+
+    def wheelEvent(self, event: QtGui.QWheelEvent) -> None:
+        """Колесо прокрутки для изменения масштаба"""
+        modifier_press = QtWidgets.QApplication.keyboardModifiers()
+        modifier_name = ''
+        if (modifier_press & QtCore.Qt.ControlModifier) == QtCore.Qt.ControlModifier:
+            modifier_name += 'Ctrl'
+        if 'Ctrl' in modifier_name:
+            sp = self.mapToScene(event.pos())
+            lp = self.pixmap_item.mapFromScene(sp)
+            print(self._zoom)
+            print(event.angleDelta().y())
+            if event.angleDelta().y() > 0:
+                factor = 1.25
+                self._zoom += 1
+            else:
+                factor = 0.8
+                self._zoom -= 1
+
+            if self._zoom > 0:
+                self.scale(factor, factor)
+                self.centerOn(lp)
+
+            elif self._zoom == 0:
+                self.fitInView(self.pixmap_item, QtCore.Qt.KeepAspectRatio)
+            else:
+                self._zoom = 0
 
 
 
