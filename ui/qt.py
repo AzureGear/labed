@@ -246,12 +246,12 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
         if (modifier_press & QtCore.Qt.ControlModifier) == QtCore.Qt.ControlModifier:
             modifier_name += 'Ctrl'
         if 'Ctrl' in modifier_name:
-            sp = self.mapToScene(event.pos())
+            sp = self.mapToScene(event.pos())  # начальная точка мыши, при уменьшении картинки
             lp = self.pixmap_item.mapFromScene(sp)
-            print(self._zoom)
-            print(event.angleDelta().y())
-            if event.angleDelta().y() > 0:
-                factor = 1.25
+            print(sp, lp)
+
+            if event.angleDelta().y() > 0:  # угол отклонения: -120 отдаление; +120 приближение
+                factor = 1.2
                 self._zoom += 1
             else:
                 factor = 0.8
@@ -260,11 +260,11 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
             if self._zoom > 0:
                 self.scale(factor, factor)
                 self.centerOn(lp)
-
-            elif self._zoom == 0:
-                self.fitInView(self.pixmap_item, QtCore.Qt.KeepAspectRatio)
             else:
-                self._zoom = 0
+                self.scale(factor, factor)
+                # self._zoom = 0
+            # elif self._zoom == 0:
+            #     self.fitInView(self.pixmap_item, QtCore.Qt.KeepAspectRatio)
 
 
 
@@ -409,8 +409,6 @@ def AzCustomDialog(self, caption, message, yes=False, no=False, back=False, pare
         return 0
 
 
-
-
 # ----------------------------------------------------------------------------------------------------------------------
 def az_custom_dialog(caption, message, yes=False, no=False, back=False, add_question=False, parent=None):
     """
@@ -450,4 +448,3 @@ def az_file_dialog(self, caption=None, last_dir=None, dir_only=False, filter=Non
             return select_files
 
 # ----------------------------------------------------------------------------------------------------------------------
-
