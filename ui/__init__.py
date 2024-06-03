@@ -3,7 +3,6 @@ from .qt import labelValidator
 from .qt import AzAction
 from .qt import AzButtonLineEdit
 from .qt import az_file_dialog
-from .qt import AzImageViewer
 from .qt import AzSpinBox
 from .qt import AzTableModel
 from .qt import az_custom_dialog

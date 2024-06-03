@@ -1,18 +1,10 @@
 from PyQt5 import QtCore
 from PyQt5 import QtWidgets
 from PyQt5 import QtGui
-from utils import AppSettings, UI_COLORS, UI_AZ_SLICE_MANUAL, load, save, dn_crop
-from ui import AzImageViewer, az_file_dialog, az_custom_dialog, new_act
+from utils import AppSettings, UI_COLORS, UI_AZ_SLICE_MANUAL, load, save, dn_crop, AzImageViewer
+from ui import az_file_dialog, az_custom_dialog, new_act, natural_order
 import sys
 import os
-
-# ----------------------------------------------------------------------------------------------------------------------
-# Структура файла хранения проекта точек Визуального ручного кадрирования (AzManualSlice):
-# "filename" = "D:/data_sets/uranium enrichment/test_cut/crude_uranium_enrichment.json"
-# "scan_size" = "1280"
-#  "images" = { "125n_FRA_2019-09.jpg" : [ ], ... }
-# 		                                  ├-  "check" : True|False
-# 		                                  └-  "points" : { [x1, y1], [x2, y2], ... , [xN, yN] }
 
 # current_folder = os.path.dirname(os.path.abspath(__file__))  # каталога проекта + /ui/
 
@@ -29,8 +21,10 @@ class AzManualSlice(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
         super().__init__()
         # по правилам pep8
+        self.files_dock = None
         self.current_image_file = None
         self.input_file = None
+        self.current_scan_size = 1280  # размер окна сканирования по умолчанию
         self.slice_toolbar = QtWidgets.QToolBar("Manual visual cropping toolbar")  # панель инструментов кадрирования
         self.slice_actions = ()
         self.files_list = QtWidgets.QListWidget()  # Правый (по умолчанию) виджет для отображения перечня файлов
@@ -87,26 +81,31 @@ class AzManualSlice(QtWidgets.QMainWindow):
                 getattr(self, dock).toggleViewAction().setVisible(False)
             getattr(self, dock).setFeatures(features)  # применяем настроенные атрибуты [1-3]
 
-    def set_image(self, image):  # загрузка снимка для отображения
-        # QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)
-        # try:
-        self.image_widget.set_pixmap(QtGui.QPixmap(image))  # помещаем туда изображение
-        # graphicsView->fitInView(QRectF(0, 0, width, height), Qt.KeepAspectRatio)
-        # self.image_widget = image_viewer  # добавляем контейнер в окно QMdiSubWindow() ### !!!
-        # except Exception as e:
-        #     QtWidgets.QApplication.restoreOverrideCursor()
-        #     raise e
-        #     print("Error {}".format(e.args[0]))
-        # finally:
-        #     QtWidgets.QApplication.restoreOverrideCursor()
+    def set_image(self, image):  # загрузка снимка и разметки для отображения
+        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)
+        try:
+            self.image_widget.set_pixmap(QtGui.QPixmap(image))  # помещаем туда изображение
+        except Exception as e:
+            QtWidgets.QApplication.restoreOverrideCursor()
+            raise e
+            print("Error {}".format(e.args[0]))
+        finally:
+            QtWidgets.QApplication.restoreOverrideCursor()
 
     def update_input_data(self, dn_json_file: dn_crop.DNjson):
-        if dn_json_file is None:  # файл проекта не содержит данных
+        """
+        Обновление данных. Происходит при смене или загрузке оригинального проекта <name>.json
+        в формате SAMA. Производит проверку на наличие файла с расширением <name>.json_mc и загружает его
+        в случае успеха.
+        """
+        # TODO: сделать проверку на загрузку dn_json_file текущему файлу *(заголовок должен содержать файл)
+        self.clear()  # очищаем все формы и переменные от использованных ранее данных
+        if dn_json_file is None:  # новый файл проекта не содержит данных
             self.slice_toggle_toolbar(0)  # деактивируем панель инструментов
         else:
-            self.input_file = dn_json_file
+            self.input_file = dn_json_file  # устанавливаем ссылку на файл оригинального проекта
             # Автозагрузка проекта при его наличии
-            check_file = self.input_file.FullNameJsonFile + "_mc"
+            check_file = self.input_file.FullNameJsonFile + "_mc"  # обнаружен файл РК
             if os.path.exists(check_file):
                 self.load_mc_file(check_file)  # загружаем найденный файл проекта РК
             else:
@@ -123,7 +122,8 @@ class AzManualSlice(QtWidgets.QMainWindow):
             new_act(self, "Add", "glyph_point_add", the_color, self.point_add, True),  # добавить метку
             new_act(self, "Move", "glyph_point_move", the_color, self.point_move, True),  # передвинуть метку
             new_act(self, "Delete", "glyph_point_remove", the_color, self.point_delete, True),  # удалить метку
-            new_act(self, "Change crop size", "glyph_resize", the_color),  # сменить размер кадрирования
+            new_act(self, "Change crop size", "glyph_resize", the_color, self.change_crop_size),
+            # сменить размер кадрирования
             new_act(self, "Slice", "glyph_cutter", the_color))  # разрезать снимки
 
     def fit_image(self):  # отобразить изображение целиком
@@ -141,6 +141,20 @@ class AzManualSlice(QtWidgets.QMainWindow):
     def point_delete(self):  # добавить точку
         pass
 
+    def create_blank_file(self):  # создать новый пустой проект РК
+        # --------------------------------------------------------------------------------------------------------------
+        # Структура файла хранения проекта точек Визуального ручного кадрирования (AzManualSlice):
+        # "filename" = "D:/data_sets/uranium enrichment/test_cut/crude_uranium_enrichment.json"
+        # "scan_size" = "1280"
+        #  "images" = { "125n_FRA_2019-09.jpg" : [ ], ... }
+        # 		                                   └-  "points" : { [x1, y1], [x2, y2], ... , [xN, yN] }
+        data = dict()
+        data["filename"] = self.input_file.FullNameJsonFile
+        data["path_to_images"] = self.input_file.DataDict["path_to_images"]
+        data["scan_size"] = self.scan_size
+        data["images"] = dict(self.input_file.ImgsName)
+        return data
+
     def project_new(self):  # создать новый проект
         if self.input_file is None:
             self.signal_message.emit("Отсутствует загруженный проект *.json")
@@ -148,12 +162,15 @@ class AzManualSlice(QtWidgets.QMainWindow):
         check_file = self.input_file.FullNameJsonFile
         check_file += "_mc"
         if os.path.exists(check_file):
-            dialog = az_custom_dialog("Ручное кадрирование", "Найден файл для выбранного проекта, загрузить его?",
-                                      True, True, parent=self)
-            if not dialog:  # здесь наоборот accept = 0, reject = 1
+            dialog, result = az_custom_dialog("Ручное кадрирование",
+                                              "Найден файл для выбранного проекта, загрузить его?", True, True,
+                                              parent=self)
+            print(result, dialog)
+            if dialog == 1:
+                self.clear()
                 self.load_mc_file(check_file)  # загружаем найденный файл проекта РК
         else:
-            save(check_file, "")  # пустой файл  # TODO: сделать заглушку под пустой файл
+            save(check_file, self.create_blank_file())  # создаём новый пустой файл
             self.load_mc_file(check_file, "Создан проект ручного кадрирования '%s'")
             self.slice_toggle_toolbar(2)  # полностью активируем панель инструментов
 
@@ -174,9 +191,10 @@ class AzManualSlice(QtWidgets.QMainWindow):
             self.current_data_dir = self.input_file.DataDict["path_to_images"]
 
             # формируем и записываем в память перечень изображений
-            self.current_data_list = [os.path.join(self.current_data_dir, image_name) for image_name in
-                                      self.input_file.ImgsName]
-            self.fill_files_list(self.input_file.ImgsName)  # заполняем только именами файлов
+            list_input = [os.path.join(self.current_data_dir, image_name) for image_name in
+                          self.input_file.ImgsName]
+            self.current_data_list = sorted(list_input, key=natural_order)  # сортируем
+            self.fill_files_list(sorted(self.input_file.ImgsName, key=natural_order))  # заполняем только именами файлов
             self.signal_message.emit(message % path)
             self.slice_toggle_toolbar(2)  # полностью активируем панель инструментов
         except Exception as e:
@@ -191,26 +209,30 @@ class AzManualSlice(QtWidgets.QMainWindow):
     def save(self):  # сохранение
         pass
 
+    def change_crop_size(self):  # смена размера окна сканирования:
+        info = "Текущий размер окна сканирования: " + str(self.current_scan_size) + "\nВведите новое значение:"
+        size, done = QtWidgets.QInputDialog.getInt(self, "Смена сканирующего разрешения", info)
+        if done:
+            if size > 1280:
+                roll = 1280
+            elif size < 128:
+                roll = 128
+            self.current_scan_size = size
+            # TODO: сделать функцию для обновления меток
+
     def setup_files_widget(self):
         # Настройка правого (по умолчанию) виджета для отображения перечня файлов датасета
-        # right_layout = QtWidgets.QVBoxLayout()
-        # right_layout.setContentsMargins(0, 0, 0, 0)
-        # right_layout.setSpacing(0)
-        # right_layout.addWidget(self.files_list)
-        # file_list_widget = QtWidgets.QWidget()
-        # file_list_widget.setLayout(self.right_layout)
         self.files_dock = QtWidgets.QDockWidget("Files List")  # Контейнер для виджета QListWidget
         self.files_dock.setWidget(self.files_list)  # устанавливаем виджет перечня файлов
         self.files_list.itemSelectionChanged.connect(self.file_selection_changed)  # выбора файла в QWidgetList
 
     @QtCore.pyqtSlot()
-    def file_selection_changed(self):  # метод смены файла
+    def file_selection_changed(self):  # метод смены изображения
         items = self.files_list.selectedItems()
         if not items:
             return  # снимков не выбрано, выделение сброшено
         item = items[0]  # первый выделенный элемент
         if item.text() == self.current_image_file:
-            print("Выбрано точно такое же изображение")
             return
         sel_indexes = [i.row() for i in self.files_list.selectedIndexes()]  # выделенные объекты
         index = sel_indexes[0]  # первый выделенный объект
@@ -222,7 +244,24 @@ class AzManualSlice(QtWidgets.QMainWindow):
         #     print("They a equals!")
         # print("current index: " + str(index))
         file_to_load = self.current_data_list[index]  # обращаемся к внутреннему списку объектов
-        self.load_image_file(file_to_load)
+        if file_to_load is None:  # файла нет
+            return
+        self.current_image_file = file_to_load  # устанавливаем свойство текущего файла
+        if not os.path.exists(file_to_load):
+            self.signal_message.emit(
+                "Изображение было перемещено, либо в проекте указан некорректный путь: " + file_to_load)
+            return
+        self.set_image(file_to_load)  # добавляем растровый файл для отображения
+        # files_list файлов названия такие же как и в *.json, поэтому используем item.text()
+        img_data = self.get_image_data(item.text())  # массив данных по названию файла
+        shapes = img_data['shapes']
+        for shape in shapes:  # просматриваем словарь "shapes"
+            class_name = self.get_label_name(shape['cls_num'])
+            colors = self.get_label_color(class_name)
+            color = QtGui.QColor(colors[0], colors[1], colors[2])
+            points = shape['points']
+            # передаём на отрисовку: имя, цвет, точки
+            self.image_widget.add_polygon_to_scene(class_name, color, points)
 
     def setup_toolbar(self):
         # Настройка панели инструментов
@@ -246,7 +285,6 @@ class AzManualSlice(QtWidgets.QMainWindow):
         logic = False
         if int_code == 0:
             logic = False
-            self.clear()
         elif int_code == 2:
             logic = True
         for action in self.slice_actions:
@@ -256,23 +294,26 @@ class AzManualSlice(QtWidgets.QMainWindow):
             self.slice_actions[1].setEnabled(True)
 
     def clear(self):
+        self.image_widget.clear_scene()
         self.label_file_path.setText("")
         self.files_list.clear()
-
-    def load_image_file(self, filename=None):  # загрузить для отображения новый графический файл
-        if filename is None:  # файла нет
-            return
-        self.current_image_file = filename  # устанавливаем свойство текущего файла
-        if not os.path.exists(filename):
-            self.signal_message.emit(
-                "Изображение было перемещено, либо в проекте указан некорректный путь: " + filename)
-            return
-        self.set_image(filename)
 
     def fill_files_list(self, filenames):  # формируем перечень из list'а для QListWidget
         for filename in filenames:
             item = QtWidgets.QListWidgetItem(filename)
+            item.setFlags(item.flags() & ~QtCore.Qt.ItemIsUserCheckable)
+            item.setCheckState(QtCore.Qt.Unchecked)
             self.files_list.addItem(item)
+
+    def get_image_data(self, image_name):
+        return self.input_file.DataDict["images"].get(image_name, None)
+
+    def get_label_name(self, cls_num):
+        if cls_num < len(self.input_file.DataDict["labels"]):
+            return self.input_file.DataDict["labels"][cls_num]
+
+    def get_label_color(self, cls_name):  # извлечение цвета меток
+        return self.input_file.DataDict["labels_color"].get(cls_name, None)
 
 
 if __name__ == '__main__':

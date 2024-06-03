@@ -20,7 +20,8 @@ UI_COLORS = {
     "datasets_change_color": "goldenrod",
     "automation_color": "darkorange",
     "settings_color": "deepskyblue",
-    "default_color": "grey"
+    "default_color": "grey",
+    "line_color": "deepskyblue"  # цвет отображения границ меток по умолчанию - голубой"
 }
 
 # настройки Интерфейса со структурой:
@@ -37,6 +38,11 @@ UI_AZ_SLICE_MANUAL = {
     "top_dock": [True, False, False, False, True, True],
     "files_dock": [True, False, True, False, False, False]
 }
+# настройка приближения/отдаления для отображения изображений
+MINIMUM_ZOOM = -2
+MAXIMUM_ZOOM = 50
+
+ALPHA = 50  # степень прозрачности заливки у меток по умолчанию (0 ... 255)
 
 UI_OUTPUT_TYPES = ["SAMA.json"]  # типы выходных данных
 UI_READ_LINES = 35  # количество читаемых строк в проектах *.json для предпросмотра

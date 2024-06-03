@@ -191,7 +191,8 @@ class AzTableModel(QtCore.QAbstractTableModel):
     def flags(self, index: QtCore.QModelIndex):
         flag = super().flags(index)
         if index.column() == int(self.edit_col):
-            flag |= QtCore.Qt.ItemFlag.ItemIsEditable  # | QtCore.Qt.ItemFlag.ItemIsSelectable | QtCore.Qt.ItemFlag.ItemIsEnabled
+            flag |= QtCore.Qt.ItemFlag.ItemIsEditable
+            # | QtCore.Qt.ItemFlag.ItemIsSelectable | QtCore.Qt.ItemFlag.ItemIsEnabled #
         return flag  # type: ignore
 
     # def flags(self, index: QtCore.QModelIndex):
@@ -204,71 +205,7 @@ class AzTableModel(QtCore.QAbstractTableModel):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Романа Хабарова
-    """
-    Виджет для отображения изображений *.jpg, *.png и т.д.
-    """
 
-    def __init__(self, parent=None, active_color=None, fat_point_color=None, on_rubber_band_mode=None):
-        super().__init__(parent)
-        scene = QtWidgets.QGraphicsScene(self)
-        self.setScene(scene)
-
-        self._pixmap_item = QtWidgets.QGraphicsPixmapItem()
-        scene.addItem(self._pixmap_item)
-
-        self._zoom = 0
-
-    @property
-    def pixmap_item(self):
-        return self._pixmap_item
-
-    def set_pixmap(self, pixmap):
-        """
-        Задать новую картинку
-        """
-        self.scene().clear()
-        self._pixmap_item = QtWidgets.QGraphicsPixmapItem()
-        self.scene().addItem(self._pixmap_item)
-        self.pixmap_item.setPixmap(pixmap)
-        self.fitInView(self.pixmap_item, QtCore.Qt.KeepAspectRatio)
-
-    def scaleView(self, scaleFactor):
-        factor = self.transform().scale(scaleFactor, scaleFactor).mapRect(QtCore.QRectF(0, 0, 1, 1)).width()
-        if factor < 0.5 or factor > 50:
-            return
-        self.scale(scaleFactor, scaleFactor)
-
-    def wheelEvent(self, event: QtGui.QWheelEvent) -> None:
-        """Колесо прокрутки для изменения масштаба"""
-        modifier_press = QtWidgets.QApplication.keyboardModifiers()
-        modifier_name = ''
-        if (modifier_press & QtCore.Qt.ControlModifier) == QtCore.Qt.ControlModifier:
-            modifier_name += 'Ctrl'
-        if 'Ctrl' in modifier_name:
-            sp = self.mapToScene(event.pos())  # начальная точка мыши, при уменьшении картинки
-            lp = self.pixmap_item.mapFromScene(sp)
-            print(sp, lp)
-
-            if event.angleDelta().y() > 0:  # угол отклонения: -120 отдаление; +120 приближение
-                factor = 1.2
-                self._zoom += 1
-            else:
-                factor = 0.8
-                self._zoom -= 1
-
-            if self._zoom > 0:
-                self.scale(factor, factor)
-                self.centerOn(lp)
-            else:
-                self.scale(factor, factor)
-                # self._zoom = 0
-            # elif self._zoom == 0:
-            #     self.fitInView(self.pixmap_item, QtCore.Qt.KeepAspectRatio)
-
-
-
-# ----------------------------------------------------------------------------------------------------------------------
 class AzSpinBox(QtWidgets.QSpinBox):
     """
     Упрощённая реализация числового виджета
@@ -410,21 +347,24 @@ def AzCustomDialog(self, caption, message, yes=False, no=False, back=False, pare
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-def az_custom_dialog(caption, message, yes=False, no=False, back=False, add_question=False, parent=None):
+def az_custom_dialog(caption, message, yes=False, no=False, back=False, custom_button=False, custom_text="",
+                     parent=None):
     """
     Кастомизация диалоговых окон (вопросы, диалоги)
     """
+    param = 13
     dlg = QtWidgets.QMessageBox(parent)
     dlg.setWindowTitle(caption)
     dlg.setInformativeText(message)
-
     if yes:
-        dlg.addButton("Да", QtWidgets.QMessageBox.AcceptRole)
+        dlg.addButton("Да", QtWidgets.QMessageBox.YesRole)
     if no:
-        dlg.addButton("Нет", QtWidgets.QMessageBox.RejectRole)
+        dlg.addButton("Нет", QtWidgets.QMessageBox.NoRole)
     if back:
         dlg.addButton("Назад", QtWidgets.QMessageBox.RejectRole)
-    return dlg.exec()
+    if custom_button:
+        dlg.addButton(custom_text, QtWidgets.QMessageBox.NoRole)
+    return dlg.exec(), param
 
 
 # ----------------------------------------------------------------------------------------------------------------------

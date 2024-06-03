@@ -7,7 +7,7 @@ import copy
 import json
 import os
 
-DEBUG = True  # активатор режима отладки
+DEBUG = False  # активатор режима отладки
 
 
 class DNjson:

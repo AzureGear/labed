@@ -1,65 +1,170 @@
 import sys
-from PyQt5.Qt import *
+from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtGui import QPainter, QPainterPath
+from PyQt5.QtCore import QSize
+from PyQt5 import QtCore, QtGui, QtWidgets
+from random import randint
+
+ded = [
+    [(140, 140), (570, 525)],
+    [(20, 20), (350, 525), (100, 300), (20, 20)],
+    [(50, 50), (280, 175), (150, 240)],
+    [(80, 80), (210, 225), (300, 300), (340, 40)],
+    [(510, 110), (340, 275), (490, 390), (510, 110)]]
+
+
+class GraphicsView(QtWidgets.QGraphicsView):
+    def __init__(self, parent=None):
+        super(GraphicsView, self).__init__(parent)
+        self.setScene(QtWidgets.QGraphicsScene(self))
+        self.resize(1000, 600)
+
+        self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
+        self.setResizeAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
+        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.setBackgroundBrush(QtGui.QBrush(QtGui.QColor(30, 30, 30)))
+        self.setFrameShape(QtWidgets.QFrame.NoFrame)
+
+    def wheelEvent(self, event):
+        """ Увеличение или уменьшение масштаба. """
+        zoomInFactor = 1.25
+        zoomOutFactor = 1 / zoomInFactor
+
+        # Save the scene pos
+        oldPos = self.mapToScene(event.pos())
+
+        # Zoom
+        if event.angleDelta().y() > 0:
+            zoomFactor = zoomInFactor
+        else:
+            zoomFactor = zoomOutFactor
+        self.scale(zoomFactor, zoomFactor)
+
+        # Get the new position
+        newPos = self.mapToScene(event.pos())
+
+        # Move scene to old position
+        delta = newPos - oldPos
+        self.translate(delta.x(), delta.y())
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        centralWidget = QWidget()
-        self.setCentralWidget(centralWidget)
+        self.initUI()
 
-        self.label = QLabel()
-        self.pixmap = QPixmap("boy.jpg")
-        self.label.setPixmap(self.pixmap.scaled(self.label.size(),
-                                                Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        self.w = GraphicsView(self)
+        image = QtGui.QPixmap("test.jpg")
+        self.pic = QtWidgets.QGraphicsPixmapItem()
+        self.pic.setPixmap(image)
+        self.w.scene().addItem(self.pic)
+        self.drawLine()
+        # self.pixmap_item.setPixmap(pixmap)
 
-        self.label.setSizePolicy(QSizePolicy.Expanding,
-                                 QSizePolicy.Expanding)
-        self.label.setAlignment(Qt.AlignCenter)
-        self.label.setMinimumSize(100, 100)
+    def initUI(self):
+        self.setMinimumSize(QSize(200, 200))
+        self.resize(1000, 600)
 
-        self.pushButton = QPushButton('Выбрать изображение')
-        self.pushButton.clicked.connect(self.load_image)
+    #    def paintEvent(self, e):
+    #        qp = QPainter()
+    #        qp.begin(self)
+    #        qp.setRenderHint(QPainter.Antialiasing)
+    #        self.drawLine(qp)
+    #        qp.end()
 
-        layout = QGridLayout(centralWidget)
-        layout.addWidget(self.label)
-        layout.addWidget(self.pushButton)
+    def drawLine(self, qp=None):  # + =None
+        path = QPainterPath()
 
-    def load_image(self):
-        imagePath, _ = QFileDialog.getOpenFileName(
-            self,
-            "Select Image",
-            ".",
-            "Image Files (*.png *.jpg *.jpeg *.bmp)")
-        if imagePath:
-            self.pixmap = QPixmap(imagePath)
-            self.label.setPixmap(self.pixmap.scaled(
-                self.label.size(),
-                Qt.KeepAspectRatio,
-                Qt.SmoothTransformation
-            ))
+        def draw_trajectory(line):
+            for i, (x, y) in enumerate(line):
+                if i == 0:
+                    path.moveTo(x, y)
+                else:
+                    path.lineTo(x, y)
 
-    def resizeEvent(self, event):
-        scaledSize = self.label.size()
-        scaledSize.scale(self.label.size(), Qt.KeepAspectRatio)
-        if not self.label.pixmap() or scaledSize != self.label.pixmap().size():
-            self.updateLabel()
+        for line in ded:
+            draw_trajectory(line)
 
-    def updateLabel(self):
-        self.label.setPixmap(self.pixmap.scaled(
-            self.label.size(),
-            Qt.KeepAspectRatio,
-            Qt.SmoothTransformation
-        ))
+            #            qp.drawPath(path)
+
+            self.w.scene().addPath(  # +++
+                path,
+                QtGui.QPen(QtGui.QColor(230, 230, 230)),
+                QtGui.QBrush(QtGui.QColor(*[randint(0, 255) for _ in range(4)]))
+            )
 
 
-if __name__ == "__main__":
-    import sys
-
+if __name__ == '__main__':
     app = QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
+    w = MainWindow()
+    w.show()
     sys.exit(app.exec_())
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+# # Автоматическое изменение размера картинки автомасштабирование
+# from PyQt5.Qt import *
+#
+#
+# class MainWindow(QMainWindow):
+#     def __init__(self):
+#         super().__init__()
+#         centralWidget = QWidget()
+#         self.setCentralWidget(centralWidget)
+#
+#         self.label = QLabel()
+#         self.pixmap = QPixmap("test.jpg")
+#         self.label.setPixmap(self.pixmap.scaled(self.label.size(),
+#                                                 Qt.KeepAspectRatio, Qt.SmoothTransformation))
+#
+#         self.label.setSizePolicy(QSizePolicy.Expanding,
+#                                  QSizePolicy.Expanding)
+#         self.label.setAlignment(Qt.AlignCenter)
+#         self.label.setMinimumSize(100, 100)
+#
+#         self.pushButton = QPushButton('Выбрать изображение')
+#         self.pushButton.clicked.connect(self.load_image)
+#
+#         layout = QGridLayout(centralWidget)
+#         layout.addWidget(self.label)
+#         layout.addWidget(self.pushButton)
+#
+#     def load_image(self):
+#         imagePath, _ = QFileDialog.getOpenFileName(
+#             self,
+#             "Select Image",
+#             ".",
+#             "Image Files (*.png *.jpg *.jpeg *.bmp)")
+#         if imagePath:
+#             self.pixmap = QPixmap(imagePath)
+#             self.label.setPixmap(self.pixmap.scaled(
+#                 self.label.size(),
+#                 Qt.KeepAspectRatio,
+#                 Qt.SmoothTransformation
+#             ))
+#
+#     def resizeEvent(self, event):
+#         scaledSize = self.label.size()
+#         scaledSize.scale(self.label.size(), Qt.KeepAspectRatio)
+#         if not self.label.pixmap() or scaledSize != self.label.pixmap().size():
+#             self.updateLabel()
+#
+#     def updateLabel(self):
+#         self.label.setPixmap(self.pixmap.scaled(
+#             self.label.size(),
+#             Qt.KeepAspectRatio,
+#             Qt.SmoothTransformation
+#         ))
+#
+#
+# if __name__ == "__main__":
+#     import sys
+#
+#     app = QApplication(sys.argv)
+#     window = MainWindow()
+#     window.show()
+#     sys.exit(app.exec_())
 
 # ----------------------------------------------------------------------------------------------------------------------
 # # Разница между сигналами в pySide и PyQt5

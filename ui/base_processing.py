@@ -312,7 +312,7 @@ class ProcessingUI(QtWidgets.QWidget):
     def slice_load_projects_data(self):  # загрузка файла проекта
         if self.json_obj is not None:
             if self.slice_input_file_path.text() == self.json_obj.FullNameJsonFile:
-                return  # Файл не трогали, изменений неты
+                return  # Файл не трогали, изменений нет
         self.json_obj = dn_crop.DNjson(self.slice_input_file_path.text())  # Файл проекта, реализация Дениса
         if not self.json_obj.good_file:
             self.signal_message.emit("Выбранный файл не является корректным либо не содержит необходимых данных")
