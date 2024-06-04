@@ -4,13 +4,11 @@ from datetime import datetime
 import sys
 import traceback
 
-TESTING_MODE = False  # на этапе отладки желательно держать включённым
+TESTING_MODE = False   # на этапе отладки желательно держать включённым
 log_file_name = 'labed.log'  # имя файла ведения лога при ошибках
 
 # TODO: сделать загрузку предустановленных датасетов self.tb_load_preset.addActions
 # TODO: сделать сброс всех настроек по нажатию изменению настроек в файле settings.ini Reset = True
-# TODO: при переводе "Родительский каталог датасета... " не "Выходной"
-# TODO: переделать на QtCore, QtWidgets и прочее по всем классам
 
 # Ловчий ошибок
 def excepthook_catcher(t, v, tb):

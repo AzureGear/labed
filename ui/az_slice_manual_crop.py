@@ -1,7 +1,7 @@
 from PyQt5 import QtCore
 from PyQt5 import QtWidgets
 from PyQt5 import QtGui
-from utils import AppSettings, UI_COLORS, UI_AZ_SLICE_MANUAL, load, save, dn_crop, AzImageViewer
+from utils import AppSettings, UI_COLORS, UI_AZ_SLICE_MANUAL, load, save, dn_crop, AzImageViewer, ViewState
 from ui import az_file_dialog, az_custom_dialog, new_act, natural_order
 import sys
 import os
@@ -20,20 +20,20 @@ class AzManualSlice(QtWidgets.QMainWindow):
 
     def __init__(self, parent=None):
         super().__init__()
+        self.settings = AppSettings()  # настройки программы
         # по правилам pep8
         self.files_dock = None
+        self.slice_manual_size = None
         self.current_image_file = None
         self.input_file = None
-        self.current_scan_size = 1280  # размер окна сканирования по умолчанию
         self.slice_toolbar = QtWidgets.QToolBar("Manual visual cropping toolbar")  # панель инструментов кадрирования
         self.slice_actions = ()
         self.files_list = QtWidgets.QListWidget()  # Правый (по умолчанию) виджет для отображения перечня файлов
 
-        self.settings = AppSettings()  # настройки программы
+        self.current_scan_size = self.settings.read_slice_crop_size()  # размер окна сканирования по умолчанию
         self.setup_actions()  # настраиваем QActions
         self.setup_toolbar()  # настраиваем Toolbar
         self.setup_files_widget()  # Настраиваем правую область: файлы
-        self.current_data_dir = ""
         self.current_data_list = []
 
         # перечень файлов текущего проекта
@@ -56,7 +56,7 @@ class AzManualSlice(QtWidgets.QMainWindow):
         self.addDockWidget(QtCore.Qt.DockWidgetArea.TopDockWidgetArea, self.top_dock)
         # self.top_dock.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
         #                             QtWidgets.QSizePolicy.Policy.MinimumExpanding)
-        self.top_dock.setMaximumHeight(34)  # делаем "инфо о датасете"...
+        self.top_dock.setMaximumHeight(33)  # делаем "инфо о датасете"...
         self.top_dock.setMinimumHeight(33)  # ...без границ
 
         # главный виджет отображения изображения и точек
@@ -98,7 +98,6 @@ class AzManualSlice(QtWidgets.QMainWindow):
         в формате SAMA. Производит проверку на наличие файла с расширением <name>.json_mc и загружает его
         в случае успеха.
         """
-        # TODO: сделать проверку на загрузку dn_json_file текущему файлу *(заголовок должен содержать файл)
         self.clear()  # очищаем все формы и переменные от использованных ранее данных
         if dn_json_file is None:  # новый файл проекта не содержит данных
             self.slice_toggle_toolbar(0)  # деактивируем панель инструментов
@@ -130,15 +129,23 @@ class AzManualSlice(QtWidgets.QMainWindow):
         self.image_widget.fitInView(self.image_widget.pixmap_item, QtCore.Qt.KeepAspectRatio)
 
     def hand(self):  # движение ручкой
-        pass
+        if self.image_widget.view_state != ViewState.hand_move:
+            self.image_widget.set_view_state(ViewState.hand_move)
+        else:
+            self.slice_actions[5].setChecked(False)
+            self.image_widget.set_view_state()
 
-    def point_add(self):  # удалить точку
-        pass
+    def point_add(self):  # добавить точку
+        if self.image_widget.view_state != ViewState.add_point:
+            self.image_widget.set_view_state(ViewState.add_point)
+        else:
+            self.slice_actions[6].setChecked(False)
+            self.image_widget.set_view_state()
 
     def point_move(self):  # передвинуть точку
         pass
 
-    def point_delete(self):  # добавить точку
+    def point_delete(self):  # удалить точку
         pass
 
     def create_blank_file(self):  # создать новый пустой проект РК
@@ -151,8 +158,13 @@ class AzManualSlice(QtWidgets.QMainWindow):
         data = dict()
         data["filename"] = self.input_file.FullNameJsonFile
         data["path_to_images"] = self.input_file.DataDict["path_to_images"]
-        data["scan_size"] = self.scan_size
-        data["images"] = dict(self.input_file.ImgsName)
+        data["scan_size"] = self.current_scan_size
+        dict_images = dict()
+        if self.input_file.ImgsName is not None:
+            if len(self.input_file.ImgsName) > 0:
+                for file in self.input_file.ImgsName:
+                    dict_images[file] = None
+        data["images"] = dict_images
         return data
 
     def project_new(self):  # создать новый проект
@@ -162,17 +174,13 @@ class AzManualSlice(QtWidgets.QMainWindow):
         check_file = self.input_file.FullNameJsonFile
         check_file += "_mc"
         if os.path.exists(check_file):
-            dialog, result = az_custom_dialog("Ручное кадрирование",
-                                              "Найден файл для выбранного проекта, загрузить его?", True, True,
-                                              parent=self)
-            print(result, dialog)
-            if dialog == 1:
+            if az_custom_dialog("Ручное кадрирование", "Найден файл для выбранного проекта, загрузить его?", True,
+                                True, parent=self) == 1:
                 self.clear()
                 self.load_mc_file(check_file)  # загружаем найденный файл проекта РК
-        else:
-            save(check_file, self.create_blank_file())  # создаём новый пустой файл
+        else:  # файла не существует, значит...
+            save(check_file, self.create_blank_file())  # ...создаём новый пустой файл
             self.load_mc_file(check_file, "Создан проект ручного кадрирования '%s'")
-            self.slice_toggle_toolbar(2)  # полностью активируем панель инструментов
 
     def project_open(self):  # открыть проект
         sel_file = az_file_dialog(self, "Загрузить существующий проект ручного кадрирования",
@@ -185,18 +193,28 @@ class AzManualSlice(QtWidgets.QMainWindow):
     def load_mc_file(self, path, message="Загружен проект ручного кадрирования '%s'"):  # загрузка данных для РК
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)
         try:
+            self.clear()
             self.label_file_path.setText("<b>" + path + "</b>")
             if self.input_file is None:
+                self.signal_message.emit("Ошибка загрузки")
                 return
-            self.current_data_dir = self.input_file.DataDict["path_to_images"]
+            original_json = self.input_file.FullNameJsonFile
+            manual_crop_json = load(path)  # внутренний файл РК *.json_mc
+            if original_json != manual_crop_json["filename"]:
+                if az_custom_dialog("Автозагрузка проекта ручного кадрирования", "Имена проектов оригинального JSON и \
+                ручного кадрирования не совпадают. Продолжить загрузку?", True, True) == 2:
+                    return
+            current_data_dir = self.input_file.DataDict["path_to_images"]
+            self.signal_message.emit(message % path)
 
             # формируем и записываем в память перечень изображений
-            list_input = [os.path.join(self.current_data_dir, image_name) for image_name in
+            list_input = [os.path.join(current_data_dir, image_name) for image_name in
                           self.input_file.ImgsName]
+            # TODO: сделать загрузку точек и настройку формы
             self.current_data_list = sorted(list_input, key=natural_order)  # сортируем
             self.fill_files_list(sorted(self.input_file.ImgsName, key=natural_order))  # заполняем только именами файлов
             self.signal_message.emit(message % path)
-            self.slice_toggle_toolbar(2)  # полностью активируем панель инструментов
+            self.slice_toggle_toolbar(3)  # полностью активируем панель инструментов на 3/4
         except Exception as e:
             raise e
             print("Error {}".format(e.args[0]))
@@ -211,13 +229,17 @@ class AzManualSlice(QtWidgets.QMainWindow):
 
     def change_crop_size(self):  # смена размера окна сканирования:
         info = "Текущий размер окна сканирования: " + str(self.current_scan_size) + "\nВведите новое значение:"
-        size, done = QtWidgets.QInputDialog.getInt(self, "Смена сканирующего разрешения", info)
+        size, done = QtWidgets.QInputDialog.getInt(self, "Смена сканирующего разрешения", info, self.current_scan_size)
         if done:
-            if size > 1280:
-                roll = 1280
-            elif size < 128:
-                roll = 128
+            if size > 8000:
+                size = 8000
+            elif size < 16:
+                size = 16
+            self.slice_manual_size.setText(str(size))
             self.current_scan_size = size
+            self.image_widget.crop_scan_size_changed(size)
+            self.settings.write_slice_crop_size(size)
+
             # TODO: сделать функцию для обновления меток
 
     def setup_files_widget(self):
@@ -263,15 +285,23 @@ class AzManualSlice(QtWidgets.QMainWindow):
             # передаём на отрисовку: имя, цвет, точки
             self.image_widget.add_polygon_to_scene(class_name, color, points)
 
+        if self.current_image_file:  # все добавлено и отображено, значит можно включать инструменты
+            self.slice_toggle_toolbar(2)
+
     def setup_toolbar(self):
         # Настройка панели инструментов
         self.slice_toolbar.setIconSize(QtCore.QSize(30, 30))
+        self.slice_manual_size = QtWidgets.QLabel(str(self.current_scan_size))
         self.slice_toolbar.setFloatable(False)
         self.slice_toolbar.toggleViewAction().setVisible(False)  # чтобы панель случайно не отключали
         separator_placement = [3, 8]  # места после которых добавляется сепаратор
+        unique_sep = [9]  # место для добавления особенного виджета
         for i, action in enumerate(self.slice_actions):  # формируем панель инструментов
             self.slice_toolbar.addAction(action)
             if i in separator_placement:
+                self.slice_toolbar.addSeparator()
+            if i in unique_sep:
+                self.slice_toolbar.addWidget(self.slice_manual_size)
                 self.slice_toolbar.addSeparator()
         group_acts = QtWidgets.QActionGroup(self)
         for i in range(5, 9):  # группировка, чтобы активно было только одной действие
@@ -279,19 +309,30 @@ class AzManualSlice(QtWidgets.QMainWindow):
 
     def slice_toggle_toolbar(self, int_code):
         """
-        Настройка доступа к инструментам ручного кадрирования
-        switch = 0, отключить всё; switch = 1, включить только первые два; 2 - включить все инструменты.
+        Настройка доступа к инструментам ручного кадрирования: int_code
+        0 - отключить всё; 1 - включить только первые два; 2 - включить все инструменты;
+        3 - включить всё кроме активных инструментов
         """
+        diff_acts = []
         logic = False
-        if int_code == 0:
+        if int_code == 0:  # отключить все
             logic = False
-        elif int_code == 2:
+        elif int_code == 1:  # включить только первые два
+            logic = False
+            diff_acts = [0, 1]
+        elif int_code == 2:  # включить всю панель
             logic = True
-        for action in self.slice_actions:
-            action.setEnabled(logic)
-        if int_code == 1:
-            self.slice_actions[0].setEnabled(True)
-            self.slice_actions[1].setEnabled(True)
+        elif int_code == 3:  # выключить инструменты действий
+            logic = True
+            diff_acts = [4, 5, 6, 7, 8]
+        for i, action in enumerate(self.slice_actions):
+            if len(diff_acts) > 0:
+                if i in diff_acts:
+                    action.setEnabled(not logic)
+                else:
+                    action.setEnabled(logic)
+            else:
+                action.setEnabled(logic)
 
     def clear(self):
         self.image_widget.clear_scene()

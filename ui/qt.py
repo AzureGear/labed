@@ -351,20 +351,31 @@ def az_custom_dialog(caption, message, yes=False, no=False, back=False, custom_b
                      parent=None):
     """
     Кастомизация диалоговых окон (вопросы, диалоги)
+    Возвращает int: 1 - Да, 2 - Нет, 3 - Назад, 4 - <пользовательский вариант>
     """
-    param = 13
     dlg = QtWidgets.QMessageBox(parent)
     dlg.setWindowTitle(caption)
     dlg.setInformativeText(message)
     if yes:
-        dlg.addButton("Да", QtWidgets.QMessageBox.YesRole)
+        dlg.addButton("Да", QtWidgets.QMessageBox.ButtonRole.YesRole)
     if no:
-        dlg.addButton("Нет", QtWidgets.QMessageBox.NoRole)
+        dlg.addButton("Нет", QtWidgets.QMessageBox.ButtonRole.NoRole)
     if back:
-        dlg.addButton("Назад", QtWidgets.QMessageBox.RejectRole)
+        dlg.addButton("Назад", QtWidgets.QMessageBox.ButtonRole.ResetRole)
     if custom_button:
-        dlg.addButton(custom_text, QtWidgets.QMessageBox.NoRole)
-    return dlg.exec(), param
+        dlg.addButton(custom_text, QtWidgets.QMessageBox.ButtonRole.ActionRole)
+    dlg.exec()
+    m = dlg.buttonRole(dlg.clickedButton())
+    if m == QtWidgets.QMessageBox.ButtonRole.YesRole:
+        return 1
+    elif m == QtWidgets.QMessageBox.ButtonRole.NoRole:
+        return 2
+    elif m == QtWidgets.QMessageBox.ButtonRole.ResetRole:
+        return 3
+    elif m == QtWidgets.QMessageBox.ButtonRole.ActionRole:
+        return 4
+    else:
+        return -1
 
 
 # ----------------------------------------------------------------------------------------------------------------------

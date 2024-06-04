@@ -1,28 +1,25 @@
-from qdarktheme.qtpy.QtCore import Qt, QSize
-from qdarktheme.qtpy.QtWidgets import QDockWidget, QTabWidget, QMainWindow, QTextEdit, QGroupBox, QVBoxLayout, QLabel, \
-    QWidget, QSlider, QFormLayout, QComboBox, QScrollArea, QPushButton, QGridLayout, QTabBar, QLineEdit, QHBoxLayout, \
-    QToolButton, QApplication, QMessageBox
-from qdarktheme.qtpy.QtGui import QIcon
+from PyQt5 import QtCore
+from PyQt5 import QtWidgets
+from PyQt5 import QtGui
 from utils import AppSettings
 from utils import UI_COLORS
 import os
 
 current_folder = os.path.dirname(os.path.abspath(__file__))  # каталога проекта + /ui/
 
-class ExperimentUI(QWidget):
+class ExperimentUI(QtWidgets.QWidget):
     """
     Класс Экспериментов
     """
     def __init__(self, parent):
         super().__init__()
         self.settings = AppSettings()  # настройки программы
-        layout = QVBoxLayout(self)
+        layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(5, 5, 5, 5)  # уменьшаем границу
-        layout.addWidget(QPushButton("Experiment"))
+        layout.addWidget(QtWidgets.QPushButton("Experiment"))
 
     def stack_layouts(self):
         """
         Собираем все layouts
         """
-        self.mainLayout = QVBoxLayout()
-        self.tabs = QTabWidget()
+        self.mainLayout = QtWidgets.QVBoxLayout()

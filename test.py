@@ -1,105 +1,199 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow
-from PyQt5.QtGui import QPainter, QPainterPath
-from PyQt5.QtCore import QSize
-from PyQt5 import QtCore, QtGui, QtWidgets
-from random import randint
 
-ded = [
-    [(140, 140), (570, 525)],
-    [(20, 20), (350, 525), (100, 300), (20, 20)],
-    [(50, 50), (280, 175), (150, 240)],
-    [(80, 80), (210, 225), (300, 300), (340, 40)],
-    [(510, 110), (340, 275), (490, 390), (510, 110)]]
+'''
+from PyQt6.QtWidgets import *
+from PyQt6.QtCore import *
+from PyQt6.QtGui import *
+'''
+from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt5.Qt import *
 
 
-class GraphicsView(QtWidgets.QGraphicsView):
-    def __init__(self, parent=None):
-        super(GraphicsView, self).__init__(parent)
-        self.setScene(QtWidgets.QGraphicsScene(self))
-        self.resize(1000, 600)
+class RectItem(QGraphicsRectItem):
+    def __init__(self, qrectf):
+        super().__init__()
 
-        self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
-        self.setResizeAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
-        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.setBackgroundBrush(QtGui.QBrush(QtGui.QColor(30, 30, 30)))
-        self.setFrameShape(QtWidgets.QFrame.NoFrame)
+        self.qrectf = qrectf
+        self.setRect(self.qrectf)
+        self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable)
 
-    def wheelEvent(self, event):
-        """ Увеличение или уменьшение масштаба. """
-        zoomInFactor = 1.25
-        zoomOutFactor = 1 / zoomInFactor
+        # +++ vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+        # ----------------------------------> vvvv <--------------------------
+        self.line = QGraphicsLineItem(self)
+        self.line.setPen(QPen(Qt.red, 2, Qt.SolidLine))
+        self.line.setLine(0, 0, 50, 50)
+        self.line2 = QGraphicsLineItem(self)
+        self.line2.setPen(QPen(Qt.green, 2, Qt.SolidLine))
+        self.line2.setLine(QLineF(0, 50, 50, 0))
 
-        # Save the scene pos
-        oldPos = self.mapToScene(event.pos())
+    # +++ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-        # Zoom
-        if event.angleDelta().y() > 0:
-            zoomFactor = zoomInFactor
-        else:
-            zoomFactor = zoomOutFactor
-        self.scale(zoomFactor, zoomFactor)
-
-        # Get the new position
-        newPos = self.mapToScene(event.pos())
-
-        # Move scene to old position
-        delta = newPos - oldPos
-        self.translate(delta.x(), delta.y())
+    def mouseMoveEvent(self, event):
+        self.moveBy(event.pos().x() - event.lastPos().x(),
+                    event.pos().y() - event.lastPos().y())
 
 
-class MainWindow(QMainWindow):
+class Scene(QGraphicsScene):
     def __init__(self):
         super().__init__()
-        self.initUI()
 
-        self.w = GraphicsView(self)
-        image = QtGui.QPixmap("test.jpg")
-        self.pic = QtWidgets.QGraphicsPixmapItem()
-        self.pic.setPixmap(image)
-        self.w.scene().addItem(self.pic)
-        self.drawLine()
-        # self.pixmap_item.setPixmap(pixmap)
+        self.setSceneRect(0, 0, 400, 400)
+        self.qrectf = None
+        self.list_rect = []
+        self.num_old = 0  # прошлый номер для полигонов
 
-    def initUI(self):
-        self.setMinimumSize(QSize(200, 200))
-        self.resize(1000, 600)
+    def add_qrectf(self, qrectf):
+        self.qrectf = qrectf
 
-    #    def paintEvent(self, e):
-    #        qp = QPainter()
-    #        qp.begin(self)
-    #        qp.setRenderHint(QPainter.Antialiasing)
-    #        self.drawLine(qp)
-    #        qp.end()
-
-    def drawLine(self, qp=None):  # + =None
-        path = QPainterPath()
-
-        def draw_trajectory(line):
-            for i, (x, y) in enumerate(line):
-                if i == 0:
-                    path.moveTo(x, y)
-                else:
-                    path.lineTo(x, y)
-
-        for line in ded:
-            draw_trajectory(line)
-
-            #            qp.drawPath(path)
-
-            self.w.scene().addPath(  # +++
-                path,
-                QtGui.QPen(QtGui.QColor(230, 230, 230)),
-                QtGui.QBrush(QtGui.QColor(*[randint(0, 255) for _ in range(4)]))
-            )
+    def add_rect(self, num):  # добавление квадратов
+        if num == 0:  # очистить сцену
+            self.clear()
+        elif num > self.num_old:
+            for i in range(self.num_old, num):
+                rect = RectItem(self.qrectf)
+                rect.moveBy(self.qrectf.width() * i, 100)
+                self.list_rect.append(rect)
+                self.addItem(rect)
+        elif num < self.num_old:
+            for i in range(num, self.num_old):
+                self.removeItem(self.list_rect[-1])
+                self.list_rect.pop()
+        else:
+            pass
+        self.num_old = num
 
 
-if __name__ == '__main__':
+class Window(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.scene = Scene()
+        self.canvas = QGraphicsView()
+        self.canvas.setScene(self.scene)
+        self.qrectf = QRectF(0, 0, 50, 50)
+        self.spinbox = QSpinBox()
+        self.spinbox.setRange(0, 8)  # +
+        self.spinbox.valueChanged.connect(self.spinbox_event)
+
+        layout = QHBoxLayout(self)
+        layout.addWidget(self.canvas)
+        layout.addWidget(self.spinbox)
+
+        self.scene.add_qrectf(self.qrectf)
+
+    def spinbox_event(self):
+        self.scene.add_rect(self.spinbox.value())
+
+
+if __name__ == "__main__":
     app = QApplication(sys.argv)
-    w = MainWindow()
+    w = Window()
     w.show()
-    sys.exit(app.exec_())
+    app.exec()
+# ----------------------------------------------------------------------------------------------------------------------
+
+# import sys
+# from PyQt5.QtWidgets import QApplication, QMainWindow
+# from PyQt5.QtGui import QPainter, QPainterPath
+# from PyQt5.QtCore import QSize
+# from PyQt5 import QtCore, QtGui, QtWidgets
+# from random import randint
+#
+# ded = [
+#     [(140, 140), (570, 525)],
+#     [(20, 20), (350, 525), (100, 300), (20, 20)],
+#     [(50, 50), (280, 175), (150, 240)],
+#     [(80, 80), (210, 225), (300, 300), (340, 40)],
+#     [(510, 110), (340, 275), (490, 390), (510, 110)]]
+#
+#
+# class GraphicsView(QtWidgets.QGraphicsView):
+#     def __init__(self, parent=None):
+#         super(GraphicsView, self).__init__(parent)
+#         self.setScene(QtWidgets.QGraphicsScene(self))
+#         self.resize(1000, 600)
+#
+#         self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
+#         self.setResizeAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
+#         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+#         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+#         self.setBackgroundBrush(QtGui.QBrush(QtGui.QColor(30, 30, 30)))
+#         self.setFrameShape(QtWidgets.QFrame.NoFrame)
+#
+#     def wheelEvent(self, event):
+#         """ Увеличение или уменьшение масштаба. """
+#         zoomInFactor = 1.25
+#         zoomOutFactor = 1 / zoomInFactor
+#
+#         # Save the scene pos
+#         oldPos = self.mapToScene(event.pos())
+#
+#         # Zoom
+#         if event.angleDelta().y() > 0:
+#             zoomFactor = zoomInFactor
+#         else:
+#             zoomFactor = zoomOutFactor
+#         self.scale(zoomFactor, zoomFactor)
+#
+#         # Get the new position
+#         newPos = self.mapToScene(event.pos())
+#
+#         # Move scene to old position
+#         delta = newPos - oldPos
+#         self.translate(delta.x(), delta.y())
+#
+#
+# class MainWindow(QMainWindow):
+#     def __init__(self):
+#         super().__init__()
+#         self.initUI()
+#
+#         self.w = GraphicsView(self)
+#         image = QtGui.QPixmap("test.jpg")
+#         self.pic = QtWidgets.QGraphicsPixmapItem()
+#         self.pic.setPixmap(image)
+#         self.w.scene().addItem(self.pic)
+#         self.drawLine()
+#         # self.pixmap_item.setPixmap(pixmap)
+#
+#     def initUI(self):
+#         self.setMinimumSize(QSize(200, 200))
+#         self.resize(1000, 600)
+#
+#     #    def paintEvent(self, e):
+#     #        qp = QPainter()
+#     #        qp.begin(self)
+#     #        qp.setRenderHint(QPainter.Antialiasing)
+#     #        self.drawLine(qp)
+#     #        qp.end()
+#
+#     def drawLine(self, qp=None):  # + =None
+#         path = QPainterPath()
+#
+#         def draw_trajectory(line):
+#             for i, (x, y) in enumerate(line):
+#                 if i == 0:
+#                     path.moveTo(x, y)
+#                 else:
+#                     path.lineTo(x, y)
+#
+#         for line in ded:
+#             draw_trajectory(line)
+#
+#             #            qp.drawPath(path)
+#
+#             self.w.scene().addPath(  # +++
+#                 path,
+#                 QtGui.QPen(QtGui.QColor(230, 230, 230)),
+#                 QtGui.QBrush(QtGui.QColor(*[randint(0, 255) for _ in range(4)]))
+#             )
+#
+#
+# if __name__ == '__main__':
+#     app = QApplication(sys.argv)
+#     w = MainWindow()
+#     w.show()
+#     sys.exit(app.exec_())
 
 # ----------------------------------------------------------------------------------------------------------------------
 

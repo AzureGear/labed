@@ -93,3 +93,9 @@ class AppSettings:
 
     def write_slice_window_overlap(self, percent):  # значение перекрытия для сканирующего окна [w]
         self.settings.setValue('slicing/default_slice_window_overlap', percent)
+
+    def read_slice_crop_size(self):  # размер сканирующего окна/окна кадрирования [r]
+        return self.settings.value('slicing/slice_crop_size', 1280)
+
+    def write_slice_crop_size(self, size):  # размер сканирующего окна/окна кадрирования [w]
+        self.settings.setValue('slicing/slice_crop_size', size)

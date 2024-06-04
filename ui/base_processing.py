@@ -92,7 +92,7 @@ class ProcessingUI(QtWidgets.QWidget):
         self.merge_label = QtWidgets.QLabel()  # предпросмоторщик файлов
         self.merge_preview_data.setWidget(self.merge_label)
         # self.merge_preview_data.setWidget(self.merge_label)
-        split = QtWidgets.QSplitter(QtCore.Qt.Horizontal)  # создаём разделитель
+        split = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)  # создаём разделитель
         split.addWidget(self.merge_files_list)  # куда помещаем перечень файлов...
         split.addWidget(self.merge_preview_data)  # ...и просмоторщик этих файлов
         split.setChildrenCollapsible(False)  # отключаем полное сворачивание виджетов внутри разделителя

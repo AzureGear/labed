@@ -1,12 +1,7 @@
-from qdarktheme.qtpy.QtCore import Qt, QSize
-from qdarktheme.qtpy.QtWidgets import QDockWidget, QTabWidget, QMainWindow, QTextEdit, QGroupBox, QVBoxLayout, QLabel, \
-    QWidget, QSlider, QFormLayout, QComboBox, QScrollArea, QPushButton, QGridLayout, QTabBar, QLineEdit, QHBoxLayout, \
-    QToolButton, QApplication, QMessageBox
-from qdarktheme.qtpy.QtGui import QIcon
+from PyQt5 import QtCore
+from PyQt5 import QtWidgets
+from PyQt5 import QtGui
 from utils import AppSettings
-from turtle import Turtle
-from ui import AzButtonLineEdit
-from random import randint, random
 from utils import UI_COLORS
 import numpy as np
 import os
@@ -14,7 +9,7 @@ import os
 current_folder = os.path.dirname(os.path.abspath(__file__))  # каталога проекта + /ui/
 
 
-class AutomationUI(QWidget):
+class AutomationUI(QtWidgets.QWidget):
     """
     Класс виджета автоматизации
     """
@@ -22,16 +17,16 @@ class AutomationUI(QWidget):
     def __init__(self, parent):
         super().__init__()
         self.settings = AppSettings()  # настройки программы
-        layout = QVBoxLayout(self)
+        layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(5, 5, 5, 5)  # уменьшаем границу
-        main_win = QMainWindow()
+        main_win = QtWidgets.QMainWindow()
         txt = """           A = np.stack([x, np.ones_like(x)]).T \n
             print(np.linalg.solve(np.dot(A.T, A), np.dot(A.T, y))) \n
             It does linear regression of data by finding normal solution to the usually overdetermined linear system.
             """
-        text = QTextEdit()
+        text = QtWidgets.QTextEdit()
         text.setText(txt)
-        button = QPushButton("Не надо")
+        button = QtWidgets.QPushButton("Не надо")
         main_win.setCentralWidget(text)
         layout.addWidget(main_win)
         layout.addWidget(button)

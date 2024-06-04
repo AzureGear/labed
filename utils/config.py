@@ -21,7 +21,8 @@ UI_COLORS = {
     "automation_color": "darkorange",
     "settings_color": "deepskyblue",
     "default_color": "grey",
-    "line_color": "deepskyblue"  # цвет отображения границ меток по умолчанию - голубой"
+    "line_color": "deepskyblue",  # цвет отображения границ меток по умолчанию - голубой"
+    "crop_color": "yellow"  # цвет центральной точки и границ для ручного кадрирования
 }
 
 # настройки Интерфейса со структурой:
