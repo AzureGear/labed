@@ -202,6 +202,7 @@ class ProcessingUI(QtWidgets.QWidget):
         self.slice_scan_size_label = QtWidgets.QLabel("Scan size:")  # метка для сканирующего окна
         self.slice_scan_size = AzSpinBox(min_val=8, min_wide=70, suffix=" pix")  # размер сканирующего окна;
         self.slice_overlap_window_label = QtWidgets.QLabel("Scanning window overlap percentage:")
+
         # процент перекрытия окна для смежных кадров скользящего окна:
         self.slice_overlap_window = AzSpinBox(min_val=0, max_val=95, step=1, max_start_val=False,
                                               start_val=self.settings.read_slice_window_overlap())
@@ -210,6 +211,9 @@ class ProcessingUI(QtWidgets.QWidget):
         self.slice_overlap_pols_default = AzSpinBox(min_val=0, max_val=95, step=1, max_start_val=False,
                                                     start_val=self.settings.read_default_slice_overlap_pols())
         self.slice_overlap_pols_default.valueChanged.connect(self.slice_write_default_overlap_pols)
+
+        # отступ полигонов от края снимка
+        self.slice_edge_label = QtWidgets.QLabel("Offset from the edge")
 
         h_widgets = [self.slice_scan_size_label, self.slice_scan_size, self.slice_overlap_window_label,
                      self.slice_overlap_window, self.slice_overlap_pols_default_label,
