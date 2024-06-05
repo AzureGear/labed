@@ -1,24 +1,19 @@
+# ----------------------------------------------------------------------------------------------------------------------
 import sys
-
-'''
-from PyQt6.QtWidgets import *
-from PyQt6.QtCore import *
-from PyQt6.QtGui import *
-'''
-from PyQt5 import QtCore, QtWidgets, QtGui
 from PyQt5.Qt import *
+from PyQt5 import QtWidgets
+from PyQt5 import QtGui
+
+the_color = Qt.yellow
 
 
 class RectItem(QGraphicsRectItem):
     def __init__(self, qrectf):
         super().__init__()
-
         self.qrectf = qrectf
         self.setRect(self.qrectf)
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable)
 
-        # +++ vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-        # ----------------------------------> vvvv <--------------------------
         self.line = QGraphicsLineItem(self)
         self.line.setPen(QPen(Qt.red, 2, Qt.SolidLine))
         self.line.setLine(0, 0, 50, 50)
@@ -26,7 +21,34 @@ class RectItem(QGraphicsRectItem):
         self.line2.setPen(QPen(Qt.green, 2, Qt.SolidLine))
         self.line2.setLine(QLineF(0, 50, 50, 0))
 
-    # +++ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    def mouseMoveEvent(self, event):
+        self.moveBy(event.pos().x() - event.lastPos().x(),
+                    event.pos().y() - event.lastPos().y())
+
+
+class PointWithRect(QGraphicsRectItem):
+    """
+    Класс для хранения точки-центра с рамкой вокруг по значению Crop-size'а
+    Принимает точку (QPointF) и величину кадрирования (int)
+    """
+
+    def __init__(self, point: QPointF, crop_size):
+        super().__init__()
+        self.point = point  # сохраняем значение центральной точки
+        self.crop_size = crop_size  # значение величины кадрирования, например 1280, или 256
+        self.line = QGraphicsLineItem(self)
+        self.line.setPen(QtGui.QPen(the_color, 1, Qt.SolidLine))  # диагональная линия
+        self.line.setLine(point[0] - crop_size / 2.5, point[1] - crop_size / 2.5,
+                          point[0] + crop_size / 2.5, point[1] + crop_size / 2.5)
+        self.line2 = QGraphicsLineItem(self)
+        self.line2.setPen(QtGui.QPen(the_color, 1, Qt.SolidLine))  # диагональная линия 2
+        self.line2.setLine(point[0] + crop_size / 2.5, point[1] - crop_size / 2.5,
+                           point[0] - crop_size / 2.5, point[1] + crop_size / 2.5)
+
+        rect = QRectF(point[0] - crop_size / 2, point[1] - crop_size / 2, crop_size, crop_size)
+        self.setRect(rect)
+        self.setPen(QtGui.QPen(the_color, 2, Qt.SolidLine))
+        self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable)
 
     def mouseMoveEvent(self, event):
         self.moveBy(event.pos().x() - event.lastPos().x(),
@@ -42,16 +64,13 @@ class Scene(QGraphicsScene):
         self.list_rect = []
         self.num_old = 0  # прошлый номер для полигонов
 
-    def add_qrectf(self, qrectf):
-        self.qrectf = qrectf
-
     def add_rect(self, num):  # добавление квадратов
         if num == 0:  # очистить сцену
             self.clear()
         elif num > self.num_old:
             for i in range(self.num_old, num):
-                rect = RectItem(self.qrectf)
-                rect.moveBy(self.qrectf.width() * i, 100)
+                rect = RectItem(QRectF(0, 0, 50, 50))
+                # rect.moveBy(25, 100)
                 self.list_rect.append(rect)
                 self.addItem(rect)
         elif num < self.num_old:
@@ -62,6 +81,13 @@ class Scene(QGraphicsScene):
             pass
         self.num_old = num
 
+    def add_circle(self):
+        point = PointWithRect([125.441, 122.111], 33)
+        self.addItem(point)
+        # item = QtWidgets.QGraphicsEllipseItem(44, 85, 2, 2)
+        # item.setPen(QPen(Qt.yellow, 15, Qt.SolidLine))
+        # self.addItem(item)
+
 
 class Window(QWidget):
     def __init__(self):
@@ -70,7 +96,7 @@ class Window(QWidget):
         self.scene = Scene()
         self.canvas = QGraphicsView()
         self.canvas.setScene(self.scene)
-        self.qrectf = QRectF(0, 0, 50, 50)
+        # self.qrectf = QRectF(0, 0, 50, 50)
         self.spinbox = QSpinBox()
         self.spinbox.setRange(0, 8)  # +
         self.spinbox.valueChanged.connect(self.spinbox_event)
@@ -79,10 +105,11 @@ class Window(QWidget):
         layout.addWidget(self.canvas)
         layout.addWidget(self.spinbox)
 
-        self.scene.add_qrectf(self.qrectf)
+        # self.scene.add_qrectf(self.qrectf)
 
     def spinbox_event(self):
         self.scene.add_rect(self.spinbox.value())
+        self.scene.add_circle()
 
 
 if __name__ == "__main__":
@@ -90,6 +117,94 @@ if __name__ == "__main__":
     w = Window()
     w.show()
     app.exec()
+# --------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+# import sys
+# from PyQt5.Qt import *
+# class RectItem(QGraphicsRectItem):
+#     def __init__(self, qrectf):
+#         super().__init__()
+#
+#         self.qrectf = qrectf
+#         self.setRect(self.qrectf)
+#         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable)
+#
+#         self.line = QGraphicsLineItem(self)
+#         self.line.setPen(QPen(Qt.red, 2, Qt.SolidLine))
+#         self.line.setLine(0, 0, 50, 50)
+#         self.line2 = QGraphicsLineItem(self)
+#         self.line2.setPen(QPen(Qt.green, 2, Qt.SolidLine))
+#         self.line2.setLine(QLineF(0, 50, 50, 0))
+#
+#     def mouseMoveEvent(self, event):
+#         self.moveBy(event.pos().x() - event.lastPos().x(),
+#                     event.pos().y() - event.lastPos().y())
+#
+#
+# class Scene(QGraphicsScene):
+#     def __init__(self):
+#         super().__init__()
+#
+#         self.setSceneRect(0, 0, 400, 400)
+#         self.qrectf = None
+#         self.list_rect = []
+#         self.num_old = 0  # прошлый номер для полигонов
+#
+#     def add_qrectf(self, qrectf):
+#         self.qrectf = qrectf  # принимаем QRectF
+#
+#     def add_rect(self, num):  # добавление квадратов
+#         if num == 0:  # очистить сцену
+#             self.clear()
+#         elif num > self.num_old:
+#             for i in range(self.num_old, num):
+#                 rect = RectItem(self.qrectf)
+#                 rect.moveBy(25, 100)
+#                 self.list_rect.append(rect)
+#                 self.addItem(rect)
+#         elif num < self.num_old:
+#             for i in range(num, self.num_old):
+#                 self.removeItem(self.list_rect[-1])
+#                 self.list_rect.pop()
+#         else:
+#             pass
+#         self.num_old = num
+#
+#     def add_circle(self):
+#         rad = 1
+#         self.addEllipse(rad, rad, rad * 2, rad * 2, Qt.QPen(Qt.green), Qt.green)
+#
+#
+# class Window(QWidget):
+#     def __init__(self):
+#         super().__init__()
+#
+#         self.scene = Scene()
+#         self.canvas = QGraphicsView()
+#         self.canvas.setScene(self.scene)
+#         self.qrectf = QRectF(0, 0, 50, 50)
+#         self.spinbox = QSpinBox()
+#         self.spinbox.setRange(0, 8)  # +
+#         self.spinbox.valueChanged.connect(self.spinbox_event)
+#
+#         layout = QHBoxLayout(self)
+#         layout.addWidget(self.canvas)
+#         layout.addWidget(self.spinbox)
+#
+#         self.scene.add_qrectf(self.qrectf)
+#
+#     def spinbox_event(self):
+#         self.scene.add_rect(self.spinbox.value())
+#
+#
+# if __name__ == "__main__":
+#     app = QApplication(sys.argv)
+#     w = Window()
+#     w.show()
+#     app.exec()
+
 # ----------------------------------------------------------------------------------------------------------------------
 
 # import sys

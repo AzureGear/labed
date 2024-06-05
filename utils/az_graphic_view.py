@@ -7,6 +7,8 @@ from shapely import Polygon
 
 the_color = config.UI_COLORS.get("line_color")
 the_color_crop = config.UI_COLORS.get("crop_color")
+
+
 # Реализация Романа Хабарова
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -37,20 +39,29 @@ class DragState(Enum):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-class RectItem(QtWidgets.QGraphicsRectItem):
-    def __init__(self, qrectf):
+class AzPointWithRect(QtWidgets.QGraphicsRectItem):
+    """
+    Класс для хранения точки-центра с рамкой вокруг по значению Crop-size'а
+    Принимает точку (QPointF) и величину кадрирования (int)
+    """
+    def __init__(self, point: QtCore.QPointF, color: QtGui.QColor, crop_size: int = 1280):
         super().__init__()
-
-        self.qrectf = qrectf
-        self.setRect(self.qrectf)
-        self.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable)
-
+        self.point = point  # сохраняем значение центральной точки
+        print(point)
+        self.crop_size = crop_size  # значение величины кадрирования, например 1280, или 256
         self.line = QtWidgets.QGraphicsLineItem(self)
-        self.line.setPen(QtGui.QPen(QtGui.QColor(the_color_crop), 2, QtCore.Qt.SolidLine))
-        self.line.setLine(0, 0, 50, 50)
+        self.line.setPen(QtGui.QPen(color, 1, QtCore.Qt.SolidLine))  # диагональная линия
+        self.line.setLine(point.x() - crop_size / 2.5, point.y() - crop_size / 2.5,
+                          point.x() + crop_size / 2.5, point.y() + crop_size / 2.5)
         self.line2 = QtWidgets.QGraphicsLineItem(self)
-        self.line2.setPen(QtGui.QPen(QtGui.QColor(the_color), 2, QtCore.Qt.SolidLine))
-        self.line2.setLine(QtCore.QLineF(0, 50, 50, 0))
+        self.line2.setPen(QtGui.QPen(color, 1, QtCore.Qt.SolidLine))  # диагональная линия 2
+        self.line2.setLine(point.x() + crop_size / 2.5, point.y() - crop_size / 2.5,
+                           point.x() - crop_size / 2.5, point.y() + crop_size / 2.5)
+
+        rect = QtCore.QRectF(point.x()  - crop_size / 2, point.y() - crop_size / 2, crop_size, crop_size)
+        self.setRect(rect)
+        self.setPen(QtGui.QPen(color, 2, QtCore.Qt.SolidLine))
+        self.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable)
 
     def mouseMoveEvent(self, event):
         self.moveBy(event.pos().x() - event.lastPos().x(),
@@ -68,7 +79,7 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
         scene = QtWidgets.QGraphicsScene(self)  # Графический контейнер
         self.setScene(scene)  # Устанавливаем сцену
         self._pixmap_item = QtWidgets.QGraphicsPixmapItem()  # Создаём растровый элемент (картинка)
-        scene.addItem(self._pixmap_item) # добавляем растровый элемент к сцене
+        scene.addItem(self._pixmap_item)  # добавляем растровый элемент к сцене
 
         self._zoom = 0  # увеличение
         self.view_state = ViewState.normal  # состояние виджета
@@ -76,30 +87,10 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
         self.is_mid_click = False  # флаг использования средней клавиши
         self.view_state_before_mid_click = None  # слот для сохранения текущего состояния виджета
         self.drag_state = DragState.no  # состояние перетаскивания
-
-    # реализация ПРОПАН
-    def add_qrectf(self, qrectf):
-        self.qrectf = qrectf
-
-    #Реализация ПРОПАН
-    def add_rect(self, num):  # добавление квадратов
-        if num == 0:  # очистить сцену
-            self.clear()
-        elif num > self.num_old:
-            for i in range(self.num_old, num):
-                rect = RectItem(self.qrectf)
-                rect.moveBy(self.qrectf.width() * i, 100)
-                self.list_rect.append(rect)
-                self.addItem(rect)
-        elif num < self.num_old:
-            for i in range(num, self.num_old):
-                self.removeItem(self.list_rect[-1])
-                self.list_rect.pop()
-        else:
-            pass
-        self.num_old = num
+        self.scan_size = 1280
 
     def crop_scan_size_changed(self, size):  # изменение рамок у границ объектов кадрирования
+        self.scan_size = size
         pass
         # TODO: сделать при передаче scan_size'a пересчёт данных
 
@@ -127,10 +118,12 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
                 self.drag_state = DragState.start
                 self.viewport().setCursor(QtGui.QCursor(QtCore.Qt.ClosedHandCursor))
             return
-        elif self.view_state == ViewState.add_point:
+        elif self.view_state == ViewState.add_point: # режим добавления точек
             sp = self.mapToScene(event.pos())
             lp = self.pixmap_item.mapFromScene(sp)
             print(lp)
+            point_mc = AzPointWithRect(lp, QtGui.QColor(the_color_crop), self.scan_size)
+            self.scene().addItem(point_mc)
 
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
         # sp = self.mapToScene(event.pos())
@@ -155,8 +148,6 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
                 # Если была нажата средняя кнопка мыши - режим hand_move вызван разово.
                 # Возвращаем состояние обратно
                 self.is_mid_click = False
-                print(self.view_state_before_mid_click)
-                print(self.view_state)
                 self.set_view_state(self.view_state_before_mid_click)
 
             return
@@ -232,14 +223,6 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
             self.scale(factor, factor)
             if event.angleDelta().y() > 0:
                 self.centerOn(lp)
-
-    def add_point_to_scene(self, x, y, color):
-        graph_poly = QtWidgets.QGraphicsPolygonItem()
-        pcol = QtGui.QColor(color)
-        self.scene().addItem(graph_poly)
-        #
-        # double rad = 1;
-        # scene->addEllipse(x - rad, y - rad, rad * 2.0, rad * 2.0, QPen(), QBrush(Qt::SolidPattern));
 
     def add_polygon_to_scene(self, cls_name, color, polygon):  # добавление меток (полигонов SAMA на сцену)
         poly = QtGui.QPolygonF()

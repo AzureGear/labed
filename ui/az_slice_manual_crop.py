@@ -60,7 +60,8 @@ class AzManualSlice(QtWidgets.QMainWindow):
         self.top_dock.setMinimumHeight(33)  # ...без границ
 
         # главный виджет отображения изображения и точек
-        self.image_widget = AzImageViewer()
+        self.image_widget = AzImageViewer(self)
+        self.image_widget.scan_size = self.current_scan_size
         self.setCentralWidget(self.image_widget)
 
         # Настроим все QDockWidgets для нашего main_win
@@ -237,9 +238,8 @@ class AzManualSlice(QtWidgets.QMainWindow):
                 size = 16
             self.slice_manual_size.setText(str(size))
             self.current_scan_size = size
-            self.image_widget.crop_scan_size_changed(size)
             self.settings.write_slice_crop_size(size)
-
+            self.image_widget.crop_scan_size_changed(size)
             # TODO: сделать функцию для обновления меток
 
     def setup_files_widget(self):
@@ -324,7 +324,7 @@ class AzManualSlice(QtWidgets.QMainWindow):
             logic = True
         elif int_code == 3:  # выключить инструменты действий
             logic = True
-            diff_acts = [4, 5, 6, 7, 8]
+            diff_acts = [4, 5, 6, 7, 8]  # выключаем actions под этими номерами
         for i, action in enumerate(self.slice_actions):
             if len(diff_acts) > 0:
                 if i in diff_acts:

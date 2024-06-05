@@ -3,8 +3,7 @@ from PyQt5 import QtWidgets
 from PyQt5 import QtGui
 from utils import AppSettings, convert_to_sama, UI_COLORS, UI_OUTPUT_TYPES, UI_READ_LINES, dn_crop
 from ui import new_act, new_button, coloring_icon, az_file_dialog, natural_order, AzButtonLineEdit, AzSpinBox, \
-    AzTableModel, \
-    AzManualSlice
+    AzTableModel, AzManualSlice
 from datetime import datetime
 import os
 
