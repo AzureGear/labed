@@ -260,6 +260,7 @@ class BaseGUI(QtWidgets.QMainWindow):
             QtWidgets.QApplication.translate('BaseGUI', "Scanning window overlap percentage:"))  # noqa
         pc.slice_overlap_pols_default_label.setText(
             QtWidgets.QApplication.translate('BaseGUI', "Default overlap percentage for classes:"))  # noqa
+        pc.slice_edge_label.setText(QtWidgets.QApplication.translate('BaseGUI', "Offset from the edge"))
         pc.slice_smart_crop.setText(
             QtWidgets.QApplication.translate('BaseGUI', "Simplified grid framing (no smart grouping)"))  # noqa
         pc.slice_exec.setText(QtWidgets.QApplication.translate('BaseGUI', " Automatically crop images"))

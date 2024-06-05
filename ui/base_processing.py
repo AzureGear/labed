@@ -200,24 +200,26 @@ class ProcessingUI(QtWidgets.QWidget):
 
         # 3 строка в форме Автоматизированного разрезания
         self.slice_scan_size_label = QtWidgets.QLabel("Scan size:")  # метка для сканирующего окна
-        self.slice_scan_size = AzSpinBox(min_val=8, min_wide=70, suffix=" pix")  # размер сканирующего окна;
+        self.slice_scan_size = AzSpinBox(min_val=8, min_wide=53)  # размер сканирующего окна;
         self.slice_overlap_window_label = QtWidgets.QLabel("Scanning window overlap percentage:")
 
         # процент перекрытия окна для смежных кадров скользящего окна:
-        self.slice_overlap_window = AzSpinBox(min_val=0, max_val=95, step=1, max_start_val=False,
+        self.slice_overlap_window = AzSpinBox(min_val=30, max_val=95, step=1, max_start_val=False,
                                               start_val=self.settings.read_slice_window_overlap())
         self.slice_overlap_window.valueChanged.connect(self.slice_write_overlap_window)
         self.slice_overlap_pols_default_label = QtWidgets.QLabel("Default overlap percentage for classes:")
-        self.slice_overlap_pols_default = AzSpinBox(min_val=0, max_val=95, step=1, max_start_val=False,
+        self.slice_overlap_pols_default = AzSpinBox(min_val=1, max_val=95, step=1, max_start_val=False,
                                                     start_val=self.settings.read_default_slice_overlap_pols())
         self.slice_overlap_pols_default.valueChanged.connect(self.slice_write_default_overlap_pols)
 
         # отступ полигонов от края снимка
         self.slice_edge_label = QtWidgets.QLabel("Offset from the edge")
+        self.slice_edge = AzSpinBox(0, 1000, 1, False, start_val=0)
 
+        # группа горизонтальных виджетов для параметров авто разрезания
         h_widgets = [self.slice_scan_size_label, self.slice_scan_size, self.slice_overlap_window_label,
                      self.slice_overlap_window, self.slice_overlap_pols_default_label,
-                     self.slice_overlap_pols_default]  # группа горизонтальных виджетов для параметров авто разрезания
+                     self.slice_overlap_pols_default, self.slice_edge_label, self.slice_edge]
         hor_sett_layout = QtWidgets.QHBoxLayout()  # расположение для параметров автоматизированной обработки
         fill_layout_by_widgets(h_widgets, hor_sett_layout, group_by=2)
 
@@ -295,11 +297,13 @@ class ProcessingUI(QtWidgets.QWidget):
                 pols_overlap_percent.append((model.data(model.index(row, 1), QtCore.Qt.ItemDataRole.DisplayRole)) / 100)
             new_name = os.path.join(self.slice_output_file_path.text(),
                                     "sliced_%s.json" % datetime.now().strftime("%Y-%m-%d--%H-%M-%S"))
+            # объект класса для автоматического кадрирования
             cut_images = dn_crop.DNImgCut(os.path.dirname(self.slice_input_file_path.text()),
                                           os.path.basename(self.slice_input_file_path.text()))
+            # запуск автоматического кадрирования функцией Дениса
             proc_imgs = cut_images.CutAllImgs(self.slice_scan_size.value(), pols_overlap_percent,
-                                              self.slice_overlap_window.value() / 100,
-                                              new_name)  # нарезка функцией Дениса
+                                              self.slice_overlap_window.value() / 100, new_name,
+                                              self.slice_edge.value(), not self.slice_smart_crop.isChecked(), False)
             if proc_imgs > 0:
                 self.signal_message.emit("Кадрирование завершено. Общее количество изображений %s" % proc_imgs)
             elif proc_imgs == 0:

@@ -430,6 +430,35 @@ class DNImgCut:
         return PolSHP
 
     @classmethod
+    def PointPolyPosWin(cls,WPShp:Polygon,PolsShp:[]):
+
+        # Выделяем точки полигонов, не принадлежащие окну
+        PtsPols=[]
+        for Pol in PolsShp:
+            PtsPols+=list(Pol.exterior.coords)
+        PtsPolsOutW=[Pt for Pt in PtsPols if not WPShp.contains(Point(Pt))]
+        xp=np.array(PtsPolsOutW)[:, 0]
+        yp=np.array(PtsPolsOutW)[:, 1]
+
+        # Узнаем габариты окна
+        PtsWin=list(WPShp.exterior.coords)
+        x = np.array(PtsWin)[:, 0]
+        y = np.array(PtsWin)[:, 1]
+        xMinW = min(x)
+        xMaxW = max(x)
+        yMinW = min(y)
+        yMaxW = max(y)
+
+        if min(xp)<=xMinW and max(xp)>=xMaxW:
+            return False
+
+        elif min(yp)<=yMinW and max(yp)>=yMaxW:
+            return False
+
+        return True
+
+
+    @classmethod
     def GetPosWindShp(cls, pn: [], WW: int, HW: int, WImg: int, HImg: int, ProcOverlapPol: [], ProcOverlapW: float,
                       PolsSHP: [], NumClsPols: []):
         """
@@ -557,8 +586,8 @@ class DNImgCut:
             dx = WW - int(WW * ProcOverlapW)
             dy = HW - int(HW * ProcOverlapW)
 
-            IterX = int((WZone - dx) / dx)
-            IterY = int((HZone - dx) / dy)
+            IterX = int((WZone) / dx)
+            IterY = int((HZone) / dy)
 
             if (WZone - dx) % dx > 0: IterX += 1
             if (HZone - dy) % dy > 0: IterY += 1
@@ -639,23 +668,22 @@ class DNImgCut:
 
             #2. Если при любой позиции окна полигоны режутся, но нет плохо нарезаных полигонов
             elif len(IndxWPosPOun)==0 and not len(IndxWPosPNoBad)==0:
-                #2.1 Узнаем позицию окна с максимальным количеством целых полигонов
-                NumbOunPol = [len(IndxOun[i]) for i in IndxWPosPNoBad]
-                IndxMaxNumbPol = [i for i, v in enumerate(NumbOunPol) if v == max(NumbOunPol)]
-                IndxWPos = [IndxWPosPNoBad[i] for i in IndxMaxNumbPol]
-
-                #2.2 Из отобранных позиций выбираем такие положения окон,
-                # в которых максимальное количество угловых точек
-                NumbPtsInW=[]
+                # 2.1 Выбираем позицию окна, где точки полигонов лежат по одну сторону от окна
+                # (полигоны не должны пересекать противоположные стороны окна)
+                IndxWPos=IndxWPosPNoBad.copy()
+                ValidPos=[]
                 for i in IndxWPos:
-                    Pts=[]
-                    for Pol in WPosProp['PolsObj'][i]['Polys']:
-                        Pts+=list(Pol.exterior.coords)
+                    WPolSHP = cls.CreateWPolSHP(WPosProp['pn'][i], WW, HW)
+                    ValidPos.append(cls.PointPolyPosWin(WPolSHP,WPosProp['PolsObj'][i]['Polys']))
 
-                    WPolSHP=cls.CreateWPolSHP(WPosProp['pn'][i], WW, HW)
-                    NumbPtsInW.append(len([Pt for Pt in Pts if WPolSHP.contains(Point(Pt))]))
-                Indx=[i for i,v in enumerate(NumbPtsInW) if v==max(NumbPtsInW)]
-                IndxWPos=[IndxWPos[i] for i in Indx]
+                IndxWPos=[IndxWPos[i] for i,v in enumerate(IndxWPos) if ValidPos[i]]
+                if len(IndxWPos)==0: IndxWPos=IndxWPosPNoBad.copy()
+
+
+                #2.2 Узнаем позицию окна с максимальным количеством целых полигонов
+                NumbOunPol = [len(IndxOun[i]) for i in IndxWPos]
+                IndxMaxNumbPol = [i for i, v in enumerate(NumbOunPol) if v == max(NumbOunPol)]
+                IndxWPos = [IndxWPos[i] for i in IndxMaxNumbPol]
 
                 #2.3 Из отобранных позиций, выбираем такие,
                 # которые имеют минимальную площадь пересечения со старыми окнами
@@ -677,10 +705,16 @@ class DNImgCut:
 
             #3. Если при любой позиции окна полигоны режутся так, что есть плохо нарезаные полигоны
             elif len(IndxWPosPOun)==0 and len(IndxWPosPNoBad)==0 and not len(IndxWPosPBad)==0:
+                IndxWPos=IndxWPosPBad.copy()
+                #3.1 Узнаем позиции окон с максимальным количеством хорошо нарезанных полигонов
+                NumbNoBadPol = [len(IndxOV[i])+len(IndxOun[i]) for i in IndxWPos]
+                IndxMaxNumbGoodPol = [i for i, v in enumerate(NumbNoBadPol) if v == min(NumbNoBadPol)]
+                IndxWPos=[IndxWPos[i] for i in IndxMaxNumbGoodPol]
+
                 #3.1 Узнаем позицию окна с минимальным количеством плохо нарезанных полигонов
-                NumbBadPol = [len(IndxBad[i]) for i in IndxWPosPBad]
+                NumbBadPol = [len(IndxBad[i]) for i in IndxWPos]
                 IndxMinNumbBadPol = [i for i, v in enumerate(NumbBadPol) if v == min(NumbBadPol)]
-                IndxWPos=[IndxWPosPBad[i] for i in IndxMinNumbBadPol]
+                IndxWPos=[IndxWPos[i] for i in IndxMinNumbBadPol]
 
                 #3.2 Выбираем позицию окна со значимыми значениями площадей (так, чтобы пересечение с окном давали результыты)
                 AreasList=[WPosProp['PolsObj'][i]['AreaOV'] for i in range(len(WPosProp['pn'])) if i in IndxWPos]
@@ -694,7 +728,8 @@ class DNImgCut:
                               "т.е. пересечение полигонов с окном были бы значимыми")
 
                 Indx=[i for i,v in enumerate(NumbIndx) if v>0]
-                IndxWPos = [IndxWPos[i] for i in Indx]
+                if not len(Indx)==0:
+                    IndxWPos = [IndxWPos[i] for i in Indx]
 
                 #3.3 Выбираем позицию окна с минимальным перекрытием с другими окнами
                 if not len(pnList)==0:
@@ -736,6 +771,7 @@ class DNImgCut:
             if DEBUG:
                 if len(IndxPolsOW)==0:
                     print("Произошла поебень, не может IndxPolsOW быть пустым")
+                    return pnList
 
             # Для каждого индекса вычитаем часть полигона, находящегося в окне
             NumClsApp=[]
@@ -900,7 +936,6 @@ class DNImgCut:
         #     Count=0
         #     ContWind = []
         #     ContWind+=Pols['Polys']
-        #
         #     for Pos in WPos:
         #         ContWind.append(np.array(self.CreateWPolSHP(Pos, WW, HW).exterior.coords, int))
         #
@@ -981,7 +1016,7 @@ class DNImgCut:
 
     # Функция нарезки всех картинок в json файле и генерация нового json-файла
     def CutAllImgs(self, SizeWind: int, ProcOverlapPol: [], ProcOverlapW: float,
-                   NameJsonFile: str,DKray:int,IsSmartCut:bool):
+                   NameJsonFile: str,DKray:int,IsSmartCut:bool,IsHandCut:bool):
         """Функция нарезки изображений, записанных в json (проверка на наличие изображений отсутствует)
         SizeWind - размер сканирующего окна,
         ProcOverlapPol - пороговое значение процента площади перекрытия полигона окном,
@@ -989,11 +1024,12 @@ class DNImgCut:
         ProcOverlapW - шаг сканирующего окна в процентаже площади перекрытия
         NameJsonFile - полное имя (без разширения) записываемого json-файла
         DKray:int - минимальное расстояние от края сканирующего окна до полигона (чтоб не впритычечку), в пикселях
-        IsSmartCut - выбор между хитрожопой функцией нарезки и тупой"""
-        # try:  # старт процедуры
-        if DEBUG:
-            JsonAllData = {}
+        IsSmartCut - выбор между хитрожопой функцией нарезки и тупой
+        IsHandCut - выбор между ручной нарезкой и автоматической"""
 
+        # Если нарезка в автоматическом режиме
+        if not IsHandCut:
+            JsonAllData = {}
             # Добавляем путь к файлам-картинкам
             JsonAllData['path_to_images'] = os.path.dirname(NameJsonFile)
             if not os.path.isdir(JsonAllData['path_to_images']):
@@ -1003,7 +1039,7 @@ class DNImgCut:
             JsonAllData['images'] = {}
             for i in range(len(self.JsonObj.ImgsName)):
                 CutData = self.CutImg(i, SizeWind, ProcOverlapPol, ProcOverlapW,
-                                      os.path.dirname(NameJsonFile),DKray,IsSmartCut)
+                                    os.path.dirname(NameJsonFile),DKray,IsSmartCut)
 
                 # Перебор по нарезанным картинкам одного исходного изображения
                 for j in range(len(CutData['ImgNames'])):
@@ -1021,50 +1057,50 @@ class DNImgCut:
             with codecs.open(NameJsonFile, 'w', 'utf-8') as file:
                 file.write(str(JsonAllDataStr))
 
-            #Если есть файл для ручной нарезки
-            if self.JsonObj.IsHandCutImgs:
-                JsonAllData = {}
-                # Формируем путь для записи файлов
-                JsonAllData['path_to_images']=os.path.join(os.path.dirname(NameJsonFile),'MCImgs')
-                NameOutputMCJsonFile=os.path.splitext(os.path.basename(NameJsonFile))[0]
-                NameOutputMCJsonFile=NameOutputMCJsonFile+'.json_mc'
+        #Если есть файл для ручной нарезки
+        elif self.JsonObj.IsHandCutImgs:
+            JsonAllData = {}
+            # Формируем путь для записи файлов
+            JsonAllData['path_to_images']=os.path.join(os.path.dirname(NameJsonFile),'MCImgs')
+            NameOutputMCJsonFile=os.path.splitext(os.path.basename(NameJsonFile))[0]
+            NameOutputMCJsonFile=NameOutputMCJsonFile+'.json_mc'
 
-                # Если нет каталога для хранения нарезанных картинок
-                if not os.path.isdir(JsonAllData['path_to_images']):
-                    os.mkdir(JsonAllData['path_to_images'])
+            # Если нет каталога для хранения нарезанных картинок
+            if not os.path.isdir(JsonAllData['path_to_images']):
+                os.mkdir(JsonAllData['path_to_images'])
 
-                JsonAllData['images']={}
-                # Перебор по всем картинкам для ручной нарезки
-                for i in range(len(self.JsonObj.ImgsNameMC)):
-                    if not self.JsonObj.WinPosPtMC[i]==None:
-                        CutData = self.CutImgHand(self.JsonObj.SizeWinMC,i,self.JsonObj.WinPosPtMC[i],
-                                                  JsonAllData['path_to_images'])
+            JsonAllData['images']={}
+            # Перебор по всем картинкам для ручной нарезки
+            for i in range(len(self.JsonObj.ImgsNameMC)):
+                if not self.JsonObj.WinPosPtMC[i]==None:
+                    CutData = self.CutImgHand(self.JsonObj.SizeWinMC,i,self.JsonObj.WinPosPtMC[i],
+                                                JsonAllData['path_to_images'])
 
-                        # Перебор по нарезанным картинкам одного исходного изображения
-                        for j in range(len(CutData['ImgNames'])):
-                            Dict = self.JsonObj.PolsToDict(i, CutData['Pols'][j], CutData['ClsNums'][j])
-                            JsonAllData['images'][CutData['ImgNames'][j]] = Dict.copy()
+                    # Перебор по нарезанным картинкам одного исходного изображения
+                    for j in range(len(CutData['ImgNames'])):
+                        Dict = self.JsonObj.PolsToDict(i, CutData['Pols'][j], CutData['ClsNums'][j])
+                        JsonAllData['images'][CutData['ImgNames'][j]] = Dict.copy()
 
-                # Записываем оконцовку json без изменений, к картинкам отношение не имеет
-                JsonAllData['labels'] = self.JsonObj.DataDict['labels']
-                JsonAllData['labels_color'] = self.JsonObj.DataDict['labels_color']
+            # Записываем оконцовку json без изменений, к картинкам отношение не имеет
+            JsonAllData['labels'] = self.JsonObj.DataDict['labels']
+            JsonAllData['labels_color'] = self.JsonObj.DataDict['labels_color']
 
-                # Перевод json в строку
-                JsonAllDataStr = json.dumps(JsonAllData, ensure_ascii=False, sort_keys=False)
+            # Перевод json в строку
+            JsonAllDataStr = json.dumps(JsonAllData, ensure_ascii=False, sort_keys=False)
 
-                # Запись строки в файл
-                NameJsonMCFile=os.path.join(JsonAllData['path_to_images'],NameOutputMCJsonFile)
-                with codecs.open(NameJsonMCFile, 'w', 'utf-8') as file:
-                    file.write(str(JsonAllDataStr))
+            # Запись строки в файл
+            NameJsonMCFile=os.path.join(JsonAllData['path_to_images'],NameOutputMCJsonFile)
+            with codecs.open(NameJsonMCFile, 'w', 'utf-8') as file:
+                file.write(str(JsonAllDataStr))
 
 
-            if DEBUG:
-                print("Нарезка завершена")
+        if DEBUG:
+            print("Нарезка завершена")
         # except Exception as e:  # действия в случае ошибки
         #     print(e)
         #     return -1
         # finally:  # действия в случае успешного выполнения
-        #     return self.cut_images_count
+        return self.cut_images_count
 
     def CutImgHand(self,SizeWind: int,NumImg:int,PtC:[], output_image_dir: str):
         """Функция нарезки изображений в ручном режиме"""
