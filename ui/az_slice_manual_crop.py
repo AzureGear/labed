@@ -137,8 +137,8 @@ class AzManualSlice(QtWidgets.QMainWindow):
             self.image_widget.set_view_state()
 
     def point_add(self):  # добавить точку
-        if self.image_widget.view_state != ViewState.add_point:
-            self.image_widget.set_view_state(ViewState.add_point)
+        if self.image_widget.view_state != ViewState.points_state:
+            self.image_widget.set_view_state(ViewState.points_state)
         else:
             self.slice_actions[6].setChecked(False)
             self.image_widget.set_view_state()
@@ -147,7 +147,13 @@ class AzManualSlice(QtWidgets.QMainWindow):
         pass
 
     def point_delete(self):  # удалить точку
-        pass
+        import utils.az_graphic_view
+        # self.image_widget.PyQt5.QtCore.QPointF(625.6515151515151, 1021.284090909091)
+
+        point_mc = utils.az_graphic_view.AzPointWithRect(QtCore.QPointF(625.6515151515151, 1021.284090909091),
+                                                         QtGui.QColor(QtCore.Qt.GlobalColor.yellow), self.current_scan_size)
+        print(point_mc.point)
+        self.image_widget.scene().addItem(point_mc)  # добавляем объект на сцену
 
     def create_blank_file(self):  # создать новый пустой проект РК
         # --------------------------------------------------------------------------------------------------------------
