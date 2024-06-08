@@ -20,18 +20,17 @@ class DNjson:
     """ Класс работы с исходными данными (результатами НС), записанными в формате json"""
 
     def __init__(self, FullNameJsonFile: str):
-
-
+        self.good_file = None  # флаг "порядка" файла SAMA JSON
+        self.good_mc_file = None  # флаг "порядка" файла ручного кадрирования JSON_MC
         self.FullNameJsonFile = FullNameJsonFile
 
         # Проверяем, есть ли файл для ручной нарезки
         self.IsHandCutImgs = False
-        PathToJsonFile=os.path.dirname(FullNameJsonFile)
-        BaseNameJsonFile=os.path.splitext(os.path.basename(FullNameJsonFile))[0]
-        NameMCJsonFile=BaseNameJsonFile+'.json_mc'
-        self.FullNameMCJsonFile=os.path.join(PathToJsonFile,NameMCJsonFile)
-        self.IsHandCutImgs=os.path.exists(self.FullNameMCJsonFile)
-
+        PathToJsonFile = os.path.dirname(FullNameJsonFile)
+        BaseNameJsonFile = os.path.splitext(os.path.basename(FullNameJsonFile))[0]
+        NameMCJsonFile = BaseNameJsonFile + '.json_mc'
+        self.FullNameMCJsonFile = os.path.join(PathToJsonFile, NameMCJsonFile)
+        self.IsHandCutImgs = os.path.exists(self.FullNameMCJsonFile)
 
         # Получаем данные из файла в виде формата json
         self.DataDict = self.ReadDataJson()
@@ -40,7 +39,7 @@ class DNjson:
             # Читаем имена всех изображений, записанных в json
             self.ImgsName = self.ReadNamesImgs()
 
-            self.PathToImg=self.DataDict["path_to_images"]
+            self.PathToImg = self.DataDict["path_to_images"]
 
             # Формируем перечень имен классов (меток)
             self.labels = (self.DataDict['labels'])
@@ -48,17 +47,17 @@ class DNjson:
             # Узнаем максимальный номер класса
             self.MaxClsNum = len(self.labels)  # print("Максимальный номер класса: ", self.MaxClsNum)
 
-        #Если есть файл для ручной нарезки
+        # Если есть файл для ручной нарезки
         if self.IsHandCutImgs:
-            self.DataMCDict=self.ReadDataMCJson()
+            self.DataMCDict = self.ReadDataMCJson()
             if self.DataMCDict:
                 # Читаем имена всех изображений в Json-файле для ручной разметки
-                self.ImgsNameMC=[NameImg for NameImg in self.DataMCDict["images"].keys()]
-                self.PathToImgMC=self.DataMCDict['path_to_images']
+                self.ImgsNameMC = [NameImg for NameImg in self.DataMCDict["images"].keys()]
+                self.PathToImgMC = self.DataMCDict['path_to_images']
 
                 # Читаем точки позиций окон
-                self.WinPosPtMC=[self.DataMCDict['images'][NameImg] for NameImg in self.ImgsNameMC]
-                self.SizeWinMC=self.DataMCDict['scan_size']
+                self.WinPosPtMC = [self.DataMCDict['images'][NameImg] for NameImg in self.ImgsNameMC]
+                self.SizeWinMC = self.DataMCDict['scan_size']
 
     # Функции, использующиеся при инициализации класса
     # Функция чтения данных из файла Json
@@ -85,15 +84,14 @@ class DNjson:
         data = file.readline()
         file.close()
 
-        if self.check_MCjson(data):  # выполняем проверку
-            self.goodMC_file = True
+        if self.check_mc_json(data):  # выполняем проверку
+            self.good_mc_file = True
             # Переделываем строку в json словарь
-            data_MCdict = json.loads(data)
-            return data_MCdict
+            data_mc_dict = json.loads(data)
+            return data_mc_dict
         else:
-            self.good_file = False
+            self.good_mc_file = False
             return None
-
 
     def check_json(self, json_project_data):  # примитивная проверка на наличие нужных параметров
         for field in ["path_to_images", "images", "labels", "labels_color"]:
@@ -101,12 +99,11 @@ class DNjson:
                 return False
         return True
 
-    def check_MCjson(self, jsonMC_project_data):  # примитивная проверка на наличие нужных параметров
+    def check_mc_json(self, jsonMC_project_data):  # примитивная проверка на наличие нужных параметров
         for field in ["filename", "path_to_images", "scan_size", "images"]:
             if field not in jsonMC_project_data:
                 return False
         return True
-
 
     @classmethod
     def ReadJsonKeys(cls, DataDict):
@@ -243,6 +240,7 @@ class DNjson:
     #             cv.line(RGBMAss, p1, p2, (255, 255, 0), 5)
     #     return RGBMAss
 
+
 # ----------------------------------------------------------------------------------------------------------------------
 
 class DNImgCut:
@@ -260,7 +258,6 @@ class DNImgCut:
 
         PathToImg = self.JsonObj.PathToImg
 
-
         # Получение имен всех картинок в папке
         self.FullNamesImgsFile = []
         for ImgName in self.JsonObj.ImgsName:
@@ -268,44 +265,44 @@ class DNImgCut:
 
         self.FullNamesImgsMCFile = []
         for ImgName in self.JsonObj.ImgsNameMC:
-            self.FullNamesImgsMCFile.append(os.path.join(self.JsonObj.PathToImgMC,ImgName))
+            self.FullNamesImgsMCFile.append(os.path.join(self.JsonObj.PathToImgMC, ImgName))
 
     @classmethod
-    def PolsIntersection(cls,Pol1,Pol2):
+    def PolsIntersection(cls, Pol1, Pol2):
         """Ищет пересечение полигонов
            Возвращает ТОЛЬКО список полигонов"""
 
-        Res=[] # Конечный список полигонов
-        AreaPol=[] # Площади пересечений
-        IsAllObjPols=False
+        Res = []  # Конечный список полигонов
+        AreaPol = []  # Площади пересечений
+        IsAllObjPols = False
         if Pol1.intersects(Pol2):
-            ResInter=Pol1.intersection(Pol2)
+            ResInter = Pol1.intersection(Pol2)
         else:
-            ResInter=Polygon()
+            ResInter = Polygon()
 
-        if type(ResInter)==Polygon:
+        if type(ResInter) == Polygon:
             IsAllObjPols = True
             # Оказывается бывают полигоны с нулевой площадью. Это пиздец
-            if ResInter.area>0.01:
+            if ResInter.area > 0.01:
                 Res.append(ResInter)
                 AreaPol.append(ResInter.area)
             else:
                 Res.append(Polygon())
                 AreaPol.append(0)
 
-        elif type(ResInter)==MultiPolygon:
-            IsAllObjPols=True
+        elif type(ResInter) == MultiPolygon:
+            IsAllObjPols = True
             for Pol in ResInter.geoms:
-                if Pol.area>0.01:
+                if Pol.area > 0.01:
                     Res.append(Pol)
                     AreaPol.append(Pol.area)
                 else:
                     Res.append(Polygon())
                     AreaPol.append(0)
 
-        elif type(ResInter)==GeometryCollection:
+        elif type(ResInter) == GeometryCollection:
             for Pol in ResInter.geoms:
-                if type(Pol)==Polygon:
+                if type(Pol) == Polygon:
                     if Pol.area > 0.01:
                         Res.append(Pol)
                         AreaPol.append(Pol.area)
@@ -318,33 +315,33 @@ class DNImgCut:
             if DEBUG:
                 print("Пересечение полигонов не является полигоном, а каким-то другим геометрическим говном")
 
-        SumArea=sum(AreaPol)
-        AreaCrudePol=Pol2.area
+        SumArea = sum(AreaPol)
+        AreaCrudePol = Pol2.area
 
-        return {"PolsSHP":Res,"ValidTypes":IsAllObjPols,"AreaIntesPols":AreaPol,
-                "SumArea":SumArea,"AreaCrudePol":AreaCrudePol}
+        return {"PolsSHP": Res, "ValidTypes": IsAllObjPols, "AreaIntesPols": AreaPol,
+                "SumArea": SumArea, "AreaCrudePol": AreaCrudePol}
 
     @classmethod
-    def PolsDifference(cls,Pol1:Polygon,Pol2:Polygon):
+    def PolsDifference(cls, Pol1: Polygon, Pol2: Polygon):
         """Ищет вычитание полигонов
            Возвращает ТОЛЬКО список полигонов"""
 
-        Res=[]
-        Area=[]
-        IsAllObjPols=False
-        ResDiff=Pol1.difference(Pol2)
+        Res = []
+        Area = []
+        IsAllObjPols = False
+        ResDiff = Pol1.difference(Pol2)
 
         if type(ResDiff) == Polygon:
-            if ResDiff.area>0.01:
+            if ResDiff.area > 0.01:
                 Res.append(ResDiff)
                 Area.append(ResDiff.area)
             else:
                 Res.append(Polygon())
                 Area.append(Polygon().area)
 
-            IsAllObjPols=True
+            IsAllObjPols = True
         elif type(ResDiff) == MultiPolygon:
-            IsAllObjPols=True
+            IsAllObjPols = True
             for Pol in ResDiff.geoms:
                 if Pol.area > 0.01:
                     Res.append(Pol)
@@ -369,44 +366,42 @@ class DNImgCut:
             if DEBUG:
                 print("Вычитание полигонов не является полигоном, а каким-то другим геометрическим говном")
 
-
-        return {"PolsSHP":Res,"Area":Area,"ValidTypes":IsAllObjPols}
+        return {"PolsSHP": Res, "Area": Area, "ValidTypes": IsAllObjPols}
 
     @classmethod
-    def PolsListIntersection(cls,Pol1:Polygon,PolsList:[]):
+    def PolsListIntersection(cls, Pol1: Polygon, PolsList: []):
         """Ищет пересечение окна со списком полигонов,
         возвращает список списков полигонов, длинной равной списку входных полигонов.
         Список списков нужен для варианта, когда один полигон пересекает другой в нескольких местах"""
-        ResPol=[]
-        IsAllPoly=[]
-        SumArea=[]
-        PartArea=[]
+        ResPol = []
+        IsAllPoly = []
+        SumArea = []
+        PartArea = []
         for Pol2 in PolsList:
-            A=cls.PolsIntersection(Pol1,Pol2)
+            A = cls.PolsIntersection(Pol1, Pol2)
             ResPol.append(A['PolsSHP'])
             if DEBUG:
-                if len(A['PolsSHP'])==0:
+                if len(A['PolsSHP']) == 0:
                     print("Это очень не хорошо, PolsIntersection возвращает пустоту")
-
 
             IsAllPoly.append(A['ValidTypes'])
             SumArea.append(A['SumArea'])
-            if A['AreaCrudePol']==0:
+            if A['AreaCrudePol'] == 0:
                 PartArea.append(0)
             else:
-                PartArea.append(A['SumArea']/A['AreaCrudePol'])
+                PartArea.append(A['SumArea'] / A['AreaCrudePol'])
 
-        return {"PolsSHP": ResPol, "ValidTypes": IsAllPoly,"SumArea":SumArea,
-                "PartArea":PartArea}
+        return {"PolsSHP": ResPol, "ValidTypes": IsAllPoly, "SumArea": SumArea,
+                "PartArea": PartArea}
 
     @classmethod
-    def FinedMinAreaOVWinPos(cls,pnWinProb:[],pnOldWin:[],WW,HW):
+    def FinedMinAreaOVWinPos(cls, pnWinProb: [], pnOldWin: [], WW, HW):
         """Функция возвращает номера позиций окон с минимальным перекрытием со старыми окнами"""
         WsPolSHPOld = [cls.CreateWPolSHP(p, WW, HW) for p in pnOldWin]
         WsPolSHP = [cls.CreateWPolSHP(p, WW, HW) for p in pnWinProb]
         AreaMass = []
         for WPolSHP in WsPolSHP:
-            AreaOVW=[]
+            AreaOVW = []
             for WPolSHPOld in WsPolSHPOld:
                 if WPolSHP.intersects(WPolSHPOld):
                     AreaOVW.append(WPolSHP.intersection(WPolSHPOld).area)
@@ -430,18 +425,18 @@ class DNImgCut:
         return PolSHP
 
     @classmethod
-    def PointPolyPosWin(cls,WPShp:Polygon,PolsShp:[]):
+    def PointPolyPosWin(cls, WPShp: Polygon, PolsShp: []):
 
         # Выделяем точки полигонов, не принадлежащие окну
-        PtsPols=[]
+        PtsPols = []
         for Pol in PolsShp:
-            PtsPols+=list(Pol.exterior.coords)
-        PtsPolsOutW=[Pt for Pt in PtsPols if not WPShp.contains(Point(Pt))]
-        xp=np.array(PtsPolsOutW)[:, 0]
-        yp=np.array(PtsPolsOutW)[:, 1]
+            PtsPols += list(Pol.exterior.coords)
+        PtsPolsOutW = [Pt for Pt in PtsPols if not WPShp.contains(Point(Pt))]
+        xp = np.array(PtsPolsOutW)[:, 0]
+        yp = np.array(PtsPolsOutW)[:, 1]
 
         # Узнаем габариты окна
-        PtsWin=list(WPShp.exterior.coords)
+        PtsWin = list(WPShp.exterior.coords)
         x = np.array(PtsWin)[:, 0]
         y = np.array(PtsWin)[:, 1]
         xMinW = min(x)
@@ -449,14 +444,13 @@ class DNImgCut:
         yMinW = min(y)
         yMaxW = max(y)
 
-        if min(xp)<=xMinW and max(xp)>=xMaxW:
+        if min(xp) <= xMinW and max(xp) >= xMaxW:
             return False
 
-        elif min(yp)<=yMinW and max(yp)>=yMaxW:
+        elif min(yp) <= yMinW and max(yp) >= yMaxW:
             return False
 
         return True
-
 
     @classmethod
     def GetPosWindShp(cls, pn: [], WW: int, HW: int, WImg: int, HImg: int, ProcOverlapPol: [], ProcOverlapW: float,
@@ -472,7 +466,7 @@ class DNImgCut:
             ProcOverlapW - процент перекрытия окна для смежных кадров.
         """
         # В начале алгоритма перемещение окна идет по одному пикселю
-        pn=[int(pn[0]),int(pn[1])]
+        pn = [int(pn[0]), int(pn[1])]
         dx = WW - int(WW * ProcOverlapW)
         dy = HW - int(HW * ProcOverlapW)
 
@@ -519,16 +513,16 @@ class DNImgCut:
             считаем, что если центры масс укладываются в размеры сканирующего окна, то это - один кластер """
 
         # Копируем массив полигонов, чтобы с исходным ни дай бог ничего не случилось
-        PolsSHPCop=copy.copy(PolsSHP)
-        NumClsPolsCop=copy.copy(NumClsPols)
+        PolsSHPCop = copy.copy(PolsSHP)
+        NumClsPolsCop = copy.copy(NumClsPols)
 
         pnList = []  # Список удовлетворительных значений сканирующего окна
 
         # Открываем цикл, который повторяется до тех пор пока все полигоны не будут учтены
-        Count=0
+        Count = 0
         while 1:
             # Если полигонов не осталось, выходим из цикла
-            if len(PolsSHPCop)==0:
+            if len(PolsSHPCop) == 0:
                 break
             # Переводим SHP полигоны в обычные
             PolsPt = [np.array(PolSHP.exterior.coords, float) for PolSHP in PolsSHPCop]
@@ -566,11 +560,11 @@ class DNImgCut:
             yMin = min(PolsPtMinMax['MinY'])
             yMax = max(PolsPtMinMax['MaxY'])
 
-            #Расширяем зону кластера таким образом, чтобы было как можно меньше пересечений одинаковых объектов
-            xMinD=xMin-WW+D
-            if xMinD<0: xMinD=0
+            # Расширяем зону кластера таким образом, чтобы было как можно меньше пересечений одинаковых объектов
+            xMinD = xMin - WW + D
+            if xMinD < 0: xMinD = 0
 
-            xMaxD=xMax+WW-D
+            xMaxD = xMax + WW - D
             if xMaxD > WImg: xMaxD = WImg
 
             yMinD = yMin - HW + D
@@ -614,172 +608,167 @@ class DNImgCut:
 
                     # Ставим соответствие положение сканирующего окна и пересекающихся полигонов
                     # только для непустых окон
-                    if not PolsOV==None:
+                    if not PolsOV == None:
                         WPosProp['pn'].append([int(pnX), int(pnY)])
                         WPosProp['PolsObj'].append(PolsOV)
 
             # Если по пробеганию окна по всей зоне кластера не нашлось ни одного полигона, то выходим из цикла
-            if len(WPosProp['pn'])==0:
+            if len(WPosProp['pn']) == 0:
                 break
 
             # Выбираем оптимальную позицию
-            IndxOV=[WPosProp['PolsObj'][i]['IndxGood'] for i in range(len(WPosProp['pn']))]
-            IndxOun=[WPosProp['PolsObj'][i]['IndxOun'] for i in range(len(WPosProp['pn']))]
-            IndxBad=[WPosProp['PolsObj'][i]['IndxBad'] for i in range(len(WPosProp['pn']))]
-
+            IndxOV = [WPosProp['PolsObj'][i]['IndxGood'] for i in range(len(WPosProp['pn']))]
+            IndxOun = [WPosProp['PolsObj'][i]['IndxOun'] for i in range(len(WPosProp['pn']))]
+            IndxBad = [WPosProp['PolsObj'][i]['IndxBad'] for i in range(len(WPosProp['pn']))]
 
             # 1. Узнаем позиции окна, где все полигоны попадают полностью
-            IndxWPosPOun=[i for i in range(len(WPosProp['pn'])) if len(IndxBad[i])==0 and len(IndxOV[i])==0
-                      and not len(IndxOun)==0]
+            IndxWPosPOun = [i for i in range(len(WPosProp['pn'])) if len(IndxBad[i]) == 0 and len(IndxOV[i]) == 0
+                            and not len(IndxOun) == 0]
 
             # 2. Узнаем позиции окна, где нет полигонов, которые плохо нарезались (с маленькими остатками от нарезания)
-            IndxWPosPNoBad=[i for i in range(len(WPosProp['pn'])) if len(IndxBad[i])==0 and not len(IndxOV[i])==0]
+            IndxWPosPNoBad = [i for i in range(len(WPosProp['pn'])) if len(IndxBad[i]) == 0 and not len(IndxOV[i]) == 0]
 
             # 3. Узнаем позиции окна, где есть и плохо нарезаные полигоны
-            IndxWPosPBad=[i for i in range(len(WPosProp['pn'])) if not len(IndxBad[i])==0]
+            IndxWPosPBad = [i for i in range(len(WPosProp['pn'])) if not len(IndxBad[i]) == 0]
 
-            IndxWPosRes=-1 # Результирующий индекс выгодного положения окна
+            IndxWPosRes = -1  # Результирующий индекс выгодного положения окна
 
-            #1. Если найдены позиции окна, где все полигоны попадают полностью
-            if not len(IndxWPosPOun)==0:
-                #1.1 Узнаем позицию окна с максимальным количеством таких полигонов
-                NumbOunPol=[len(IndxOun[i]) for i in IndxWPosPOun]
-                IndxMaxNumbPol=[i for i, v in enumerate(NumbOunPol) if v == max(NumbOunPol)]
+            # 1. Если найдены позиции окна, где все полигоны попадают полностью
+            if not len(IndxWPosPOun) == 0:
+                # 1.1 Узнаем позицию окна с максимальным количеством таких полигонов
+                NumbOunPol = [len(IndxOun[i]) for i in IndxWPosPOun]
+                IndxMaxNumbPol = [i for i, v in enumerate(NumbOunPol) if v == max(NumbOunPol)]
                 IndxWOun = [IndxWPosPOun[i] for i in IndxMaxNumbPol]
 
-                #1.2 Из отобранных позиций, выбираем такие, которые имеют минимальную площадь пересечения со старыми окнами
-                if not len(pnList)==0:
-                    pnWinList=[WPosProp['pn'][i] for i in range(len(WPosProp['pn'])) if i in IndxWOun]
-                    Indx=cls.FinedMinAreaOVWinPos(pnWinList,pnList,WW,HW)
+                # 1.2 Из отобранных позиций, выбираем такие, которые имеют минимальную площадь пересечения со старыми окнами
+                if not len(pnList) == 0:
+                    pnWinList = [WPosProp['pn'][i] for i in range(len(WPosProp['pn'])) if i in IndxWOun]
+                    Indx = cls.FinedMinAreaOVWinPos(pnWinList, pnList, WW, HW)
                     IndxWOun = [IndxWOun[i] for i in Indx]
 
-                #1.3 Выбираем такую позицию окна, где большинство полигонов расположены ближе к центру окна
-                DMass=[]
+                # 1.3 Выбираем такую позицию окна, где большинство полигонов расположены ближе к центру окна
+                DMass = []
                 for i in IndxWOun:
                     WPolSHP = cls.CreateWPolSHP(WPosProp['pn'][i], WW, HW)
-                    pWc=WPolSHP.centroid
-                    psPolsc=[Pol.centroid for Pol in WPosProp['PolsObj'][i]['Polys']]
-                    Dist=[pWc.distance(pP) for pP in psPolsc]
-                    DMean=np.mean(Dist)
+                    pWc = WPolSHP.centroid
+                    psPolsc = [Pol.centroid for Pol in WPosProp['PolsObj'][i]['Polys']]
+                    Dist = [pWc.distance(pP) for pP in psPolsc]
+                    DMean = np.mean(Dist)
                     DMass.append(DMean)
 
-                IndxRes=DMass.index(min(DMass))
-                IndxWPosRes=IndxWOun[IndxRes]
+                IndxRes = DMass.index(min(DMass))
+                IndxWPosRes = IndxWOun[IndxRes]
 
-            #2. Если при любой позиции окна полигоны режутся, но нет плохо нарезаных полигонов
-            elif len(IndxWPosPOun)==0 and not len(IndxWPosPNoBad)==0:
+            # 2. Если при любой позиции окна полигоны режутся, но нет плохо нарезаных полигонов
+            elif len(IndxWPosPOun) == 0 and not len(IndxWPosPNoBad) == 0:
                 # 2.1 Выбираем позицию окна, где точки полигонов лежат по одну сторону от окна
                 # (полигоны не должны пересекать противоположные стороны окна)
-                IndxWPos=IndxWPosPNoBad.copy()
-                ValidPos=[]
+                IndxWPos = IndxWPosPNoBad.copy()
+                ValidPos = []
                 for i in IndxWPos:
                     WPolSHP = cls.CreateWPolSHP(WPosProp['pn'][i], WW, HW)
-                    ValidPos.append(cls.PointPolyPosWin(WPolSHP,WPosProp['PolsObj'][i]['Polys']))
+                    ValidPos.append(cls.PointPolyPosWin(WPolSHP, WPosProp['PolsObj'][i]['Polys']))
 
-                IndxWPos=[IndxWPos[i] for i,v in enumerate(IndxWPos) if ValidPos[i]]
-                if len(IndxWPos)==0: IndxWPos=IndxWPosPNoBad.copy()
+                IndxWPos = [IndxWPos[i] for i, v in enumerate(IndxWPos) if ValidPos[i]]
+                if len(IndxWPos) == 0: IndxWPos = IndxWPosPNoBad.copy()
 
-
-                #2.2 Узнаем позицию окна с максимальным количеством целых полигонов
+                # 2.2 Узнаем позицию окна с максимальным количеством целых полигонов
                 NumbOunPol = [len(IndxOun[i]) for i in IndxWPos]
                 IndxMaxNumbPol = [i for i, v in enumerate(NumbOunPol) if v == max(NumbOunPol)]
                 IndxWPos = [IndxWPos[i] for i in IndxMaxNumbPol]
 
-                #2.3 Из отобранных позиций, выбираем такие,
+                # 2.3 Из отобранных позиций, выбираем такие,
                 # которые имеют минимальную площадь пересечения со старыми окнами
-                if not len(pnList)==0:
-                    pnWinList=[WPosProp['pn'][i] for i in range(len(WPosProp['pn'])) if i in IndxWPos]
-                    Indx=cls.FinedMinAreaOVWinPos(pnWinList,pnList,WW,HW)
+                if not len(pnList) == 0:
+                    pnWinList = [WPosProp['pn'][i] for i in range(len(WPosProp['pn'])) if i in IndxWPos]
+                    Indx = cls.FinedMinAreaOVWinPos(pnWinList, pnList, WW, HW)
                     IndxWPos = [IndxWPos[i] for i in Indx]
 
-                #2.4 Выбираем позицию окна, где в среднем захватывается обльшая часть площадей полигонов
+                # 2.4 Выбираем позицию окна, где в среднем захватывается обльшая часть площадей полигонов
                 # (больше всего целыхполигонов без учета размера самих полигонов)
-                PartAreaMean=[]
+                PartAreaMean = []
                 for i in IndxWPos:
                     PartAreaMean.append(np.mean(WPosProp['PolsObj'][i]['PartArea']))
 
-                #Здесь можно еще доделать проверку на максимальную площадь полигонов попадающих в окно
+                # Здесь можно еще доделать проверку на максимальную площадь полигонов попадающих в окно
 
                 IndxRes = PartAreaMean.index(max(PartAreaMean))
-                IndxWPosRes=IndxWPos[IndxRes]
+                IndxWPosRes = IndxWPos[IndxRes]
 
-            #3. Если при любой позиции окна полигоны режутся так, что есть плохо нарезаные полигоны
-            elif len(IndxWPosPOun)==0 and len(IndxWPosPNoBad)==0 and not len(IndxWPosPBad)==0:
-                IndxWPos=IndxWPosPBad.copy()
-                #3.1 Узнаем позиции окон с максимальным количеством хорошо нарезанных полигонов
-                NumbNoBadPol = [len(IndxOV[i])+len(IndxOun[i]) for i in IndxWPos]
+            # 3. Если при любой позиции окна полигоны режутся так, что есть плохо нарезаные полигоны
+            elif len(IndxWPosPOun) == 0 and len(IndxWPosPNoBad) == 0 and not len(IndxWPosPBad) == 0:
+                IndxWPos = IndxWPosPBad.copy()
+                # 3.1 Узнаем позиции окон с максимальным количеством хорошо нарезанных полигонов
+                NumbNoBadPol = [len(IndxOV[i]) + len(IndxOun[i]) for i in IndxWPos]
                 IndxMaxNumbGoodPol = [i for i, v in enumerate(NumbNoBadPol) if v == min(NumbNoBadPol)]
-                IndxWPos=[IndxWPos[i] for i in IndxMaxNumbGoodPol]
+                IndxWPos = [IndxWPos[i] for i in IndxMaxNumbGoodPol]
 
-                #3.1 Узнаем позицию окна с минимальным количеством плохо нарезанных полигонов
+                # 3.1 Узнаем позицию окна с минимальным количеством плохо нарезанных полигонов
                 NumbBadPol = [len(IndxBad[i]) for i in IndxWPos]
                 IndxMinNumbBadPol = [i for i, v in enumerate(NumbBadPol) if v == min(NumbBadPol)]
-                IndxWPos=[IndxWPos[i] for i in IndxMinNumbBadPol]
+                IndxWPos = [IndxWPos[i] for i in IndxMinNumbBadPol]
 
-                #3.2 Выбираем позицию окна со значимыми значениями площадей (так, чтобы пересечение с окном давали результыты)
-                AreasList=[WPosProp['PolsObj'][i]['AreaOV'] for i in range(len(WPosProp['pn'])) if i in IndxWPos]
-                NumbIndx=[]
+                # 3.2 Выбираем позицию окна со значимыми значениями площадей (так, чтобы пересечение с окном давали результыты)
+                AreasList = [WPosProp['PolsObj'][i]['AreaOV'] for i in range(len(WPosProp['pn'])) if i in IndxWPos]
+                NumbIndx = []
                 for i in range(len(AreasList)):
-                    NumbIndx.append(len([j for j,v in enumerate(AreasList[i]) if v>0.1]))
+                    NumbIndx.append(len([j for j, v in enumerate(AreasList[i]) if v > 0.1]))
 
                 if DEBUG:
-                    if max(NumbIndx)==0:
+                    if max(NumbIndx) == 0:
                         print("Произошла поебень. Нет окон в которых полигоны бы нормально резались,"
                               "т.е. пересечение полигонов с окном были бы значимыми")
 
-                Indx=[i for i,v in enumerate(NumbIndx) if v>0]
-                if not len(Indx)==0:
+                Indx = [i for i, v in enumerate(NumbIndx) if v > 0]
+                if not len(Indx) == 0:
                     IndxWPos = [IndxWPos[i] for i in Indx]
 
-                #3.3 Выбираем позицию окна с минимальным перекрытием с другими окнами
-                if not len(pnList)==0:
-                    pnWinList=[WPosProp['pn'][i] for i in range(len(WPosProp['pn'])) if i in IndxWPos]
-                    Indx=cls.FinedMinAreaOVWinPos(pnWinList,pnList,WW,HW)
+                # 3.3 Выбираем позицию окна с минимальным перекрытием с другими окнами
+                if not len(pnList) == 0:
+                    pnWinList = [WPosProp['pn'][i] for i in range(len(WPosProp['pn'])) if i in IndxWPos]
+                    Indx = cls.FinedMinAreaOVWinPos(pnWinList, pnList, WW, HW)
                     IndxWPos = [IndxWPos[i] for i in Indx]
-
 
                 # Выбираем позицию окна, где в среднем захватывается обльшая часть полигонов
-                PartAreaMean=[]
+                PartAreaMean = []
                 for i in IndxWPos:
                     PartAreaMean.append(np.mean(WPosProp['PolsObj'][i]['PartArea']))
 
                 IndxRes = PartAreaMean.index(max(PartAreaMean))
-                IndxWPosRes=IndxWPos[IndxRes]
+                IndxWPosRes = IndxWPos[IndxRes]
 
                 if DEBUG:
                     print("Следует уменьшить шаг смещения окна, есть полигоны, которые плохо режутся")
 
-
             if DEBUG:
-                if IndxWPosRes==-1:
+                if IndxWPosRes == -1:
                     print("Произошла поебень. Не найдена оптимальная позиция окна при существовании полигонов")
-            if IndxWPosRes>=0:
+            if IndxWPosRes >= 0:
                 pnList.append(WPosProp['pn'][IndxWPosRes])
             # Режем полигоны, попадающие в окно
             # Ищим пересечение полигонов с окном
-            WPolSHP=cls.CreateWPolSHP(pnList[-1],WW,HW)
+            WPolSHP = cls.CreateWPolSHP(pnList[-1], WW, HW)
             if DEBUG:
-                IndxPolEmpty=[i for i, v in enumerate(PolsSHPCop) if v.is_empty]
-                if not len(IndxPolEmpty)==0:
+                IndxPolEmpty = [i for i, v in enumerate(PolsSHPCop) if v.is_empty]
+                if not len(IndxPolEmpty) == 0:
                     print("Произошла поебень, пустой полигон в списке полигонов")
 
-            PolsListW=cls.PolsListIntersection(WPolSHP,PolsSHPCop)
+            PolsListW = cls.PolsListIntersection(WPolSHP, PolsSHPCop)
 
             # Ищем индексы полигонов с непустым пересечением
-            IndxPolsOW=[i for i, v in enumerate(PolsListW["PolsSHP"]) if not v[0].is_empty]
+            IndxPolsOW = [i for i, v in enumerate(PolsListW["PolsSHP"]) if not v[0].is_empty]
 
             if DEBUG:
-                if len(IndxPolsOW)==0:
+                if len(IndxPolsOW) == 0:
                     print("Произошла поебень, не может IndxPolsOW быть пустым")
                     return pnList
 
             # Для каждого индекса вычитаем часть полигона, находящегося в окне
-            NumClsApp=[]
-            PolApp=[]
+            NumClsApp = []
+            PolApp = []
             for i in IndxPolsOW:
                 # Вычитаем из из полигона окно
-                PolListDif=cls.PolsDifference(PolsSHPCop[i],WPolSHP)['PolsSHP']
-
+                PolListDif = cls.PolsDifference(PolsSHPCop[i], WPolSHP)['PolsSHP']
 
                 # Добавляем данные вычитания
                 for Pol in PolListDif:
@@ -788,16 +777,15 @@ class DNImgCut:
                         PolApp.append(Pol)
 
             # Удаляем старые данные
-            PolsSHPCop=[v for i, v in enumerate(PolsSHPCop) if not i in IndxPolsOW]
+            PolsSHPCop = [v for i, v in enumerate(PolsSHPCop) if not i in IndxPolsOW]
             NumClsPolsCop = [v for i, v in enumerate(NumClsPolsCop) if not i in IndxPolsOW]
 
             # Добавляем в конец новые
-            if not len(PolApp)==0:
-                PolsSHPCop+=PolApp
-                NumClsPolsCop+=NumClsApp
+            if not len(PolApp) == 0:
+                PolsSHPCop += PolApp
+                NumClsPolsCop += NumClsApp
 
-            Count+=1
-
+            Count += 1
 
         return pnList
 
@@ -827,13 +815,12 @@ class DNImgCut:
             # Процент площади пересечения
 
             if DEBUG:
-                IndxDeb=[i for i,v in enumerate(AreaP) if v<0.0001]
-                if not len(IndxDeb)==0:
-                    print("Произошла поебень, в списке исходных полигонов есть полигоны с нулевой площадью. Такого быть не должно")
-
+                IndxDeb = [i for i, v in enumerate(AreaP) if v < 0.0001]
+                if not len(IndxDeb) == 0:
+                    print(
+                        "Произошла поебень, в списке исходных полигонов есть полигоны с нулевой площадью. Такого быть не должно")
 
             ProcAreaOverlap = np.array(AreaOV) / np.array(AreaP)
-
 
             # Проветяем удовлетворение условию площади пересечения сканирующей рамки с полигонами для разных классов
             PolSHP = []
@@ -853,22 +840,22 @@ class DNImgCut:
                 # 1. В сканирующем окне больше пороговой
                 # 2. За пределами сканирующего окна больше пороговой
                 if ProcAreaOverlap[i] >= ProcOverlapPols[ClsNum] and \
-                    ProcAreaOverlap[i]< 1-ProcOverlapPols[ClsNum]:
+                        ProcAreaOverlap[i] < 1 - ProcOverlapPols[ClsNum]:
                     GoodIndxOV.append(Indx_OV[i])
 
                 # Если полигон целиком попадает в сканирующее окно (записываем отдельным индексом)
-                elif ProcAreaOverlap[i]>0.999:
+                elif ProcAreaOverlap[i] > 0.999:
                     GoodIndxOunOV.append(Indx_OV[i])
 
                 else:
                     BadIndxOV.append(Indx_OV[i])
 
-            return {'ClsNums': ClsNumsPol, 'Polys': PolSHP, 'AreaOV':AreaOV, 'PartArea': PartArea,
-                    'IndxGood': GoodIndxOV, 'IndxOun':GoodIndxOunOV, 'IndxBad':BadIndxOV}
+            return {'ClsNums': ClsNumsPol, 'Polys': PolSHP, 'AreaOV': AreaOV, 'PartArea': PartArea,
+                    'IndxGood': GoodIndxOV, 'IndxOun': GoodIndxOunOV, 'IndxBad': BadIndxOV}
 
-
-    def CutImg(self, NumImg: int, SizeWind: int, ProcOverlapPol: [], ProcOverlapW: float, output_image_dir: str,DKray:int,
-               IsSmartCut:bool):
+    def CutImg(self, NumImg: int, SizeWind: int, ProcOverlapPol: [], ProcOverlapW: float, output_image_dir: str,
+               DKray: int,
+               IsSmartCut: bool):
         """Функция нарезки картинки
         ProcOverlapPol - пороговое значение части площади пересечения полигона со сканирующим окном
         с которого считается, что полигон попадает в окно"""
@@ -928,9 +915,10 @@ class DNImgCut:
 
         # AZ
         if IsSmartCut:
-            WPos = DNImgCut.GetPosWindShp2(WW, HW, W, H, ProcOverlapPol,DKray, ProcOverlapW, PolsSHP, Pols['ClsNums'])
+            WPos = DNImgCut.GetPosWindShp2(WW, HW, W, H, ProcOverlapPol, DKray, ProcOverlapW, PolsSHP, Pols['ClsNums'])
         else:
-            WPos=DNImgCut.GetPosWindShp(pWind,WW,HW,WObl,HObl,ProcOverlapPol,ProcOverlapW,PolsSHP,Pols['ClsNums'])
+            WPos = DNImgCut.GetPosWindShp(pWind, WW, HW, WObl, HObl, ProcOverlapPol, ProcOverlapW, PolsSHP,
+                                          Pols['ClsNums'])
 
         # if DEBUG:
         #     Count=0
@@ -943,7 +931,6 @@ class DNImgCut:
         #         Prob=self.JsonObj.PrintPolys(ContWind,Img)
         #         plt.imshow(Prob)
         #         plt.show()
-
 
         # Для каждой позиции сканирующего окна режем полигоны, площадь пересечения которых больше порогового значения
         i = 0  # счетчик имён нарезанных картинок (в пределах обрабатываемого исходного снимка)
@@ -961,7 +948,7 @@ class DNImgCut:
                 IndxNoCutPol += PolsOvSHP['IndxGood']
 
             # Режем каждый полигон по границе сканирующего окна
-            ListPolsCutSHP =self.PolsListIntersection(WPolSHP,PolsOvSHP['Polys'])
+            ListPolsCutSHP = self.PolsListIntersection(WPolSHP, PolsOvSHP['Polys'])
             PolsCut = []
             ClsNums = []
 
@@ -1016,7 +1003,7 @@ class DNImgCut:
 
     # Функция нарезки всех картинок в json файле и генерация нового json-файла
     def CutAllImgs(self, SizeWind: int, ProcOverlapPol: [], ProcOverlapW: float,
-                   NameJsonFile: str,DKray:int,IsSmartCut:bool,IsHandCut:bool):
+                   NameJsonFile: str, DKray: int, IsSmartCut: bool, IsHandCut: bool):
         """Функция нарезки изображений, записанных в json (проверка на наличие изображений отсутствует)
         SizeWind - размер сканирующего окна,
         ProcOverlapPol - пороговое значение процента площади перекрытия полигона окном,
@@ -1039,7 +1026,7 @@ class DNImgCut:
             JsonAllData['images'] = {}
             for i in range(len(self.JsonObj.ImgsName)):
                 CutData = self.CutImg(i, SizeWind, ProcOverlapPol, ProcOverlapW,
-                                    os.path.dirname(NameJsonFile),DKray,IsSmartCut)
+                                      os.path.dirname(NameJsonFile), DKray, IsSmartCut)
 
                 # Перебор по нарезанным картинкам одного исходного изображения
                 for j in range(len(CutData['ImgNames'])):
@@ -1057,24 +1044,24 @@ class DNImgCut:
             with codecs.open(NameJsonFile, 'w', 'utf-8') as file:
                 file.write(str(JsonAllDataStr))
 
-        #Если есть файл для ручной нарезки
+        # Если есть файл для ручной нарезки
         elif self.JsonObj.IsHandCutImgs:
             JsonAllData = {}
             # Формируем путь для записи файлов
-            JsonAllData['path_to_images']=os.path.join(os.path.dirname(NameJsonFile),'MCImgs')
-            NameOutputMCJsonFile=os.path.splitext(os.path.basename(NameJsonFile))[0]
-            NameOutputMCJsonFile=NameOutputMCJsonFile+'.json_mc'
+            JsonAllData['path_to_images'] = os.path.join(os.path.dirname(NameJsonFile), 'MCImgs')
+            NameOutputMCJsonFile = os.path.splitext(os.path.basename(NameJsonFile))[0]
+            NameOutputMCJsonFile = NameOutputMCJsonFile + '.json_mc'
 
             # Если нет каталога для хранения нарезанных картинок
             if not os.path.isdir(JsonAllData['path_to_images']):
                 os.mkdir(JsonAllData['path_to_images'])
 
-            JsonAllData['images']={}
+            JsonAllData['images'] = {}
             # Перебор по всем картинкам для ручной нарезки
             for i in range(len(self.JsonObj.ImgsNameMC)):
-                if not self.JsonObj.WinPosPtMC[i]==None:
-                    CutData = self.CutImgHand(self.JsonObj.SizeWinMC,i,self.JsonObj.WinPosPtMC[i],
-                                                JsonAllData['path_to_images'])
+                if not self.JsonObj.WinPosPtMC[i] == None:
+                    CutData = self.CutImgHand(self.JsonObj.SizeWinMC, i, self.JsonObj.WinPosPtMC[i],
+                                              JsonAllData['path_to_images'])
 
                     # Перебор по нарезанным картинкам одного исходного изображения
                     for j in range(len(CutData['ImgNames'])):
@@ -1089,10 +1076,9 @@ class DNImgCut:
             JsonAllDataStr = json.dumps(JsonAllData, ensure_ascii=False, sort_keys=False)
 
             # Запись строки в файл
-            NameJsonMCFile=os.path.join(JsonAllData['path_to_images'],NameOutputMCJsonFile)
+            NameJsonMCFile = os.path.join(JsonAllData['path_to_images'], NameOutputMCJsonFile)
             with codecs.open(NameJsonMCFile, 'w', 'utf-8') as file:
                 file.write(str(JsonAllDataStr))
-
 
         if DEBUG:
             print("Нарезка завершена")
@@ -1102,7 +1088,7 @@ class DNImgCut:
         # finally:  # действия в случае успешного выполнения
         return self.cut_images_count
 
-    def CutImgHand(self,SizeWind: int,NumImg:int,PtC:[], output_image_dir: str):
+    def CutImgHand(self, SizeWind: int, NumImg: int, PtC: [], output_image_dir: str):
         """Функция нарезки изображений в ручном режиме"""
         # Читаем все полигоны с картинки
         Pols = self.JsonObj.ReadPolygons(NumImg)
@@ -1121,38 +1107,37 @@ class DNImgCut:
         H = Img.shape[0]
         W = Img.shape[1]
 
-
         # Определяем позиции окна исходя из координат центральных точек
-        dW=int(SizeWind/2)
-        dH=int(SizeWind/2)
-        WW=SizeWind
-        HW=SizeWind
+        dW = int(SizeWind / 2)
+        dH = int(SizeWind / 2)
+        WW = SizeWind
+        HW = SizeWind
 
-        WPos=[]
+        WPos = []
         for Pt in PtC:
-            xn=int(Pt[0]-dW)
-            yn=int(Pt[1]-dH)
+            xn = int(Pt[0] - dW)
+            yn = int(Pt[1] - dH)
 
-            if xn<0: xn=0
-            if xn+SizeWind>W: xn=W-SizeWind
+            if xn < 0: xn = 0
+            if xn + SizeWind > W: xn = W - SizeWind
 
-            if yn<0: yn=0
-            if yn+SizeWind>H: yn=H-SizeWind
+            if yn < 0: yn = 0
+            if yn + SizeWind > H: yn = H - SizeWind
 
-            WPos.append([xn,yn])
+            WPos.append([xn, yn])
 
         # Режем изображение
         NameCropImgs = []
         PolsImg = []
         ClsNumsImg = []
-        i=0 # Счетчик изображений
+        i = 0  # Счетчик изображений
         for pW in WPos:
             # Строим SHP полигон из сканирующего окна
             WPolSHP = DNImgCut.CreateWPolSHP(pW, WW, HW)
 
             # Находим валидные полигоны
-            ClsNumsMax=max(Pols['ClsNums'])
-            ProcOverlapPol=[0]*(ClsNumsMax+1)
+            ClsNumsMax = max(Pols['ClsNums'])
+            ProcOverlapPol = [0] * (ClsNumsMax + 1)
             PolsOvSHP = DNImgCut.FindPolyOverload(WPolSHP, PolsSHP, ProcOverlapPol, Pols['ClsNums'])
             if DEBUG:
                 if PolsOvSHP == None:
@@ -1161,7 +1146,7 @@ class DNImgCut:
 
             if not PolsOvSHP == None:
                 # Режем каждый полигон по границе сканирующего окна
-                ListPolsCutSHP =self.PolsListIntersection(WPolSHP,PolsOvSHP['Polys'])
+                ListPolsCutSHP = self.PolsListIntersection(WPolSHP, PolsOvSHP['Polys'])
                 PolsCut = []
                 ClsNums = []
 

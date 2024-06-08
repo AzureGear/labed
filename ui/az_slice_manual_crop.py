@@ -11,6 +11,8 @@ import os
 the_color = UI_COLORS.get("processing_color")
 the_color2 = UI_COLORS.get("processing_color")
 
+# TODO: сделать чтобы класс Дениса MC вызывался как функция, которая бы обновляла данные, чтобы я мог просто обновить объект класса и проверить получение данных. Или нет, ведь файл может отличаться и выбран быть не тот, что пренадлежит JSNO'у...
+
 
 class AzManualSlice(QtWidgets.QMainWindow):
     """
@@ -151,7 +153,8 @@ class AzManualSlice(QtWidgets.QMainWindow):
         # self.image_widget.PyQt5.QtCore.QPointF(625.6515151515151, 1021.284090909091)
 
         point_mc = utils.az_graphic_view.AzPointWithRect(QtCore.QPointF(625.6515151515151, 1021.284090909091),
-                                                         QtGui.QColor(QtCore.Qt.GlobalColor.yellow), self.current_scan_size)
+                                                         QtGui.QColor(QtCore.Qt.GlobalColor.yellow),
+                                                         self.current_scan_size)
         print(point_mc.point)
         self.image_widget.scene().addItem(point_mc)  # добавляем объект на сцену
 
@@ -181,10 +184,15 @@ class AzManualSlice(QtWidgets.QMainWindow):
         check_file = self.input_file.FullNameJsonFile
         check_file += "_mc"
         if os.path.exists(check_file):
-            if az_custom_dialog("Ручное кадрирование", "Найден файл для выбранного проекта, загрузить его?", True,
-                                True, parent=self) == 1:
+            dialog = az_custom_dialog("Ручное кадрирование", "Найден файл для выбранного проекта, загрузить его?", True,
+                                      True, custom_button=True, custom_text="Пересоздать", parent=self)
+            if dialog == 1:  # открыть найденный
                 self.clear()
                 self.load_mc_file(check_file)  # загружаем найденный файл проекта РК
+            elif dialog == 4:  # пересоздать
+                self.clear()
+                save(check_file, self.create_blank_file())  # пересоздаём
+                self.load_mc_file(check_file)
         else:  # файла не существует, значит...
             save(check_file, self.create_blank_file())  # ...создаём новый пустой файл
             self.load_mc_file(check_file, "Создан проект ручного кадрирования '%s'")
@@ -207,6 +215,9 @@ class AzManualSlice(QtWidgets.QMainWindow):
                 return
             original_json = self.input_file.FullNameJsonFile
             manual_crop_json = load(path)  # внутренний файл РК *.json_mc
+            if manual_crop_json is None:  # ошибка загрузки
+                self.signal_message.emit(f"Произошла ошибка при загрузке проекта ручного кадрирования: '{path}'")
+                return
             if original_json != manual_crop_json["filename"]:
                 if az_custom_dialog("Автозагрузка проекта ручного кадрирования", "Имена проектов оригинального JSON и \
                 ручного кадрирования не совпадают. Продолжить загрузку?", True, True) == 2:

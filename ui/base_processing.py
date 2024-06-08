@@ -323,11 +323,13 @@ class ProcessingUI(QtWidgets.QWidget):
         self.json_obj = dn_crop.DNjson(self.slice_input_file_path.text())  # Файл проекта, реализация Дениса
         if not self.json_obj.good_file:
             self.signal_message.emit("Выбранный файл не является корректным либо не содержит необходимых данных")
+            self.slice_tab_labels.hide()
             self.slice_exec.setEnabled(False)  # отключаем возможность Разрезать
             self.manual_wid.update_input_data(None)  # передаём "Отсутствие" данных для настройки панели Ручной резки
             return
         self.slice_exec.setEnabled(True)
         model_data = []  # данные для отображения
+        self.slice_tab_labels.show()
         for label in self.json_obj.labels:
             # [наименование метки, процент перекрытия]
             model_data.append([label, int(self.slice_overlap_pols_default.text())])

@@ -91,10 +91,15 @@ def random_color():  # генерируем случайные цвета
     return rand_col
 
 
-def load(json_path):
-    with open(json_path, 'r', encoding='utf8') as f:
-        data = ujson.load(f)
-        return data
+def load(file_path):
+    try:
+        with open(file_path, 'r') as f:
+            data = ujson.load(f)
+            return data
+    except ujson.JSONDecodeError:
+        print(f"Файл {file_path} пустой, либо содержит некорректные данные.")
+        return None
+
 
 
 def save(json_path, data, mode='w'):
