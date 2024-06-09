@@ -299,10 +299,18 @@ class ProcessingUI(QtWidgets.QWidget):
             # объект класса для автоматического кадрирования
             cut_images = dn_crop.DNImgCut(os.path.dirname(self.slice_input_file_path.text()),
                                           os.path.basename(self.slice_input_file_path.text()))
-            # запуск автоматического кадрирования функцией Дениса
+            # запуск автоматического кадрирования функцией
+            print(cut_images.JsonObj.IsHandCutImgs, " json_mc before")
+            cut_images.JsonObj.hand_cut_init()  # инициализируем данные для ручного кадрирования
+            cut_images.update_images_data()  # обновляем данные для изображений
+            print(cut_images.JsonObj.IsHandCutImgs, " json_mc after")
             proc_imgs = cut_images.CutAllImgs(self.slice_scan_size.value(), pols_overlap_percent,
                                               self.slice_overlap_window.value() / 100, new_name,
-                                              self.slice_edge.value(), not self.slice_smart_crop.isChecked(), False)
+                                              self.slice_edge.value(), not self.slice_smart_crop.isChecked(), True)
+
+            # proc_imgs = cut_images.CutAllImgs(self.slice_scan_size.value(), pols_overlap_percent,
+            #                                   self.slice_overlap_window.value() / 100, new_name,
+            #                                   self.slice_edge.value(), not self.slice_smart_crop.isChecked(), False)
             if proc_imgs > 0:
                 self.signal_message.emit("Кадрирование завершено. Общее количество изображений %s" % proc_imgs)
             elif proc_imgs == 0:

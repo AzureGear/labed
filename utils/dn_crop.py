@@ -19,22 +19,23 @@ DEBUG = True  # активатор режима отладки
 class DNjson:
     """ Класс работы с исходными данными (результатами НС), записанными в формате json"""
 
-    def __init__(self, FullNameJsonFile: str):
+    def __init__(self, FullNameJsonFile: str, init_mc_file=False):
         self.good_file = None  # флаг "порядка" файла SAMA JSON
         self.good_mc_file = None  # флаг "порядка" файла ручного кадрирования JSON_MC
         self.FullNameJsonFile = FullNameJsonFile
 
-        # Проверяем, есть ли файл для ручной нарезки
+        # Параметры для ручного кадрирования (ручной нарезки), теперь перед процедурой выполняем
+        # метод hand_cut_init, далее без изменений
         self.IsHandCutImgs = False
-        PathToJsonFile = os.path.dirname(FullNameJsonFile)
-        BaseNameJsonFile = os.path.splitext(os.path.basename(FullNameJsonFile))[0]
-        NameMCJsonFile = BaseNameJsonFile + '.json_mc'
-        self.FullNameMCJsonFile = os.path.join(PathToJsonFile, NameMCJsonFile)
-        self.IsHandCutImgs = os.path.exists(self.FullNameMCJsonFile)
+        self.FullNameMCJsonFile = None  # путь к файлу
+        self.DataMCDict = None
+        self.SizeWinMC = None
+        self.WinPosPtMC = None
+        self.PathToImgMC = None
+        self.ImgsNameMC = None
 
         # Получаем данные из файла в виде формата json
         self.DataDict = self.ReadDataJson()
-
         if self.DataDict:  # выполняем проверку
             # Читаем имена всех изображений, записанных в json
             self.ImgsName = self.ReadNamesImgs()
@@ -47,17 +48,9 @@ class DNjson:
             # Узнаем максимальный номер класса
             self.MaxClsNum = len(self.labels)  # print("Максимальный номер класса: ", self.MaxClsNum)
 
-        # Если есть файл для ручной нарезки
-        if self.IsHandCutImgs:
-            self.DataMCDict = self.ReadDataMCJson()
-            if self.DataMCDict:
-                # Читаем имена всех изображений в Json-файле для ручной разметки
-                self.ImgsNameMC = [NameImg for NameImg in self.DataMCDict["images"].keys()]
-                self.PathToImgMC = self.DataMCDict['path_to_images']
-
-                # Читаем точки позиций окон
-                self.WinPosPtMC = [self.DataMCDict['images'][NameImg] for NameImg in self.ImgsNameMC]
-                self.SizeWinMC = self.DataMCDict['scan_size']
+        # Если по умолчанию стоит проверка инициализации MC-файла:
+        if init_mc_file:
+            self.hand_cut_init()
 
     # Функции, использующиеся при инициализации класса
     # Функция чтения данных из файла Json
@@ -104,6 +97,26 @@ class DNjson:
             if field not in jsonMC_project_data:
                 return False
         return True
+
+    # Обновляем объект, проверяя есть ли данные для ручного кадрирования
+    def hand_cut_init(self):
+        PathToJsonFile = os.path.dirname(self.FullNameJsonFile)
+        BaseNameJsonFile = os.path.splitext(os.path.basename(self.FullNameJsonFile))[0]
+        NameMCJsonFile = BaseNameJsonFile + '.json_mc'
+        # Проверяем, есть ли файл для ручной нарезки
+        self.FullNameMCJsonFile = os.path.join(PathToJsonFile, NameMCJsonFile)
+        self.IsHandCutImgs = os.path.exists(self.FullNameMCJsonFile)
+        # Если есть файл для ручной нарезки
+        if self.IsHandCutImgs:
+            self.DataMCDict = self.ReadDataMCJson()
+            if self.DataMCDict:
+                # Читаем имена всех изображений в Json-файле для ручной разметки
+                self.ImgsNameMC = [NameImg for NameImg in self.DataMCDict["images"].keys()]
+                self.PathToImgMC = self.DataMCDict['path_to_images']
+
+                # Читаем точки позиций окон
+                self.WinPosPtMC = [self.DataMCDict['images'][NameImg] for NameImg in self.ImgsNameMC]
+                self.SizeWinMC = self.DataMCDict['scan_size']
 
     @classmethod
     def ReadJsonKeys(cls, DataDict):
@@ -250,22 +263,31 @@ class DNImgCut:
 
     def __init__(self, PathToJsonFile: str, NameJsonFile: str):
 
+        self.FullNamesImgsMCFile = None
+        self.FullNamesImgsFile = None
         self.cut_images_count = 0  # счетчик нарезанных изображений, в случае ошибки возвращает None
 
         # Создаем объект json
         FullNameJsonFile = PathToJsonFile + '/' + NameJsonFile
         self.JsonObj = DNjson(FullNameJsonFile)
+        self.update_images_data()  # пробуем загрузить данные об изображениях
 
-        PathToImg = self.JsonObj.PathToImg
+    def update_images_data(self):
+        # Заполнение данных об изображениях в каталогах для *.json и *.json_mc
+        if self.JsonObj.good_file:  # если файл подходит, заполняем
+            self.FullNamesImgsFile = []
+            for ImgName in self.JsonObj.ImgsName:
+                self.FullNamesImgsFile.append(os.path.join(self.JsonObj.PathToImg, ImgName))
+        else:  # иначе сообщаем о неприятности
+            print("Исходный файл *.json не содержит требуемых данных")
 
-        # Получение имен всех картинок в папке
-        self.FullNamesImgsFile = []
-        for ImgName in self.JsonObj.ImgsName:
-            self.FullNamesImgsFile.append(PathToImg + '/' + ImgName)
-
-        self.FullNamesImgsMCFile = []
-        for ImgName in self.JsonObj.ImgsNameMC:
-            self.FullNamesImgsMCFile.append(os.path.join(self.JsonObj.PathToImgMC, ImgName))
+        # Получение картинок для файла json_mc:
+        if self.JsonObj.IsHandCutImgs:
+            self.FullNamesImgsMCFile = []
+            for ImgName in self.JsonObj.ImgsNameMC:
+                self.FullNamesImgsMCFile.append(os.path.join(self.JsonObj.PathToImgMC, ImgName))
+        else:
+            print("Связанный файл *.json_mc не содержит требуемых данных")
 
     @classmethod
     def PolsIntersection(cls, Pol1, Pol2):
@@ -1049,8 +1071,9 @@ class DNImgCut:
             JsonAllData = {}
             # Формируем путь для записи файлов
             JsonAllData['path_to_images'] = os.path.join(os.path.dirname(NameJsonFile), 'MCImgs')
-            NameOutputMCJsonFile = os.path.splitext(os.path.basename(NameJsonFile))[0]
-            NameOutputMCJsonFile = NameOutputMCJsonFile + '.json_mc'
+            print(NameJsonFile)
+            NameOutputMCJsonFile = os.path.splitext(os.path.basename(NameJsonFile))[0] + "_mc"  # Az: выход - файл json
+            NameOutputMCJsonFile = NameOutputMCJsonFile + '.json'  # "mc" должна относится к имени файла, не расширения!
 
             # Если нет каталога для хранения нарезанных картинок
             if not os.path.isdir(JsonAllData['path_to_images']):

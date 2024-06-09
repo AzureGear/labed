@@ -4,7 +4,7 @@ from datetime import datetime
 import sys
 import traceback
 
-TESTING_MODE = True   # на этапе отладки желательно держать включённым
+TESTING_MODE = False   # на этапе отладки желательно держать включённым
 log_file_name = 'labed.log'  # имя файла ведения лога при ошибках
 
 # TODO: сделать загрузку предустановленных датасетов self.tb_load_preset.addActions
