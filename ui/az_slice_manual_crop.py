@@ -139,24 +139,33 @@ class AzManualSlice(QtWidgets.QMainWindow):
             self.image_widget.set_view_state()
 
     def point_add(self):  # добавить точку
-        if self.image_widget.view_state != ViewState.points_state:
-            self.image_widget.set_view_state(ViewState.points_state)
+        if self.image_widget.view_state != ViewState.point_add:
+            self.image_widget.set_view_state(ViewState.point_add)
         else:
             self.slice_actions[6].setChecked(False)
             self.image_widget.set_view_state()
 
     def point_move(self):  # передвинуть точку
-        pass
+        if self.image_widget.view_state != ViewState.point_move:
+            self.image_widget.set_view_state(ViewState.point_move)
+        else:
+            self.slice_actions[7].setChecked(False)
+            self.image_widget.set_view_state()
 
     def point_delete(self):  # удалить точку
-        import utils.az_graphic_view
+        if self.image_widget.view_state != ViewState.point_delete:
+            self.image_widget.set_view_state(ViewState.point_delete)
+        else:
+            self.slice_actions[8].setChecked(False)
+            self.image_widget.set_view_state()
+        # import utils.az_graphic_view
         # self.image_widget.PyQt5.QtCore.QPointF(625.6515151515151, 1021.284090909091)
-
-        point_mc = utils.az_graphic_view.AzPointWithRect(QtCore.QPointF(625.6515151515151, 1021.284090909091),
-                                                         QtGui.QColor(QtCore.Qt.GlobalColor.yellow),
-                                                         self.current_scan_size)
-        print(point_mc.point)
-        self.image_widget.scene().addItem(point_mc)  # добавляем объект на сцену
+        #
+        # point_mc = utils.az_graphic_view.AzPointWithRect(QtCore.QPointF(625.6515151515151, 1021.284090909091),
+        #                                                  QtGui.QColor(QtCore.Qt.GlobalColor.yellow),
+        #                                                  self.current_scan_size)
+        # print(point_mc.point)
+        # self.image_widget.scene().addItem(point_mc)  # добавляем объект на сцену
 
     def create_blank_file(self):  # создать новый пустой проект РК
         # --------------------------------------------------------------------------------------------------------------
@@ -301,7 +310,6 @@ class AzManualSlice(QtWidgets.QMainWindow):
             points = shape['points']
             # передаём на отрисовку: имя, цвет, точки
             self.image_widget.add_polygon_to_scene(class_name, color, points)
-
         if self.current_image_file:  # все добавлено и отображено, значит можно включать инструменты
             self.slice_toggle_toolbar(2)
 

@@ -24,17 +24,9 @@ class ViewState(Enum):
     vertex_move = 6  # перемещение вершины полигона
     hand_move = 7  # перемещение области изображения "рукой"
     hide_polygons = 8  # скрываем полигоны
-    points_state = 9  # добавляем центр-точку для автоматического формирования границ
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-class PointState(Enum):
-    """
-    Вариант состояния ViewState.point_state
-    """
-    add = 0
-    move = 1
-    delete = 2
+    point_add = 9  # добавляем центр-точку ручного кадрирования (РК)
+    point_move = 10  # перемещаем центр-точку РК
+    point_delete = 11  # удаляем центр-точку РК
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -63,20 +55,17 @@ class AzPointWithRect(QtWidgets.QGraphicsRectItem):
 
         self.line = QtWidgets.QGraphicsLineItem(self)  # диагональная линия
         self.line.setLine(draw_line(point, crop_size, True))
-        self.line.setPen(QtGui.QPen(color, 1, QtCore.Qt.SolidLine))
+        self.line.setPen(QtGui.QPen(color, 1, QtCore.Qt.PenStyle.SolidLine))
 
         self.line2 = QtWidgets.QGraphicsLineItem(self)  # диагональная линия 2
         self.line2.setLine(draw_line(point, crop_size, False))
-        self.line2.setPen(QtGui.QPen(color, 1, QtCore.Qt.SolidLine))
+        self.line2.setPen(QtGui.QPen(color, 1, QtCore.Qt.PenStyle.SolidLine))
 
         rect = QtCore.QRectF(point.x() - crop_size / 2, point.y() - crop_size / 2, crop_size, crop_size)
         self.setRect(rect)
-        self.setPen(QtGui.QPen(color, 2, QtCore.Qt.SolidLine))
+        self.setPen(QtGui.QPen(color, 2, QtCore.Qt.PenStyle.SolidLine))
         self.setFlags(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable |
                       QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable)
-
-    def mouseMoveEvent(self, event):
-        self.moveBy(event.pos().x() - event.lastPos().x(), event.pos().y() - event.lastPos().y())
 
     def repaint_border(self, new_crop_size):
         if self.crop_size == new_crop_size:
@@ -86,10 +75,15 @@ class AzPointWithRect(QtWidgets.QGraphicsRectItem):
             rect = QtCore.QRectF(self.point.x() - new_crop_size / 2, self.point.y() - new_crop_size / 2,
                                  new_crop_size, new_crop_size)
             self.setRect(rect)
-            self.setPen(QtGui.QPen(self.color, 2, QtCore.Qt.SolidLine))
+            self.setPen(QtGui.QPen(self.color, 2, QtCore.Qt.PenStyle.SolidLine))
+
+    def apply_offset(self, offset_x, offset_y):  # смещение центральной точки на дельту (может быть и отрицательной)
+        self.point.setX(self.point.x() + offset_x)
+        self.point.setY(self.point.y() + offset_y)
 
 
 def draw_line(point, crop_size, left_one=True):
+    # рисование внутренних перекрестных линий; left_one = True: 7 -> 3; left_one = False: 1 -> 9
     x = point.x()
     y = point.y()
     if left_one:
@@ -107,6 +101,7 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
     """
     Виджет для отображения изображений и меток/разметки (*.jpg, *.png и т.д.)
     """
+    list_mc_changed = QtCore.pyqtSignal(list)  # сигнал об изменении объекта self.points_mc
 
     def __init__(self, parent=None, active_color=None, fat_point_color=None, on_rubber_band_mode=None):
         super().__init__(parent)
@@ -119,150 +114,186 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
         self.view_state = ViewState.normal  # состояние виджета
         self.hand_start_point = None  # начальная точка для перемещения
         self.is_mid_click = False  # флаг использования средней клавиши
+        self.click_point = None  # сохранение для перемещения точек
+        self.points_mc = list()  # набор точек РК для данного снимка
         self.view_state_before_mid_click = None  # слот для сохранения текущего состояния виджета
-        self.drag_state = DragState.no  # состояние перетаскивания
-        self.scan_size = 1280
+        self.scan_size = 0  # по умолчанию ставим 0
 
-        self.drag = False  # FIRE
-        self.prev_pos = None  # FIRE
+        # self.drag = False  # FIRE
+        # self.prev_pos = None  # FIRE
 
     def crop_scan_size_changed(self, size):  # изменение рамок у границ объектов кадрирования
         self.scan_size = size
         pass
         # TODO: сделать при передаче scan_size'a пересчёт данных
 
-    def mousePressEvent(self, event):
-        # if event.button() == QtCore.Qt.MiddleButton and event.modifiers() == QtCore.Qt.AltModifier:
-        #     self.setDragMode(QtWidgets.QGraphicsView.NoDrag)
-        #     self.drag = True
-        #     self.prev_pos = event.pos()
-        #     self.setCursor(QtCore.Qt.SizeAllCursor)
-        # elif event.button() == QtCore.Qt.LeftButton:
-        #     self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
-        #
-        # # This does not work as i wanted, it is only changing the mouse icon
-        # elif event.button() == QtCore.Qt.MiddleButton:
-        #     # set hand icon..
-        #     self.setDragMode(QtWidgets.QGraphicsView.DragMode.ScrollHandDrag)
-        #     # print selected item position in scene.
-        #     for x in self.scene().selectedItems():
-        #         print(x.scenePos())
-        super(AzImageViewer, self).mousePressEvent(event)
+    # def mousePressEvent(self, event):
+    #     sp = self.mapToScene(event.pos())
+    #     lp = self.pixmap_item.mapFromScene(sp)
+    #     if event.button() == QtCore.Qt.LeftButton:
+    #         rect_item = QtWidgets.QGraphicsRectItem(lp.x(), lp.y(), 50, 50)
+    #         rect_item.setFlags(QtWidgets.QGraphicsRectItem.ItemIsSelectable | QtWidgets.QGraphicsRectItem.ItemIsMovable)
+    #         self.scene().addItem(rect_item)
+    #     elif event.button() == QtCore.Qt.RightButton:
+    #         items = self.scene().items(lp.__pos__())
+    #         for item in items:
+    #             if isinstance(item, QtWidgets.QGraphicsRectItem):
+    #                 if item.isSelected():
+    #                     item.setSelected(False)
+    #                 else:
+    #                     self.scene().clearSelection()
+    #                     item.setSelected(True)
+    #                 break
+    #         else:
+    #             self.scene().clearSelection()
+    # lp = self.pixmap_item.mapFromScene(sp)  # конвертация в координаты снимка
 
-    def mouseMoveEvent(self, event):
-        # if self.drag:
-        #     new_scale = self.matrix().m11()
-        #     delta = (self.mapToScene(event.pos()) - self.mapToScene(self.prev_pos)) * -1.0 * new_scale
-        #     center = QtCore.QPoint(self.viewport().width() / 2 + delta.x(), self.viewport().height() / 2 + delta.y())
-        #     new_center = self.mapToScene(center)
-        #     self.centerOn(new_center)
-        #     self.prev_pos = event.pos()
-        #     return
-        super(AzImageViewer, self).mouseMoveEvent(event)
+    def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
+        print("==========")
+        items = self.scene().items()
+        for item in items:
+            if isinstance(item, AzPointWithRect):
+                print(item.point)
 
-    def mouseReleaseEvent(self, event):
-        # if self.drag:
-        #     self.drag = False
-        #     self.setCursor(QtCore.Qt.ArrowCursor)
-        super(AzImageViewer, self).mouseReleaseEvent(event)
-        #
-        # if event.button() == QtCore.Qt.RightButton:
-        #     # Context Menu
-        #     menu = QtWidgets.QMenu()
-        #     save = menu.addAction('save')
-        #     load = menu.addAction('load')
-        #     selectedAction = menu.exec_(event.globalPos())
-        #
-        #     if selectedAction == save:
-        #         common.scene_save(self)
-        #     if selectedAction == load:
-        #         common.scene_load(self)
+        sp = self.mapToScene(event.pos())  # точка по клику, переведенная в координаты сцены
+        lp = self.pixmap_item.mapFromScene(sp)  # конвертация в координаты снимка
 
-    # def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
-    #     # modifierPressed = QtWidgets.QApplication.keyboardModifiers()
-    #     modifierName = ''
-    #
-    #     # определяем модификаторы нажатия мыши
-    #     if event.buttons() == QtCore.Qt.RightButton:
-    #         modifierName += " Right Click"
-    #     elif event.buttons() == QtCore.Qt.LeftButton:
-    #         modifierName += " Left Click"
-    #     elif event.buttons() == QtCore.Qt.MidButton:
-    #         # Сохраняем предыдущее состояние view_state
-    #         # Меняем временно, до MouseRelease состояние на hand_move
-    #         modifierName += " Mid Click"
-    #         self.is_mid_click = True
-    #         self.view_state_before_mid_click = self.view_state
-    #         self.view_state = ViewState.hand_move
-    #
-    #         if not self.hand_start_point:
-    #             self.hand_start_point = event.pos()
-    #             self.drag_state = DragState.start
-    #             self.viewport().setCursor(QtGui.QCursor(QtCore.Qt.ClosedHandCursor))
-    #         return
-    #
-    #     if self.view_state == ViewState.hand_move:
-    #         if not self.hand_start_point:
-    #             self.hand_start_point = event.pos()
-    #             self.drag_state = DragState.start
-    #             self.viewport().setCursor(QtGui.QCursor(QtCore.Qt.ClosedHandCursor))
-    #         return
-    #     elif self.view_state == ViewState.points_state:  # режим добавления точек
-    #         if 'Right Click' in modifierName:  # проверка на правую кнопку мыши
-    #             return  # добавление только левой кнопкой мыши, иначе выходим
-    #         sp = self.mapToScene(event.pos())
-    #         lp = self.pixmap_item.mapFromScene(sp)
-    #         point_mc = AzPointWithRect(lp, QtGui.QColor(the_color_crop), self.scan_size)
-    #         self.scene().addItem(point_mc)  # добавляем объект на сцену
-    #
-    # def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
-    #     # sp = self.mapToScene(event.pos())
-    #     # lp = self.pixmap_item.mapFromScene(sp)
-    #     if self.view_state == ViewState.hand_move:  # and self.drag_state == DragState.in_process:
-    #         lp = event.pos()
-    #         dx = int(lp.x() - self.hand_start_point.x())
-    #         dy = int(lp.y() - self.hand_start_point.y())
-    #
-    #         hpos = self.horizontalScrollBar().value()
-    #         self.horizontalScrollBar().setValue(hpos - dx)
-    #
-    #         vpos = self.verticalScrollBar().value()
-    #         self.verticalScrollBar().setValue(vpos - dy)
-    #
-    #         self.hand_start_point = None
-    #         self.viewport().setCursor(QtGui.QCursor(QtCore.Qt.OpenHandCursor))
-    #
-    #         self.drag_state = DragState.no
-    #
-    #         if self.is_mid_click:
-    #             # Если была нажата средняя кнопка мыши - режим hand_move вызван разово.
-    #             # Возвращаем состояние обратно
-    #             self.is_mid_click = False
-    #             self.set_view_state(self.view_state_before_mid_click)
-    #
-    #         return
+        modifierName = ''
+        # определяем модификаторы нажатия мыши
+        if event.buttons() == QtCore.Qt.MouseButton.RightButton:
+            modifierName += " Right Click"
+        elif event.buttons() == QtCore.Qt.MouseButton.LeftButton:
+            modifierName += " Left Click"
+        elif event.buttons() == QtCore.Qt.MouseButton.MidButton:
+            # Сохраняем предыдущее состояние view_state
+            # Меняем временно, до MouseRelease состояние на hand_move
+            modifierName += " Mid Click"
+            self.is_mid_click = True
+            self.view_state_before_mid_click = self.view_state
+            self.view_state = ViewState.hand_move
+
+            if not self.hand_start_point:  # стартовая точка не свободна, значит используем её
+                self.hand_start_point = event.pos()
+                self.viewport().setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ClosedHandCursor))
+            return
+
+        # режим перемещения "ручкой"
+        if self.view_state == ViewState.hand_move:
+            if not self.hand_start_point:
+                self.hand_start_point = event.pos()
+                self.viewport().setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ClosedHandCursor))
+            return
+
+        # режим добавления точек
+        elif self.view_state == ViewState.point_add:
+            if 'Right Click' in modifierName:  # проверка на правую кнопку мыши
+                return  # добавление только левой кнопкой мыши, иначе выходим
+            point_mc = AzPointWithRect(sp, QtGui.QColor(the_color_crop), self.scan_size)
+            self.scene().addItem(point_mc)  # добавляем объект на сцену
+            self.points_mc.append(point_mc)  # сохраняем объект в памяти
+            self.list_mc_changed.emit(self.points_mc)  # сигнализируем об изменении перечня точек РК
+            return
+
+        # режим перемещения точек
+        elif self.view_state == ViewState.point_move:
+            if 'Right Click' in modifierName:
+                return
+            super(AzImageViewer, self).mousePressEvent(event)  # инициируем событие для класса QGraphicsView
+            self.click_point = lp  # запоминаем точку старта
+            return
+
+        # режим удаления точек
+        elif self.view_state == ViewState.point_delete:
+            if 'Right Click' in modifierName:
+                return
+            # items = self.scene().items(lp.__pos__())
+            # for item in items:
+            #     if isinstance(item, QtWidgets.QGraphicsRectItem):
+            #         if item.isSelected():
+            #             item.setSelected(False)
+            #         else:
+            #             self.scene().clearSelection()
+            #             item.setSelected(True)
+            #         break
+            # else:
+            #     self.scene().clearSelection()
+
+    def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
+        sp = self.mapToScene(event.pos())  # точка по клику, переведенная в координаты сцены
+        lp = self.pixmap_item.mapFromScene(sp)  # конвертация в координаты снимка
+
+        # перемещение "ручкой"
+        if self.view_state == ViewState.hand_move:
+            dx = int(event.pos().x() - self.hand_start_point.x())
+            dy = int(event.pos().y() - self.hand_start_point.y())
+
+            hpos = self.horizontalScrollBar().value()
+            self.horizontalScrollBar().setValue(hpos - dx)
+
+            vpos = self.verticalScrollBar().value()
+            self.verticalScrollBar().setValue(vpos - dy)
+
+            self.hand_start_point = None
+            self.viewport().setCursor(QtGui.QCursor(QtCore.Qt.OpenHandCursor))
+
+            if self.is_mid_click:
+                # Если была нажата средняя кнопка мыши - режим hand_move вызван разово.
+                # Возвращаем состояние обратно
+                self.is_mid_click = False
+                self.set_view_state(self.view_state_before_mid_click)
+            return
+
+        # режим перемещения точек
+        elif self.view_state == ViewState.point_move:
+            super(AzImageViewer, self).mouseReleaseEvent(event)
+            dx = lp.x() - self.click_point.x()
+            dy = lp.y() - self.click_point.y()
+            # print(f"dx = {delta_x}; dy = {delta_y}")
+            items = self.scene().selectedItems()
+            for item in items:
+                if isinstance(item, AzPointWithRect):  # объект класса точка с прямоугольником
+                    for point_mc in self.points_mc:
+                        if point_mc == item:  # где этот объект в перечне point_mc
+                            point_mc.apply_offset(dx, dy)  # применяем смещение точки выделенного объекта-в-памяти
+                            # item.apply_offset(dx, dy)  # применяем смещение точки выделенного объекта-на-сцене
+                            # self.points_mc.append(item)  # добавляем новый
+                    # TODO: заменить объект в списке
+                break
+            return
+            # super(AzImageViewer, self).mousePressEvent(event)
+
+    # def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
+    #     if self.view_state == ViewState.point_move:
+    #         super().mouseMoveEvent(event)
 
     def set_view_state(self, state=ViewState.normal):
-        self.viewport().setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
+        self.view_state = state
+        # TODO: переделать self.hand_start_point = None
+        print(self.view_state)
         if state == ViewState.hand_move:
-            self.view_state = state
             self.hand_start_point = None
-            self.drag_state = DragState.no
             self.viewport().setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.OpenHandCursor))
             return
-        if state == ViewState.points_state:
-            self.view_state = state
+        if state == ViewState.point_add:
             self.hand_start_point = None
-            # self.drag_state = DragState.no
             self.viewport().setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.CrossCursor))
             return
-        self.view_state = ViewState.normal
+        if state == ViewState.point_move:
+            self.hand_start_point = None
+            self.viewport().setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
+            return
+        if state == ViewState.point_delete:
+            self.hand_start_point = None
+            self.viewport().setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.PointingHandCursor))
+            return
+        self.viewport().setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))  # если вариант normal
 
     def clear_scene(self):
         """
         Очистить сцену
         """
         self.set_view_state()
+        self.points_mc.clear()
         scene = QtWidgets.QGraphicsScene(self)
         self.setScene(scene)
         self._pixmap_item = QtWidgets.QGraphicsPixmapItem()
@@ -282,15 +313,9 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
         self._pixmap_item = QtWidgets.QGraphicsPixmapItem()
         self.scene().addItem(self._pixmap_item)
         self.pixmap_item.setPixmap(pixmap)
-        self.fitInView(self.pixmap_item, QtCore.Qt.KeepAspectRatio)
+        self.fitInView(self.pixmap_item, QtCore.Qt.AspectRatioMode.KeepAspectRatio)
         # self.fitInView(self.scene().sceneRect())
         # self.image_widget.fitInView(QtCore.QRectF(0, 0, 400, 300), QtCore.Qt.KeepAspectRatio)
-
-    # def scaleView(self, scaleFactor):
-    #     factor = self.transform().scale(scaleFactor, scaleFactor).mapRect(QtCore.QRectF(0, 0, 1, 1)).width()
-    #     if factor < 0.5 or factor > 10:
-    #         return
-    #     self.scale(scaleFactor, scaleFactor)
 
     def wheelEvent(self, event: QtGui.QWheelEvent) -> None:
         """Колесо прокрутки для изменения масштаба"""
@@ -322,8 +347,8 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
         graph_poly = QtWidgets.QGraphicsPolygonItem()
         pcol = QtGui.QColor(color)
         pcol.setAlpha(config.ALPHA)
-        brush = QtGui.QBrush(pcol, QtCore.Qt.SolidPattern)
-        pen = QtGui.QPen(QtGui.QColor(the_color), 1, QtCore.Qt.SolidLine)
+        brush = QtGui.QBrush(pcol, QtCore.Qt.BrushStyle.SolidPattern)
+        pen = QtGui.QPen(QtGui.QColor(the_color), 1, QtCore.Qt.PenStyle.SolidLine)
         graph_poly.setPen(pen)
         graph_poly.setBrush(brush)
         graph_poly.setPolygon(poly)

@@ -5,86 +5,88 @@
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
 
-class NoMouseButtonMoveRectItem(QGraphicsRectItem):
-    moving = False
-    def mousePressEvent(self, event):
-        super().mousePressEvent(event)
-        if event.button() == Qt.LeftButton:
-            # by defaults, mouse press events are not accepted/handled,
-            # meaning that no further mouseMoveEvent or mouseReleaseEvent
-            # will *ever* be received by this item; with the following,
-            # those events will be properly dispatched
-            event.accept()
-            self.pressPos = event.screenPos()
-
-    def mouseMoveEvent(self, event):
-        if self.moving:
-            # map the position to the parent in order to ensure that the
-            # transformations are properly considered:
-            currentParentPos = self.mapToParent(
-                self.mapFromScene(event.scenePos()))
-            originParentPos = self.mapToParent(
-                self.mapFromScene(event.buttonDownScenePos(Qt.LeftButton)))
-            self.setPos(self.startPos + currentParentPos - originParentPos)
-        else:
-            super().mouseMoveEvent(event)
-
-    def mouseReleaseEvent(self, event):
-        super().mouseReleaseEvent(event)
-        if (event.button() != Qt.LeftButton
-            or event.pos() not in self.boundingRect()):
-                return
-
-        # the following code block is to allow compatibility with the
-        # ItemIsMovable flag: if the item has the flag set and was moved while
-        # keeping the left mouse button pressed, we proceed with our
-        # no-mouse-button-moved approach only *if* the difference between the
-        # pressed and released mouse positions is smaller than the application
-        # default value for drag movements; in this way, small, involuntary
-        # movements usually created between pressing and releasing the mouse
-        # button will still be considered as candidates for our implementation;
-        # if you are *not* interested in this flag, just ignore this code block
-        distance = (event.screenPos() - self.pressPos).manhattanLength()
-        if (not self.moving and distance > QApplication.startDragDistance()):
-            return
-        # end of ItemIsMovable support
-
-        self.moving = not self.moving
-        # the following is *mandatory*
-        self.setAcceptHoverEvents(self.moving)
-        if self.moving:
-            self.startPos = self.pos()
-            self.grabMouse()
-        else:
-            self.ungrabMouse()
-
-
-if __name__ == '__main__':
-    import sys
-    from random import randrange, choice
-    app = QApplication(sys.argv)
-    scene = QGraphicsScene()
-    view = QGraphicsView(scene)
-    view.resize(QApplication.primaryScreen().size() * 2 / 3)
-    # create random items that support click/release motion
-    for i in range(10):
-        item = NoMouseButtonMoveRectItem(0, 0, 100, 100)
-        item.setPos(randrange(500), randrange(500))
-        item.setPen(QColor(*(randrange(255) for _ in range(3))))
-        if choice((0, 1)):
-            item.setFlags(item.ItemIsMovable)
-            QGraphicsSimpleTextItem('Movable flag', item)
-        else:
-            item.setBrush(QColor(*(randrange(255) for _ in range(3))))
-        scene.addItem(item)
-    view.show()
-    sys.exit(app.exec_())
+# from PyQt5.QtGui import *
+# from PyQt5.QtWidgets import *
+# from PyQt5.QtCore import *
+#
+# class NoMouseButtonMoveRectItem(QGraphicsRectItem):
+#     moving = False
+#     def mousePressEvent(self, event):
+#         super().mousePressEvent(event)
+#         if event.button() == Qt.LeftButton:
+#             # by defaults, mouse press events are not accepted/handled,
+#             # meaning that no further mouseMoveEvent or mouseReleaseEvent
+#             # will *ever* be received by this item; with the following,
+#             # those events will be properly dispatched
+#             event.accept()
+#             self.pressPos = event.screenPos()
+#
+#     def mouseMoveEvent(self, event):
+#         if self.moving:
+#             # map the position to the parent in order to ensure that the
+#             # transformations are properly considered:
+#             currentParentPos = self.mapToParent(
+#                 self.mapFromScene(event.scenePos()))
+#             originParentPos = self.mapToParent(
+#                 self.mapFromScene(event.buttonDownScenePos(Qt.LeftButton)))
+#             self.setPos(self.startPos + currentParentPos - originParentPos)
+#         else:
+#             super().mouseMoveEvent(event)
+#
+#     def mouseReleaseEvent(self, event):
+#         super().mouseReleaseEvent(event)
+#         if (event.button() != Qt.LeftButton
+#             or event.pos() not in self.boundingRect()):
+#                 return
+#
+#         # the following code block is to allow compatibility with the
+#         # ItemIsMovable flag: if the item has the flag set and was moved while
+#         # keeping the left mouse button pressed, we proceed with our
+#         # no-mouse-button-moved approach only *if* the difference between the
+#         # pressed and released mouse positions is smaller than the application
+#         # default value for drag movements; in this way, small, involuntary
+#         # movements usually created between pressing and releasing the mouse
+#         # button will still be considered as candidates for our implementation;
+#         # if you are *not* interested in this flag, just ignore this code block
+#         distance = (event.screenPos() - self.pressPos).manhattanLength()
+#         if (not self.moving and distance > QApplication.startDragDistance()):
+#             return
+#         # end of ItemIsMovable support
+#
+#         self.moving = not self.moving
+#         # the following is *mandatory*
+#         self.setAcceptHoverEvents(self.moving)
+#         if self.moving:
+#             self.startPos = self.pos()
+#             self.grabMouse()
+#         else:
+#             self.ungrabMouse()
+#
+#
+# if __name__ == '__main__':
+#     import sys
+#     from random import randrange, choice
+#     app = QApplication(sys.argv)
+#     scene = QGraphicsScene()
+#     view = QGraphicsView(scene)
+#     view.resize(QApplication.primaryScreen().size() * 2 / 3)
+#     # create random items that support click/release motion
+#     for i in range(10):
+#         item = NoMouseButtonMoveRectItem(0, 0, 100, 100)
+#         item.setPos(randrange(500), randrange(500))
+#         item.setPen(QColor(*(randrange(255) for _ in range(3))))
+#         if choice((0, 1)):
+#             item.setFlags(item.ItemIsMovable | item.ItemIsSelectable)
+#             QGraphicsSimpleTextItem('Movable flag', item)
+#         else:
+#             item.setBrush(QColor(*(randrange(255) for _ in range(3))))
+#         scene.addItem(item)
+#     view.show()
+#     sys.exit(app.exec_())
 
 # ----------------------------------------------------------------------------------------------------------------------
+
 # import sys
 # from PyQt5.Qt import *
 # from PyQt5 import QtWidgets
@@ -134,7 +136,7 @@ if __name__ == '__main__':
 #         rect = QRectF(point[0] - crop_size / 2, point[1] - crop_size / 2, crop_size, crop_size)
 #         self.setRect(rect)
 #         self.setPen(QtGui.QPen(the_color, 2, Qt.SolidLine))
-#         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable)
+#         self.setFlags(QGraphicsItem.GraphicsItemFlag.ItemIsMovable | QGraphicsItem.GraphicsItemFlag.ItemIsSelectable)
 #
 #     def mouseMoveEvent(self, event):
 #         self.moveBy(event.pos().x() - event.lastPos().x(),
@@ -203,7 +205,6 @@ if __name__ == '__main__':
 #     w = Window()
 #     w.show()
 #     app.exec()
-
 
 # ----------------------------------------------------------------------------------------------------------------------
 
