@@ -43,6 +43,10 @@ UI_AZ_SLICE_MANUAL = {
 MINIMUM_ZOOM = -2
 MAXIMUM_ZOOM = 50
 
+# минимальное и максимальное значения кадрирования
+MAX_CROP_SIZE = 8000
+MIN_CROP_SIZE = 16
+
 ALPHA = 50  # степень прозрачности заливки у меток по умолчанию (0 ... 255)
 
 UI_OUTPUT_TYPES = ["SAMA.json"]  # типы выходных данных

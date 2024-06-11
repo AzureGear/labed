@@ -1,7 +1,7 @@
 from PyQt5 import QtCore
 from PyQt5 import QtWidgets
 from PyQt5 import QtGui
-from utils import AppSettings, convert_to_sama, UI_COLORS, UI_OUTPUT_TYPES, UI_READ_LINES, dn_crop
+from utils import AppSettings, convert_to_sama, UI_COLORS, UI_OUTPUT_TYPES, UI_READ_LINES, dn_crop, config
 from ui import new_act, new_button, coloring_icon, az_file_dialog, natural_order, AzButtonLineEdit, AzSpinBox, \
     AzTableModel, AzManualSlice
 from datetime import datetime
@@ -180,7 +180,7 @@ class ProcessingUI(QtWidgets.QWidget):
         split = QtWidgets.QSplitter(QtCore.Qt.Vertical)  # вертикальный разделитель
         slice_auto_form = QtWidgets.QFormLayout()  # форма для расположения виджетов "автоматического разрезания"
 
-        # 1 строка в форме Автоматизированного разрезания
+        # Общая строка в форме
         self.slice_input_file_label = QtWidgets.QLabel("Path to file project *.json:")  # метка исходного файла
         self.slice_input_file_path = AzButtonLineEdit("glyph_folder", the_color,
                                                       caption="Select project file to auto slicing",
@@ -191,16 +191,18 @@ class ProcessingUI(QtWidgets.QWidget):
         self.slice_input_file_path.textChanged.connect(
             lambda: self.settings.write_slicing_input(self.slice_input_file_path.text()))  # автосохранение
 
-        # 2 строка в форме Автоматизированного разрезания
+        # 1 строка в форме Автоматизированного разрезания
         self.slice_output_file_check = QtWidgets.QCheckBox("Set user output file path other than default:")
         self.slice_output_file_path = AzButtonLineEdit("glyph_folder", the_color,
                                                        caption="Output file",
                                                        read_only=True, dir_only=True)
 
-        # 3 строка в форме Автоматизированного разрезания
+        # 2 строка в форме Автоматизированного разрезания
         self.slice_scan_size_label = QtWidgets.QLabel("Scan size:")  # метка для сканирующего окна
-        self.slice_scan_size = AzSpinBox(min_val=8, min_wide=53)  # размер сканирующего окна;
+        # размер сканирующего окна
+        self.slice_scan_size = AzSpinBox(min_val=config.MIN_CROP_SIZE, min_wide=53, max_val=config.MAX_CROP_SIZE)
         self.slice_overlap_window_label = QtWidgets.QLabel("Scanning window overlap percentage:")
+        self.slice_scan_size.setValue(self.settings.read_slice_crop_size())
 
         # процент перекрытия окна для смежных кадров скользящего окна:
         self.slice_overlap_window = AzSpinBox(min_val=30, max_val=95, step=1, max_start_val=False,
@@ -222,7 +224,7 @@ class ProcessingUI(QtWidgets.QWidget):
         hor_sett_layout = QtWidgets.QHBoxLayout()  # расположение для параметров автоматизированной обработки
         fill_layout_by_widgets(h_widgets, hor_sett_layout, group_by=2)
 
-        # 4 строка в форме Автоматизированного разрезания
+        # 3 строка в форме Автоматизированного разрезания
         self.slice_output_file_path.setEnabled(False)
         self.slice_output_file_check.clicked.connect(self.slice_toggle_output_file)  # соединяем - требуется настройка
         self.slice_output_file_path.setText(self.settings.read_default_output_dir())  # строка для выходного файла
@@ -284,6 +286,9 @@ class ProcessingUI(QtWidgets.QWidget):
         # проверяем есть ли сохранённый ранее файл проекта, и загружаем его автоматически
         if len(self.slice_input_file_path.text()) > 0:
             self.slice_load_projects_data()
+
+        self.slice_scan_size.valueChanged.connect(self.manual_wid.set_crop_data)  # соединяем изменение scan_size'ов
+
 
     @QtCore.pyqtSlot()
     def slice_exec_run(self):  # процедура разрезания

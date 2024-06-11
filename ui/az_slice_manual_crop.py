@@ -1,7 +1,8 @@
 from PyQt5 import QtCore
 from PyQt5 import QtWidgets
 from PyQt5 import QtGui
-from utils import AppSettings, UI_COLORS, UI_AZ_SLICE_MANUAL, load, save, dn_crop, AzImageViewer, ViewState
+from utils import AppSettings, UI_COLORS, UI_AZ_SLICE_MANUAL, load, save, dn_crop, AzImageViewer, AzPointWithRect, \
+    ViewState
 from ui import az_file_dialog, az_custom_dialog, new_act, natural_order
 import sys
 import os
@@ -10,8 +11,6 @@ import os
 
 the_color = UI_COLORS.get("processing_color")
 the_color2 = UI_COLORS.get("processing_color")
-
-# TODO: сделать чтобы класс Дениса MC вызывался как функция, которая бы обновляла данные, чтобы я мог просто обновить объект класса и проверить получение данных. Или нет, ведь файл может отличаться и выбран быть не тот, что пренадлежит JSNO'у...
 
 
 class AzManualSlice(QtWidgets.QMainWindow):
@@ -27,6 +26,8 @@ class AzManualSlice(QtWidgets.QMainWindow):
         self.files_dock = None
         self.slice_manual_size = None
         self.current_image_file = None
+        self.current_data_list = []  # перечень полного пути к файлам изображений проекта РК
+        self.current_mc_points = []  # перечень точек РК относящегося к выбранному файлу
         self.input_file = None
         self.slice_toolbar = QtWidgets.QToolBar("Manual visual cropping toolbar")  # панель инструментов кадрирования
         self.slice_actions = ()
@@ -36,7 +37,6 @@ class AzManualSlice(QtWidgets.QMainWindow):
         self.setup_actions()  # настраиваем QActions
         self.setup_toolbar()  # настраиваем Toolbar
         self.setup_files_widget()  # Настраиваем правую область: файлы
-        self.current_data_list = []
 
         # перечень файлов текущего проекта
         self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.files_dock)
@@ -65,6 +65,7 @@ class AzManualSlice(QtWidgets.QMainWindow):
         self.image_widget = AzImageViewer(self)
         self.image_widget.scan_size = self.current_scan_size
         self.setCentralWidget(self.image_widget)
+        self.image_widget.signal_list_mc_changed.connect(self.points_mc_changed)  # сигнал об изменении объекта
 
         # Настроим все QDockWidgets для нашего main_win
         features = QtWidgets.QDockWidget.DockWidgetFeatures()  # features для док-виджетов
@@ -83,6 +84,16 @@ class AzManualSlice(QtWidgets.QMainWindow):
             if dock_settings[5]:  # 5 - no_actions - "close"
                 getattr(self, dock).toggleViewAction().setVisible(False)
             getattr(self, dock).setFeatures(features)  # применяем настроенные атрибуты [1-3]
+
+    @QtCore.pyqtSlot()
+    def points_mc_changed(self):  # приём сигнала об изменении перечня точек РК (false - список пуст)
+        if self.slice_actions[5].isChecked:  # стоит пункт автосохранения
+            print("autosave")
+            if self.image_widget.points_mc:  # точки еще есть
+                self.current_mc_points = self.image_widget.points_mc
+            else:  # все точки удалены
+                pass
+                # очищаем текущий перечень
 
     def set_image(self, image):  # загрузка снимка и разметки для отображения
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)
@@ -262,11 +273,14 @@ class AzManualSlice(QtWidgets.QMainWindow):
                 size = 8000
             elif size < 16:
                 size = 16
-            self.slice_manual_size.setText(str(size))
-            self.current_scan_size = size
-            self.settings.write_slice_crop_size(size)
-            self.image_widget.crop_scan_size_changed(size)
-            # TODO: сделать функцию для обновления меток
+
+            self.set_crop_data(size)
+
+    def set_crop_data(self, size: int):
+        self.slice_manual_size.setText(str(size))
+        self.current_scan_size = size
+        self.settings.write_slice_crop_size(size)  # записываем в память
+        self.image_widget.crop_scan_size_changed(size)  # обновляем метки
 
     def setup_files_widget(self):
         # Настройка правого (по умолчанию) виджета для отображения перечня файлов датасета
@@ -367,8 +381,8 @@ class AzManualSlice(QtWidgets.QMainWindow):
     def fill_files_list(self, filenames):  # формируем перечень из list'а для QListWidget
         for filename in filenames:
             item = QtWidgets.QListWidgetItem(filename)
-            item.setFlags(item.flags() & ~QtCore.Qt.ItemIsUserCheckable)
-            item.setCheckState(QtCore.Qt.Unchecked)
+            item.setFlags(item.flags() & ~QtCore.Qt.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(QtCore.Qt.CheckState.Unchecked)
             self.files_list.addItem(item)
 
     def get_image_data(self, image_name):

@@ -9,4 +9,5 @@ from .az_converter import load
 from .az_converter import save
 from .settings_handler import AppSettings
 from .az_graphic_view import AzImageViewer
+from .az_graphic_view import AzPointWithRect
 from .az_graphic_view import ViewState
