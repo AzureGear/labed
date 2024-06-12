@@ -12,6 +12,7 @@ the_color_side = UI_COLORS.get("sidepanel_color")
 current_folder = os.path.dirname(os.path.abspath(__file__))
 
 
+# ----------------------------------------------------------------------------------------------------------------------
 class ProcessingUI(QtWidgets.QWidget):
     """
     Класс виджета обработки датасетов
@@ -20,6 +21,7 @@ class ProcessingUI(QtWidgets.QWidget):
 
     def __init__(self, parent):
         super().__init__()
+        self.crop_options = None
         self.settings = AppSettings()  # настройки программы
         self.merge_output_dir = ""
         layout = QtWidgets.QVBoxLayout(self)  # вертикальный класс с расположением элементов интерфейса
@@ -266,7 +268,7 @@ class ProcessingUI(QtWidgets.QWidget):
         slice_manual_lay = QtWidgets.QVBoxLayout()
         slice_manual_lay.addWidget(self.manual_wid)
 
-        # нижний виджет -  ручная обработка
+        # нижний виджет - ручная обработка
         self.slice_down_group = QtWidgets.QGroupBox("Manual visual image cropping")
         self.slice_down_group.setLayout(slice_manual_lay)
 
@@ -281,43 +283,67 @@ class ProcessingUI(QtWidgets.QWidget):
         wid = QtWidgets.QWidget()  # создаём виджет-контейнер...
         wid.setLayout(vlayout)  # ...куда помещаем vlayout (поскольку Central Widget может быть только QWidget)
         self.ui_tab_slicing.setCentralWidget(wid)
-        # self.ui_tab_slicing.addToolBar(self.slice_toolbar)
 
         # проверяем есть ли сохранённый ранее файл проекта, и загружаем его автоматически
         if len(self.slice_input_file_path.text()) > 0:
             self.slice_load_projects_data()
 
-        self.slice_scan_size.valueChanged.connect(self.manual_wid.set_crop_data)  # соединяем изменение scan_size'ов
+        self.slice_scan_size.valueChanged.connect(self.manual_wid.set_crop_data)  # синхронизируем изменение...
+        self.manual_wid.signal_crop.connect(self.slice_scan_size.setValue)  # ...значения кадрирования
 
+        # инициализируем параметры кадрирования и соединяем со всеми возможными способами изменить их
+        self.slice_init_options_for_crop()
+        self.slice_output_file_path.textChanged.connect(self.slice_options_for_crop_update)  # output_name
+        self.slice_scan_size.valueChanged.connect(self.slice_options_for_crop_update)  # crop_size
+        self.slice_tab_labels.model().dataChanged.connect(self.slice_options_for_crop_update)  # polygons overlap
+        self.slice_overlap_window.valueChanged.connect(self.slice_options_for_crop_update)  # window overlap
+        self.slice_edge.valueChanged.connect(self.slice_options_for_crop_update)  # edge
+        self.slice_smart_crop.toggled.connect(self.slice_options_for_crop_update)  # smart
 
-    @QtCore.pyqtSlot()
-    def slice_exec_run(self):  # процедура разрезания
-        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)  # ставим курсор ожидание
-        try:
+    def slice_options_for_crop_update(self):  # регулярное обновление словаря с параметрами разрезания
+        self.crop_options["crop_size"] = self.slice_scan_size.value()
+        if self.slice_tab_labels.isHidden():
+            self.crop_options["percent_overlap_polygons"] = None
+        else:
             pols_overlap_percent = []
             model = self.slice_tab_labels.model()
             for row in range(model.rowCount(-198)):  # -198 чтобы тебя запутать))
                 # процент указан во втором столбце, роль "Редактирования" включает "Отображение"
                 pols_overlap_percent.append((model.data(model.index(row, 1), QtCore.Qt.ItemDataRole.DisplayRole)) / 100)
-            new_name = os.path.join(self.slice_output_file_path.text(),
+            self.crop_options["percent_overlap_polygons"] = pols_overlap_percent
+        self.crop_options["percent_overlap_scan"] = self.slice_overlap_window.value() / 100
+        self.crop_options["edge"] = self.slice_edge.value()
+        self.crop_options["smart_cut"] = not self.slice_smart_crop.isChecked()
+        self.crop_options["output_name"] = self.slice_output_file_path.text()  # только название каталога
+        self.manual_wid.crop_options = self.crop_options  # обновляем данные для виджета Ручного кадрирования
+
+    def slice_init_options_for_crop(self):  # заполняем словарь параметрами для кадрирования
+        self.crop_options = dict()
+        self.crop_options["hand_cut"] = False
+        self.slice_options_for_crop_update()
+
+    @QtCore.pyqtSlot()
+    def slice_exec_run(self):  # процедура разрезания
+        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)  # ставим курсор ожидание
+        try:
+            new_name = os.path.join(self.crop_options["output_name"],
                                     "sliced_%s.json" % datetime.now().strftime("%Y-%m-%d--%H-%M-%S"))
             # объект класса для автоматического кадрирования
             cut_images = dn_crop.DNImgCut(os.path.dirname(self.slice_input_file_path.text()),
                                           os.path.basename(self.slice_input_file_path.text()))
-            # запуск автоматического кадрирования функцией
-            # print(cut_images.JsonObj.IsHandCutImgs, " json_mc before")
-            # cut_images.JsonObj.hand_cut_init()  # инициализируем данные для ручного кадрирования
-            # cut_images.update_images_data()  # обновляем данные для изображений
-            # print(cut_images.JsonObj.IsHandCutImgs, " json_mc after")
-            proc_imgs = cut_images.CutAllImgs(self.slice_scan_size.value(), pols_overlap_percent,
-                                              self.slice_overlap_window.value() / 100, new_name,
-                                              self.slice_edge.value(), not self.slice_smart_crop.isChecked(), False)
+            proc_imgs = cut_images.CutAllImgs(self.crop_options["crop_size"],
+                                              self.crop_options["percent_overlap_polygons"],
+                                              self.crop_options["percent_overlap_scan"],
+                                              new_name,
+                                              self.crop_options["edge"],
+                                              self.crop_options["smart_cut"],
+                                              self.crop_options["hand_cut"])
             if proc_imgs > 0:
-                self.signal_message.emit("Кадрирование завершено. Общее количество изображений %s" % proc_imgs)
+                self.signal_message.emit("Авто-кадрирование завершено. Общее количество изображений: %s" % proc_imgs)
             elif proc_imgs == 0:
-                self.signal_message.emit("Кадрирование изображений не выполнено - в проекте отсутствуют изображения")
+                self.signal_message.emit("Авто-кадрирование изображений не выполнено. Изображения отсутствуют")
             else:
-                self.signal_message.emit("Нарезка изображений не выполнена")
+                self.signal_message.emit("Авто-кадрирование не выполнено")
         except Exception as e:
             raise e
             print("Error {}".format(e.args[0]))
@@ -344,6 +370,7 @@ class ProcessingUI(QtWidgets.QWidget):
             model_data.append([label, int(self.slice_overlap_pols_default.text())])
         self.slice_tab_labels.setModel(
             AzTableModel(model_data, header_data=["Наименование класса (метки)", "Процент перекрытия"], edit_column=1))
+        self.slice_tab_labels.model().dataChanged.connect(self.slice_options_for_crop_update)
         header = self.slice_tab_labels.horizontalHeader()  # настраиваем отображение столбцов
         header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
         header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)

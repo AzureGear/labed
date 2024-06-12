@@ -122,6 +122,11 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
                 if isinstance(item, AzPointWithRect):
                     item.repaint_border(size)
 
+    def add_mc_point(self, point, scan_size, color=the_color_crop):
+        point_mc = AzPointWithRect(point, QtGui.QColor(color), scan_size)
+        self.scene().addItem(point_mc)  # добавляем объект на сцену
+        self.points_mc.append(point_mc)  # сохраняем объект в памяти
+
     def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
         sp = self.mapToScene(event.pos())  # точка по клику, переведенная в координаты сцены
         lp = self.pixmap_item.mapFromScene(sp)  # конвертация в координаты снимка
@@ -156,9 +161,7 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
         elif self.view_state == ViewState.point_add:
             if 'Right Click' in modifierName:  # проверка на правую кнопку мыши
                 return  # добавление только левой кнопкой мыши, иначе выходим
-            point_mc = AzPointWithRect(sp, QtGui.QColor(the_color_crop), self.scan_size)
-            self.scene().addItem(point_mc)  # добавляем объект на сцену
-            self.points_mc.append(point_mc)  # сохраняем объект в памяти
+            self.add_mc_point(sp, self.scan_size)
             if self.points_mc:
                 self.signal_list_mc_changed.emit(True)  # сигнализируем об изменении перечня точек РК
             return
@@ -176,15 +179,18 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
             if 'Right Click' in modifierName:
                 return
             items = self.scene().items(lp)  # выбираем по клику объекты
-            if items:
+            if items:  # нас есть объекты
                 for item in items:
                     if isinstance(item, AzPointWithRect):  # нас интересуют только объекты с точкой
-                        self.scene().removeItem(item)  # удаляем первый объект
-                        if self.points_mc:  # сигнализируем об изменении
-                            self.signal_list_mc_changed.emit(True)
-                        else:  # если список совсем пустой - шлем сигнал
-                            self.signal_list_mc_code.emit(False)  # False - лист пуст
-                        break  # хватит и одного удаления
+                        for point in self.points_mc:
+                            if item == point:  # искомый объект найден
+                                self.scene().removeItem(item)  # удаляем объект со сцены
+                                self.points_mc.remove(point)  # удаляем объект из массива
+                                if self.points_mc:  # сигнализируем об изменении
+                                    self.signal_list_mc_changed.emit(True)
+                                else:  # если список совсем пустой - шлем сигнал
+                                    self.signal_list_mc_changed.emit(False)  # False - лист пуст
+                                return  # хватит и одного удаления
 
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
         sp = self.mapToScene(event.pos())  # точка по клику, переведенная в координаты сцены
@@ -247,6 +253,7 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
         """
         Очистить сцену
         """
+        self.points_mc.clear()
         self.set_view_state()
         self.points_mc.clear()
         scene = QtWidgets.QGraphicsScene(self)
@@ -263,6 +270,7 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
         Задать новую картинку
         """
         self.scene().clear()
+        self.points_mc.clear()  # удаляем информацию о точках РК
         self._zoom = 0  # Test
         # self.sceneRect().setRect(0, 0, 0, 0)
         self._pixmap_item = QtWidgets.QGraphicsPixmapItem()

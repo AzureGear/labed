@@ -164,6 +164,7 @@ class AzTableModel(QtCore.QAbstractTableModel):
             elif value < 0:
                 value = 0
             self._data[index.row()][index.column()] = value
+            self.dataChanged.emit(index, index, [role])
             return True
         return False
 

@@ -259,9 +259,11 @@ class DNjson:
 class DNImgCut:
     """ Класс работы с изображениями:
         PathToImg - каталог входной файла json
-        NameJsonFile - наименования входного файла json"""
+        NameJsonFile - наименования входного файла json
+        init_mc_file - флаг инициализации данных для ручного кадрирования
+        """
 
-    def __init__(self, PathToJsonFile: str, NameJsonFile: str):
+    def __init__(self, PathToJsonFile: str, NameJsonFile: str, init_mc_file=False):
 
         self.FullNamesImgsMCFile = None
         self.FullNamesImgsFile = None
@@ -269,7 +271,7 @@ class DNImgCut:
 
         # Создаем объект json
         FullNameJsonFile = PathToJsonFile + '/' + NameJsonFile
-        self.JsonObj = DNjson(FullNameJsonFile)
+        self.JsonObj = DNjson(FullNameJsonFile, init_mc_file)
         self.update_images_data()  # пробуем загрузить данные об изображениях
 
     def update_images_data(self):

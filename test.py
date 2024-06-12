@@ -3,7 +3,69 @@
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
+import sys
+from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout
+from PyQt5.QtCore import Qt, QRect
+from PyQt5.QtGui import QPainter, QColor, QPen
 
+class MyWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        # Create two QLabel widgets
+        self.label1 = QLabel("Label 1")
+        self.label2 = QLabel("Label 2")
+
+        # Create a vertical box layout and add the labels
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(self.label1)
+        self.layout.addWidget(self.label2)
+
+        # Set the layout on the widget
+        self.setLayout(self.layout)
+
+        # Set the margin and spacing of the layout to 0
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(0)
+
+        # Set the widget's background color to white
+        self.setAutoFillBackground(True)
+        palette = self.palette()
+        palette.setColor(palette.Window, Qt.white)
+        self.setPalette(palette)
+
+    def paintEvent(self, event):
+        # Call the base class paintEvent method
+        super().paintEvent(event)
+
+        # Create a QPainter object
+        painter = QPainter(self)
+
+        # Set the pen to a red, thin line
+        pen = QPen(QColor(255, 0, 0), 1)
+        painter.setPen(pen)
+
+        # Get the rectangles for the labels
+        label1_rect = self.label1.geometry()
+        label2_rect = self.label2.geometry()
+
+        # Draw the rectangles for the labels
+        painter.drawRect(label1_rect)
+        painter.drawRect(label2_rect)
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+
+    # Create an instance of the custom widget
+    widget = MyWidget()
+
+    # Set the window title and size
+    widget.setWindowTitle("My Widget")
+    widget.resize(300, 200)
+
+    # Show the widget and start the Qt event loop
+    widget.show()
+    sys.exit(app.exec_())
 # ----------------------------------------------------------------------------------------------------------------------
 
 # from PyQt5.QtGui import *
@@ -819,9 +881,7 @@
 #     demo = Demo()
 #     demo.show()
 #     sys.exit(app.exec_())
-
-# self.merge_output_tb = QtWidgets.QToolButton()  # выходной путь; по нажатии меняется на выбранный пользователем
-# self.merge_output_tb.setCheckable(True)  # кнопка "нажимательная"
-# self.merge_output_tb.setText("Каталог по умолчанию:" + "\n" + self.settings.read_default_output_dir())
-# self.merge_output_tb.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonTextOnly)  # только текст от кнопки
-# self.merge_output_tb.toggled.connect(self.merge_output_tb_toggled)  # связываем с методом смены каталога
+# ----------------------------------------------------------------------------------------------------------------------
+# Отображение границы виджета
+# self.label_info.setFrameStyle(QtWidgets.QFrame.StyledPanel | QtWidgets.QFrame.Plain)
+# self.label_file_path.setFrameStyle(QtWidgets.QFrame.StyledPanel | QtWidgets.QFrame.Plain)
