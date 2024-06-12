@@ -15,6 +15,7 @@ import os
 #  ├- data["labels"] = ["name_one", "name_two", ... , "name_n"]
 #  └- data["labels_color"] = {"name_one", "name_two", ... , "name_n": [ ] }
 #                                                                      └- label [r, g, b]
+#
 # ----------------------------------------------------------------------------------------------------------------------
 # Структура *.json  файла LabelMe (Michael Pitidis, Hussein Abdulwahid, Kentaro Wada)
 #
@@ -44,7 +45,7 @@ import os
 # TODO: сделать функцию считывания ЛРМ изо всех файлов *.MAP, ее усреднения и записи в файл SAMA
 # TODO: сделать функцию объединения двух файлов SAMA
 
-def convert_to_sama(input_files, output_file):
+def convert_labelme_to_sama(input_files, output_file):
     """
     Конвертация файлов проекта LabelMe в проект SAMA
     """
@@ -87,6 +88,12 @@ def convert_to_sama(input_files, output_file):
     return True
 
 
+def merge_sama_to_sama(input_files, output_file):
+    return 0
+    return 1
+    return 2
+
+
 def random_color():  # генерируем случайные цвета
     rand_col = [randint(0, 255), randint(0, 255), randint(0, 255), 120]  # оттенок alfa по умолчанию оставляем 120
     return rand_col
@@ -100,7 +107,6 @@ def load(file_path):
     except ujson.JSONDecodeError:
         print(f"Файл {file_path} пустой, либо содержит некорректные данные.")
         return None
-
 
 
 def save(json_path, data, mode='w'):

@@ -50,6 +50,8 @@ MIN_CROP_SIZE = 16
 ALPHA = 50  # степень прозрачности заливки у меток по умолчанию (0 ... 255)
 
 UI_OUTPUT_TYPES = ["SAMA.json"]  # типы выходных данных
-UI_READ_LINES = 35  # количество читаемых строк в проектах *.json для предпросмотра
+UI_INPUT_TYPES = ["LabelMe.json", "SAMA.json"]
+
+UI_READ_LINES = 35  # количество читаемых строк в проектах *.json для предпросмотр а
 
 # (dark) c:\venvs\lab-ed\Lib\site-packages>python -m qdarktheme.widget_gallery

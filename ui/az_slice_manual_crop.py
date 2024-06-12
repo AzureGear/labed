@@ -17,7 +17,7 @@ import os
 
 the_color = UI_COLORS.get("processing_color")
 the_color2 = UI_COLORS.get("processing_color")
-# TODO: удаление последнего элемента
+
 
 class AzManualSlice(QtWidgets.QMainWindow):
     """
@@ -108,7 +108,8 @@ class AzManualSlice(QtWidgets.QMainWindow):
         else:  # все точки удалены
             if self.files_list.currentItem():
                 self.files_list.currentItem().setCheckState(QtCore.Qt.CheckState.Unchecked)
-
+            if self.slice_actions[self.actions_names["Autosave"]].isChecked():  # активен пункт автосохранения
+                self.update_mc_data(self.current_mc_file, None)  # сохраняем текущий перечень
 
     def update_mc_data(self, file, data, update_crop=True):
         mc_dict = load(file)  # загружаем файл json
@@ -158,7 +159,7 @@ class AzManualSlice(QtWidgets.QMainWindow):
             new_act(self, "Open", "glyph_folder", the_color, self.project_open),  # открыть
             new_act(self, "New", "glyph_add", the_color, self.project_new),  # новый
             new_act(self, "Save", "glyph_save", the_color, self.save),  # сохранить
-            new_act(self, "Autosave", "glyph_time-save", the_color, self.autosave, True, True),  # автосохранение
+            new_act(self, "Autosave", "glyph_time-save", the_color, checkable=True, checked=True),  # автосохранение
             new_act(self, "Fit image", "glyph_crop", the_color, self.fit_image),  # изображение по размеру окна
             new_act(self, "Hand", "glyph_hand", the_color, self.hand, True),  # перемещение по снимку
             new_act(self, "Add", "glyph_point_add", the_color, self.point_add, True),  # добавить метку
@@ -263,9 +264,6 @@ class AzManualSlice(QtWidgets.QMainWindow):
             print("Error {}".format(e.args[0]))
         finally:
             QtWidgets.QApplication.restoreOverrideCursor()
-
-    def autosave(self):  # автосохранение
-        pass
 
     def save(self):  # сохранение
         pass
