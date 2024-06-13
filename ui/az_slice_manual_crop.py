@@ -99,17 +99,18 @@ class AzManualSlice(QtWidgets.QMainWindow):
 
     @QtCore.pyqtSlot()
     def points_mc_changed(self):  # приём сигнала об изменении перечня точек РК (false - список пуст)
+        points = None
         if self.image_widget.points_mc:  # точки имеются
             if self.files_list.currentItem():  # активируем флаг
                 self.files_list.currentItem().setCheckState(QtCore.Qt.CheckState.Checked)
             points = [[item.point.x(), item.point.y()] for item in self.image_widget.points_mc]
-            if self.slice_actions[self.actions_names["Autosave"]].isChecked():  # активен пункт автосохранения
-                self.update_mc_data(self.current_mc_file, points)  # сохраняем текущий перечень
         else:  # все точки удалены
             if self.files_list.currentItem():
                 self.files_list.currentItem().setCheckState(QtCore.Qt.CheckState.Unchecked)
-            if self.slice_actions[self.actions_names["Autosave"]].isChecked():  # активен пункт автосохранения
-                self.update_mc_data(self.current_mc_file, None)  # сохраняем текущий перечень
+
+        if self.slice_actions[self.actions_names["Autosave"]].isChecked():  # активен пункт автосохранения
+            self.update_mc_data(self.current_mc_file, points)  # сохраняем текущий перечень
+
 
     def update_mc_data(self, file, data, update_crop=True):
         mc_dict = load(file)  # загружаем файл json
@@ -287,6 +288,7 @@ class AzManualSlice(QtWidgets.QMainWindow):
         self.image_widget.crop_scan_size_changed(size)  # обновляем метки
 
     def manual_slice_exec(self):
+        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)
         new_name = os.path.join(self.crop_options["output_name"],
                                 "sliced_%s.json" % datetime.now().strftime("%Y-%m-%d--%H-%M-%S"))
         self.crop_options["hand_cut"] = True  # у нас ручное кадрирование
@@ -300,6 +302,7 @@ class AzManualSlice(QtWidgets.QMainWindow):
                                           self.crop_options["edge"],
                                           self.crop_options["smart_cut"],
                                           self.crop_options["hand_cut"])
+        QtWidgets.QApplication.restoreOverrideCursor()
         if proc_imgs > 0:
             self.signal_message.emit("Ручное кадрирование завершено. Общее количество изображений: %s" % proc_imgs)
         elif proc_imgs == 0:

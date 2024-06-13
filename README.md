@@ -1,2 +1,2 @@
 # Labeling Dataset Editor: Labed 
-Learning to develop usefull software.
+Learning to develop usefully software.

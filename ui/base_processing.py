@@ -454,6 +454,7 @@ class ProcessingUI(QtWidgets.QWidget):
     def merge_combine(self):
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)  # ставим курсор ожидание
         try:
+            self.signal_message.emit("Начинаю процедуру объединения/конвертирования")
             sel_items = self.merge_files_list.selectedItems()
             data = [item.text() for item in sel_items if os.path.isfile(item.text())]
             unique = sorted(set(data), key=natural_order)
@@ -478,8 +479,7 @@ class ProcessingUI(QtWidgets.QWidget):
                 if merge == 0:
                     self.signal_message.emit(f"Файлы успешно объединены в файл: '{new_name}'")
                 elif merge == 1:
-                    self.signal_message.emit(f"Файлы объединены с ошибками: были обнаружены изображения "
-                                             f"с одинаковыми именами: '{new_name}'")
+                    self.signal_message.emit(f"Файлы объединены с ошибками: '{new_name}'")
                 else:
                     self.signal_message.emit(f"Ошибка при объединении данных. Проверьте исходные файлы.'")
 

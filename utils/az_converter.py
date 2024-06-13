@@ -1,4 +1,5 @@
 from random import randint
+import shutil
 import ujson  # поскольку он показывает большую производительность по сравнению с json
 import os
 
@@ -8,10 +9,10 @@ import os
 #
 # "path_to_images": "F:\\data_sets\\test_oil_ref\\"
 # data["path_to_images"] = "only_one_path"
-#  ├- data["images"] = {"one.jpg":[ ], "two.jpg":[ ], ... , "n.jpg":[ ]}
-#  |                               └- {shapes: [ ] }
-#  |                                            └- "cls_num":, "id":, "points":[ ]
-#  |                                                                            └- [ [x1, y1], [x2, y2], ... [xn, yn] ]
+#  ├- data["images"] = {"one.jpg":{ }, "two.jpg":{ }, ... , "n.jpg":{ } }
+#  |                               └- {shapes: [ { } ] }
+#  |                                              └- "cls_num":, "id":, "points":[ ]
+#  |                                                                              └- [[x1, y1], [x2, y2], ... [xn, yn]]
 #  ├- data["labels"] = ["name_one", "name_two", ... , "name_n"]
 #  └- data["labels_color"] = {"name_one", "name_two", ... , "name_n": [ ] }
 #                                                                      └- label [r, g, b]
@@ -37,13 +38,14 @@ import os
 # Структура файла хранения проекта точек Визуального ручного кадрирования (AzManualSlice):
 # "filename" = "D:/data_sets/uranium enrichment/test_cut/crude_uranium_enrichment.json"
 # "scan_size" = "1280"
-#  "images" = { "125n_FRA_2019-09.jpg" : [ ], ... }
-# 		                                  ├-  "check" : True|False
-# 		                                  └-  "points" : { [x1, y1], [x2, y2], ... , [xN, yN] }
+# "images" = { "125n_FRA_2019-09.jpg" : [ ], ... }
+# 		                                 ├-  "check" : True|False
+# 		                                 └-  "points" : { [x1, y1], [x2, y2], ... , [xN, yN] }
 #
 # ----------------------------------------------------------------------------------------------------------------------
 # TODO: сделать функцию считывания ЛРМ изо всех файлов *.MAP, ее усреднения и записи в файл SAMA
 # TODO: сделать функцию объединения двух файлов SAMA
+# TODO: проверить на дубликаты
 
 def convert_labelme_to_sama(input_files, output_file):
     """
@@ -52,6 +54,7 @@ def convert_labelme_to_sama(input_files, output_file):
     data = dict()
     data["path_to_images"] = os.path.dirname(input_files[0])  # такой же, как у первого файла
     images = {}  # изображения
+    error_numbers = 0  # количество ошибок при конвертации
     class_numbers = {}  # {имя класса:номера класса} считая с 0; создаётся динамически
     labels_colors = {}  # цвета меток
     labels_set = set()  # метки: перечень уникальных меток
@@ -60,7 +63,15 @@ def convert_labelme_to_sama(input_files, output_file):
     for item in input_files:  # начинаем обход перечня полученных файлов
         list_shapes = []
         label_me_data = load(item)
+
+        if not label_me_data:
+            error_numbers += 1
+            continue
+        if not "imagePath" in label_me_data:
+            error_numbers += 1
+            continue
         img_name = label_me_data["imagePath"]  # формируем имя файла (можно и через os.path.basename(image))
+
         lm_shapes = label_me_data["shapes"]  # список формата labelMe, где [ { "label", "points []", ... }, { ... } ]
 
         for lm_shp_dict in lm_shapes:  # просматриваем список "shapes" LabelMe
@@ -79,6 +90,9 @@ def convert_labelme_to_sama(input_files, output_file):
                             "lrm": None,
                             'status': 'empty'}
 
+    if error_numbers == len(input_files): # всё завершилось ошибками
+        return False
+
     for label in labels_set:  # для всех меток...
         labels_colors[label] = random_color()  # ...формируем случайные цвета
     data["images"] = images
@@ -89,9 +103,71 @@ def convert_labelme_to_sama(input_files, output_file):
 
 
 def merge_sama_to_sama(input_files, output_file):
-    return 0
-    return 1
-    return 2
+    """
+    Слияние файлов проектов формата SAMA с копированием файлов
+    """
+    error_main_count = 0  # счетчик серьезных ошибок
+    error_duplicate_images = 0  # счетчик ошибок дублирования изображений
+    data = dict()  # выходные данные
+    data["path_to_images"] = os.path.dirname(output_file)  # путь каталога выходного файла
+    images = dict()  # словарь всех изображений
+    id_count = 0
+    combined_labels = []  # объединенные метки для всех-всех файлов (супер список)
+    combined_colors = dict()
+    for input_file in input_files:  # проходим цикл, чтобы сформировать общий набор классов (имён меток)
+        input_data = load(input_file)
+        if not input_data:
+            error_main_count += 1  # увеличиваем счетчик важных ошибок
+        else:
+            input_labels = input_data["labels"]  # список имен меток { "label1", "label2", ... }
+            print(input_labels)
+            for label in input_labels:
+                if label not in combined_labels:  # если метки в нашем объединённом словаре нет...
+                    combined_labels.append(label)  # ...то мы её добавляем
+                    combined_colors[label] = input_data["labels_color"][label]  # заодно формируем цвета
+    data["labels"] = combined_labels
+    data["labels_color"] = combined_colors
+    print(combined_labels)
+    if len(input_files) == error_main_count:
+        return 2  # возвращаем код ошибки: чтение файлов неудачно, объединить ничего не выйдет
+    for input_file in input_files:  # снова проходим все файлы
+        input_data = load(input_file)
+        if not input_data:
+            continue
+        input_dir = input_data["path_to_images"]
+        input_labels = input_data["labels"]
+        labels_match_dict = dict()  # сопоставляем номера классов объединённому классификатору
+        for i, label in enumerate(input_labels):
+            if label in combined_labels:
+                # когда мы получили карту сопоставления индексов - мы можем переназначить индексы исходных файлов
+                labels_match_dict[i] = combined_labels.index(label)  # key = исходный номер; value = номер супер списка
+        for image, image_dict in input_data["images"].items():  # анализируем словарь изображений
+            if image not in images.keys():  # такого изображения нет, значит будем добавлять его в словарь
+                new_image_dict = dict()  # новый словарь для image: { shapes, lrm, status, last_user }
+                new_shapes = list()
+                for shape in image_dict["shapes"]:  # shape = { "cls_num":, "id":, "points":[ ] }
+                    new_one_shape = dict()  # новый словарь для shape
+                    new_one_shape["cls_num"] = labels_match_dict[shape["cls_num"]]  # переназначаем индексы классов
+                    new_one_shape["id"] = id_count
+                    new_one_shape["points"] = shape["points"]
+                    id_count += 1
+                    new_shapes.append(new_one_shape)
+                new_image_dict["shapes"] = new_shapes  # передаём новый shapes с переназначенными индексами
+                new_image_dict["lrm"] = image_dict["lrm"]
+                new_image_dict["status"] = image_dict["status"]
+                new_image_dict["last_user"] = image_dict["last_user"]
+                # копируем изображение из исходного в выходной каталог, если оно в наличии
+                if os.path.exists(os.path.join(input_dir, image)):
+                    shutil.copyfile(os.path.join(input_dir, image), os.path.join(os.path.dirname(output_file), image))
+                images[image] = new_image_dict
+            else:
+                error_duplicate_images += 1
+    data["images"] = images
+    save(output_file, data, 'w+')  # записываем результат
+    if error_main_count != 0 or error_duplicate_images != 0:  # сигнализируем об ошибках
+        return 1
+    else:
+        return 0
 
 
 def random_color():  # генерируем случайные цвета
@@ -115,5 +191,8 @@ def save(json_path, data, mode='w'):
 
 
 if __name__ == '__main__':  # заглушка для отладки
-    # convert_labelme_to_sama(test_list, "F:/data_sets/output_dir/test_for_merge2/small_test/_temp.json")
-    pass
+    merge_sama_to_sama(["d:/data_sets/uranium enrichment/test_cut/crude_uranium_enrichment.json",
+                        "d:/data_sets/uranium enrichment/anno_json_r1024_mc/sliced_2024-06-13--09-04-27_mc.json",
+                        "d:/data_sets/oil_refinery/cutter_prj/cut_prj.json"],
+                       "d:/data_sets/output_data/_merge.json")
+    # convert_labelme_to_sama(my_list, "F:/data_sets/uranium enrichment/_merge.json")
