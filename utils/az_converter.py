@@ -196,3 +196,5 @@ if __name__ == '__main__':  # заглушка для отладки
                         "d:/data_sets/oil_refinery/cutter_prj/cut_prj.json"],
                        "d:/data_sets/output_data/_merge.json")
     # convert_labelme_to_sama(my_list, "F:/data_sets/uranium enrichment/_merge.json")
+
+# ----------------------------------------------------------------------------------------------------------------------
