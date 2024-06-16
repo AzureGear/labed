@@ -225,7 +225,8 @@ class ProcessingUI(QtWidgets.QWidget):
         self.slice_init_options_for_crop()
         self.slice_output_file_path.textChanged.connect(self.slice_options_for_crop_update)  # output_name
         self.slice_scan_size.valueChanged.connect(self.slice_options_for_crop_update)  # crop_size
-        self.slice_tab_labels.model().dataChanged.connect(self.slice_options_for_crop_update)  # polygons overlap
+        if self.slice_tab_labels.model():
+            self.slice_tab_labels.model().dataChanged.connect(self.slice_options_for_crop_update)  # polygons overlap
         self.slice_overlap_window.valueChanged.connect(self.slice_options_for_crop_update)  # window overlap
         self.slice_edge.valueChanged.connect(self.slice_options_for_crop_update)  # edge
         self.slice_smart_crop.toggled.connect(self.slice_options_for_crop_update)  # smart
@@ -237,9 +238,10 @@ class ProcessingUI(QtWidgets.QWidget):
         else:
             pols_overlap_percent = []
             model = self.slice_tab_labels.model()
-            for row in range(model.rowCount(-198)):  # -198 чтобы тебя запутать))
-                # процент указан во втором столбце, роль "Редактирования" включает "Отображение"
-                pols_overlap_percent.append((model.data(model.index(row, 1), QtCore.Qt.ItemDataRole.DisplayRole)) / 100)
+            if model:
+                for row in range(model.rowCount(-198)):  # -198 чтобы тебя запутать))
+                    # процент указан во втором столбце, роль "Редактирования" включает "Отображение"
+                    pols_overlap_percent.append((model.data(model.index(row, 1), QtCore.Qt.ItemDataRole.DisplayRole)) / 100)
             self.crop_options["percent_overlap_polygons"] = pols_overlap_percent
         self.crop_options["percent_overlap_scan"] = self.slice_overlap_window.value() / 100
         self.crop_options["edge"] = self.slice_edge.value()
@@ -286,11 +288,11 @@ class ProcessingUI(QtWidgets.QWidget):
             if self.slice_input_file_path.text() == self.json_obj.FullNameJsonFile:
                 return  # Файл не трогали, изменений нет
         self.json_obj = dn_crop.DNjson(self.slice_input_file_path.text())  # Файл проекта, реализация Дениса
+        if not self.json_obj.input_file_exists:  # такого файла уже нет
+            self.slice_disable("Отсутствует выбранный ранее файл")
+            return
         if not self.json_obj.good_file:
-            self.signal_message.emit("Выбранный файл не является корректным либо не содержит необходимых данных")
-            self.slice_tab_labels.hide()
-            self.slice_exec.setEnabled(False)  # отключаем возможность Разрезать
-            self.manual_wid.update_input_data(None)  # передаём "Отсутствие" данных для настройки панели Ручной резки
+            self.slice_disable("Выбранный файл не является корректным либо не содержит необходимых данных")
             return
         self.slice_exec.setEnabled(True)
         model_data = []  # данные для отображения
@@ -300,11 +302,18 @@ class ProcessingUI(QtWidgets.QWidget):
             model_data.append([label, int(self.slice_overlap_pols_default.text())])
         self.slice_tab_labels.setModel(
             AzTableModel(model_data, header_data=["Наименование класса (метки)", "Процент перекрытия"], edit_column=1))
-        self.slice_tab_labels.model().dataChanged.connect(self.slice_options_for_crop_update)
+        if self.slice_tab_labels.model():
+            self.slice_tab_labels.model().dataChanged.connect(self.slice_options_for_crop_update)
         header = self.slice_tab_labels.horizontalHeader()  # настраиваем отображение столбцов
         header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
         header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
         self.manual_wid.update_input_data(self.json_obj)  # Передаём данные, в т.ч. для настройки панели Ручной резки
+
+    def slice_disable(self, message):
+        self.signal_message.emit(message)
+        self.slice_tab_labels.hide()
+        self.slice_exec.setEnabled(False)  # отключаем возможность Разрезать
+        self.manual_wid.update_input_data(None)  # передаём "Отсутствие" данных для настройки панели Ручной резки
 
     @QtCore.pyqtSlot()
     def slice_write_default_overlap_pols(self):
