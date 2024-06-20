@@ -54,206 +54,193 @@ class DNjson:
             if init_mc_file:
                 self.hand_cut_init()
 
+    # Функции, использующиеся при инициализации класса
+    def ReadDataJson(self):
+        """ Функция чтения данных из файла Json"""
+        file = open(self.FullNameJsonFile, "r")
+        # Читаем одну строчку, т.к. предполагается, что все данные в файле записаны в одну строчку
+        data = file.readline()
+        file.close()
 
-# Функции, использующиеся при инициализации класса
-# Функция чтения данных из файла Json
-def ReadDataJson(self):
-    # Читаем файл Json
-    file = open(self.FullNameJsonFile, "r")
-    # Читаем одну строчку, т.к. предполагается, что все данные в файле записаны в одну строчку
-    data = file.readline()
-    file.close()
+        if self.check_json(data):  # выполняем проверку
+            self.good_file = True
+            # Переделываем строку в json словарь
+            data_dict = json.loads(data)
+            return data_dict
+        else:
+            self.good_file = False
+            return None
 
-    if self.check_json(data):  # выполняем проверку
-        self.good_file = True
-        # Переделываем строку в json словарь
-        data_dict = json.loads(data)
-        return data_dict
-    else:
-        self.good_file = False
-        return None
+    def ReadDataMCJson(self):
+        # Читаем файл Json для ручной нарезки
+        file = open(self.FullNameMCJsonFile, "r")
+        # Читаем одну строчку, т.к. предполагается, что все данные в файле записаны в одну строчку
+        data = file.readline()
+        file.close()
 
+        if self.check_mc_json(data):  # выполняем проверку
+            self.good_mc_file = True
+            # Переделываем строку в json словарь
+            data_mc_dict = json.loads(data)
+            return data_mc_dict
+        else:
+            self.good_mc_file = False
+            return None
 
-def ReadDataMCJson(self):
-    # Читаем файл Json для ручной нарезки
-    file = open(self.FullNameMCJsonFile, "r")
-    # Читаем одну строчку, т.к. предполагается, что все данные в файле записаны в одну строчку
-    data = file.readline()
-    file.close()
+    def check_json(self, json_project_data):  # примитивная проверка на наличие нужных параметров
+        for field in ["path_to_images", "images", "labels", "labels_color"]:
+            if field not in json_project_data:
+                return False
+        return True
 
-    if self.check_mc_json(data):  # выполняем проверку
-        self.good_mc_file = True
-        # Переделываем строку в json словарь
-        data_mc_dict = json.loads(data)
-        return data_mc_dict
-    else:
-        self.good_mc_file = False
-        return None
+    def check_mc_json(self, json_mc_project_data):  # примитивная проверка на наличие нужных параметров
+        for field in ["filename", "path_to_images", "scan_size", "images"]:
+            if field not in json_mc_project_data:
+                return False
+        return True
 
+    # Обновляем объект, проверяя есть ли данные для ручного кадрирования
+    def hand_cut_init(self):
+        PathToJsonFile = os.path.dirname(self.FullNameJsonFile)
+        BaseNameJsonFile = os.path.splitext(os.path.basename(self.FullNameJsonFile))[0]
+        NameMCJsonFile = BaseNameJsonFile + '.json_mc'
+        # Проверяем, есть ли файл для ручной нарезки
+        self.FullNameMCJsonFile = os.path.join(PathToJsonFile, NameMCJsonFile)
+        self.IsHandCutImgs = os.path.exists(self.FullNameMCJsonFile)
+        # Если есть файл для ручной нарезки
+        if self.IsHandCutImgs:
+            self.DataMCDict = self.ReadDataMCJson()
+            if self.DataMCDict:
+                # Читаем имена всех изображений в Json-файле для ручной разметки
+                self.ImgsNameMC = [NameImg for NameImg in self.DataMCDict["images"].keys()]
+                self.PathToImgMC = self.DataMCDict['path_to_images']
 
-def check_json(self, json_project_data):  # примитивная проверка на наличие нужных параметров
-    for field in ["path_to_images", "images", "labels", "labels_color"]:
-        if field not in json_project_data:
-            return False
-    return True
+                # Читаем точки позиций окон
+                self.WinPosPtMC = [self.DataMCDict['images'][NameImg] for NameImg in self.ImgsNameMC]
+                self.SizeWinMC = self.DataMCDict['scan_size']
 
+    @classmethod
+    def ReadJsonKeys(cls, DataDict):
+        Keys1 = DataDict.keys()
+        for Key1 in Keys1:
+            print(Key1, type(DataDict[Key1]))
 
-def check_mc_json(self, jsonMC_project_data):  # примитивная проверка на наличие нужных параметров
-    for field in ["filename", "path_to_images", "scan_size", "images"]:
-        if field not in jsonMC_project_data:
-            return False
-    return True
+            if Key1 == 'images':
+                Keys2 = DataDict[Key1].keys()
+                for Key2 in Keys2:
+                    print("\t", Key2, type(DataDict[Key1][Key2]))
 
+                    Keys3 = DataDict[Key1][Key2].keys()
+                    for Key3 in Keys3:
+                        print("\t\t", Key3, type(DataDict[Key1][Key2][Key3]))
 
-# Обновляем объект, проверяя есть ли данные для ручного кадрирования
-def hand_cut_init(self):
-    PathToJsonFile = os.path.dirname(self.FullNameJsonFile)
-    BaseNameJsonFile = os.path.splitext(os.path.basename(self.FullNameJsonFile))[0]
-    NameMCJsonFile = BaseNameJsonFile + '.json_mc'
-    # Проверяем, есть ли файл для ручной нарезки
-    self.FullNameMCJsonFile = os.path.join(PathToJsonFile, NameMCJsonFile)
-    self.IsHandCutImgs = os.path.exists(self.FullNameMCJsonFile)
-    # Если есть файл для ручной нарезки
-    if self.IsHandCutImgs:
-        self.DataMCDict = self.ReadDataMCJson()
-        if self.DataMCDict:
-            # Читаем имена всех изображений в Json-файле для ручной разметки
-            self.ImgsNameMC = [NameImg for NameImg in self.DataMCDict["images"].keys()]
-            self.PathToImgMC = self.DataMCDict['path_to_images']
+                        if Key3 == 'shapes':
+                            for i in range(len(DataDict[Key1][Key2][Key3])):
+                                print("\t\t\t", i, type(DataDict[Key1][Key2][Key3][i]))
 
-            # Читаем точки позиций окон
-            self.WinPosPtMC = [self.DataMCDict['images'][NameImg] for NameImg in self.ImgsNameMC]
-            self.SizeWinMC = self.DataMCDict['scan_size']
+                                Keys4 = DataDict[Key1][Key2][Key3][i].keys()
+                                for Key4 in Keys4:
+                                    print("\t\t\t\t", Key4, type(DataDict[Key1][Key2][Key3][i][Key4]))
 
+            if Key1 == 'labels_color':
+                Keys2 = DataDict[Key1].keys()
+                for Key2 in Keys2:
+                    print("\t", Key2, type(DataDict[Key1][Key2]))
 
-@classmethod
-def ReadJsonKeys(cls, DataDict):
-    Keys1 = DataDict.keys()
-    for Key1 in Keys1:
-        print(Key1, type(DataDict[Key1]))
+            if Key1 == 'labels':
+                for i in range(len(DataDict[Key1])):
+                    print("\t", i, type(DataDict[Key1][i]), DataDict[Key1][i])
 
-        if Key1 == 'images':
-            Keys2 = DataDict[Key1].keys()
-            for Key2 in Keys2:
-                print("\t", Key2, type(DataDict[Key1][Key2]))
+    # Создание словаря для отдельной картинки
+    def PolsToDict(self, NumCrudeImg: int, Pols: [], ClsNums: []):
+        PropsImg = self.ReadImgProp(NumCrudeImg)
+        shapes = []
+        for i in range(len(Pols)):
+            # Перевод из numpy в list двумерного массива
+            PolList = list(Pols[i])
+            PolList = [list(PolList[j]) for j in range(len(PolList))]
 
-                Keys3 = DataDict[Key1][Key2].keys()
-                for Key3 in Keys3:
-                    print("\t\t", Key3, type(DataDict[Key1][Key2][Key3]))
+            # Перевод из int32 в просто int
+            xList = [float(p[0]) for p in PolList]
+            yList = [float(p[1]) for p in PolList]
+            PolList = [[xList[j], yList[j]] for j in range(len(xList))]
 
-                    if Key3 == 'shapes':
-                        for i in range(len(DataDict[Key1][Key2][Key3])):
-                            print("\t\t\t", i, type(DataDict[Key1][Key2][Key3][i]))
+            dict = {'cls_num': ClsNums[i], 'points': PolList, 'id': i + 1}
+            shapes.append(dict)
 
-                            Keys4 = DataDict[Key1][Key2][Key3][i].keys()
-                            for Key4 in Keys4:
-                                print("\t\t\t\t", Key4, type(DataDict[Key1][Key2][Key3][i][Key4]))
+        return {'shapes': shapes, 'lrm': PropsImg['lrm'], 'status': PropsImg['status'],
+                'last_user': PropsImg['last_user']}
 
-        if Key1 == 'labels_color':
-            Keys2 = DataDict[Key1].keys()
-            for Key2 in Keys2:
-                print("\t", Key2, type(DataDict[Key1][Key2]))
+    # Функция записи в файл json
+    def WriteDataJson(self, PathToJsonFile: str, NameJsonFile: str, NamesImg: [], Polys: [], NumsCls: []):
+        # Формируем словарь, который будет записан
 
-        if Key1 == 'labels':
-            for i in range(len(DataDict[Key1])):
-                print("\t", i, type(DataDict[Key1][i]), DataDict[Key1][i])
+        # 1. Формируем путь к изображениям
+        PathToImgs = PathToJsonFile
+        PathToImgs.replace('/', '\/')
 
+        self.ReadJsonKeys()
 
-# Создание словаря для отдельной картинки
-def PolsToDict(self, NumCrudeImg: int, Pols: [], ClsNums: []):
-    PropsImg = self.ReadImgProp(NumCrudeImg)
-    shapes = []
-    for i in range(len(Pols)):
-        # Перевод из numpy в list двумерного массива
-        PolList = list(Pols[i])
-        PolList = [list(PolList[j]) for j in range(len(PolList))]
+        # Создаем файл json
+        # FullNameJsonFile=PathToJsonFile+'/'+NameJsonFile
+        # with codecs.open(FullNameJsonFile,'w','utf-8') as file:
+        #
+        #     file.write(str(self.DataDict))
+        #     file.write()
 
-        # Перевод из int32 в просто int
-        xList = [float(p[0]) for p in PolList]
-        yList = [float(p[1]) for p in PolList]
-        PolList = [[xList[j], yList[j]] for j in range(len(xList))]
+    # Функция чтения имен файлов - изображений, содержащихся в json
+    def ReadNamesImgs(self):
+        NamesImgs = []
+        # Получение наименований всех изображений
+        for NameImg in self.DataDict["images"].keys():
+            NamesImgs.append(NameImg)
+        return NamesImgs
 
-        dict = {'cls_num': ClsNums[i], 'points': PolList, 'id': i + 1}
-        shapes.append(dict)
+    # Функции, использующиеся во внешней программе, относящиеся к отдельному изображению
+    # Функция чтения всех полигонов на конкретном изображении
+    def ReadPolygons(self, NumImg: int):
+        # Если номер изображения больше чем количество изображений, содержащихся в json-файле, выходим из программы
+        if NumImg >= len(self.ImgsName):
+            print("Заданный номер изображения некорректен")
+            return None
 
-    return {'shapes': shapes, 'lrm': PropsImg['lrm'], 'status': PropsImg['status'],
-            'last_user': PropsImg['last_user']}
+        # Перебор всех полигонов на изображении
+        ClsNums = []
+        Polys = []
+        for Pol in self.DataDict["images"][self.ImgsName[NumImg]]["shapes"]:
+            ClsNums.append(Pol['cls_num'])
+            Polys.append(Pol['points'])
+        return {'ClsNums': ClsNums, 'Polys': Polys}
 
+    # Функция чтения свойств изображения
+    def ReadImgProp(self, NumImg: int):
+        # Если номер изображения больше чем количество изображений, содержащихся в json-файле, выходим из программы
+        if NumImg >= len(self.ImgsName):
+            print("Заданный номер изображения некорректен")
+            return None
 
-# Функция записи в файл json
-def WriteDataJson(self, PathToJsonFile: str, NameJsonFile: str, NamesImg: [], Polys: [], NumsCls: []):
-    # Формируем словарь, который будет записан
+        LRM = self.DataDict["images"][self.ImgsName[NumImg]]["lrm"]
+        Stat = self.DataDict["images"][self.ImgsName[NumImg]]["status"]
+        LastUser = self.DataDict["images"][self.ImgsName[NumImg]]["last_user"]
 
-    # 1. Формируем путь к изображениям
-    PathToImgs = PathToJsonFile
-    PathToImgs.replace('/', '\/')
+        return {"lrm": LRM, "status": Stat, "last_user": LastUser}
 
-    self.ReadJsonKeys()
+    # Функция преобразования полигонов точечных в полигоны Shp
+    @classmethod
+    def PolysToShp(cls, Polys: []):
+        PolysShp = []
+        for Pol in Polys:
+            PolysShp.append(Polygon(Pol))
+        return PolysShp
 
-    # Создаем файл json
-    # FullNameJsonFile=PathToJsonFile+'/'+NameJsonFile
-    # with codecs.open(FullNameJsonFile,'w','utf-8') as file:
-    #
-    #     file.write(str(self.DataDict))
-    #     file.write()
+    # Функция преобразования координат полигона из исходных в локальные (для порезанных картинок)
+    @classmethod
+    def CoordGlobToLocal(cls, Polys: [], np: []):
+        for Pol in Polys:
+            Pol[:, 0] = Pol[:, 0] - np[0]
+            Pol[:, 1] = Pol[:, 1] - np[1]
+        return Polys
 
-
-# Функция чтения имен файлов - изображений, содержащихся в json
-def ReadNamesImgs(self):
-    NamesImgs = []
-    # Получение наименований всех изображений
-    for NameImg in self.DataDict["images"].keys():
-        NamesImgs.append(NameImg)
-    return NamesImgs
-
-
-# Функции, использующиеся во внешней программе, относящиеся к отдельному изображению
-# Функция чтения всех полигонов на конкретном изображении
-def ReadPolygons(self, NumImg: int):
-    # Если номер изображения больше чем количество изображений, содержащихся в json-файле, выходим из программы
-    if NumImg >= len(self.ImgsName):
-        print("Заданный номер изображения некорректен")
-        return None
-
-    # Перебор всех полигонов на изображении
-    ClsNums = []
-    Polys = []
-    for Pol in self.DataDict["images"][self.ImgsName[NumImg]]["shapes"]:
-        ClsNums.append(Pol['cls_num'])
-        Polys.append(Pol['points'])
-    return {'ClsNums': ClsNums, 'Polys': Polys}
-
-
-# Функция чтения свойств изображения
-def ReadImgProp(self, NumImg: int):
-    # Если номер изображения больше чем количество изображений, содержащихся в json-файле, выходим из программы
-    if NumImg >= len(self.ImgsName):
-        print("Заданный номер изображения некорректен")
-        return None
-
-    LRM = self.DataDict["images"][self.ImgsName[NumImg]]["lrm"]
-    Stat = self.DataDict["images"][self.ImgsName[NumImg]]["status"]
-    LastUser = self.DataDict["images"][self.ImgsName[NumImg]]["last_user"]
-
-    return {"lrm": LRM, "status": Stat, "last_user": LastUser}
-
-
-# Функция преобразования полигонов точечных в полигоны Shp
-@classmethod
-def PolysToShp(cls, Polys: []):
-    PolysShp = []
-    for Pol in Polys:
-        PolysShp.append(Polygon(Pol))
-    return PolysShp
-
-
-# Функция преобразования координат полигона из исходных в локальные (для порезанных картинок)
-@classmethod
-def CoordGlobToLocal(cls, Polys: [], np: []):
-    for Pol in Polys:
-        Pol[:, 0] = Pol[:, 0] - np[0]
-        Pol[:, 1] = Pol[:, 1] - np[1]
-    return Polys
 
 # Отладочная функция вывода контуров полигонов на изображение
 # @classmethod
