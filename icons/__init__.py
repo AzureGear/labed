@@ -67,3 +67,4 @@
 # glyph_language: Freepik
 # glyph_check_all: Freepik
 # glyph_resize: Freepik
+# glyph_pen_code: Freepik
