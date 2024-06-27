@@ -1,9 +1,6 @@
+from PyQt5 import QtCore, QtWidgets, QtGui
+from utils import AppSettings, UI_COLORS
 import os.path as osp
-from PyQt5 import QtCore
-from PyQt5 import QtWidgets
-from PyQt5 import QtGui
-from utils import AppSettings
-from utils import UI_COLORS
 import os
 import re
 

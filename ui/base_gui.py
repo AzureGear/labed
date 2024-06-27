@@ -1,9 +1,7 @@
 # from qdarktheme.qtpy import QtCore
 # from qdarktheme.qtpy import QtGui
 # from qdarktheme.qtpy import QtWidgets
-from PyQt5 import QtCore
-from PyQt5 import QtWidgets
-from PyQt5 import QtGui
+from PyQt5 import QtCore, QtWidgets, QtGui
 from utils import config
 
 import qdarktheme
@@ -13,8 +11,7 @@ from utils import APP_MIN_SIZE, UI_COLORS, AppSettings
 from ui import SettingsUI, ViewDatasetUI, ExperimentUI, ProcessingUI, AutomationUI
 from ui import new_icon, new_act, new_button, coloring_icon, AzAction
 
-from qdarktheme.widget_gallery._ui.frame_ui import FrameUI
-from qdarktheme.widget_gallery._ui.widgets_ui import WidgetsUI
+from qdarktheme.widget_gallery import __main__
 
 the_color = UI_COLORS.get("sidepanel_color")
 current_folder = os.path.dirname(os.path.abspath(__file__))  # каталога проекта + /ui/

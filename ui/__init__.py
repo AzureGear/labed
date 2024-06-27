@@ -13,6 +13,7 @@ from .qt import new_button
 from .qt import new_act
 
 from .az_slice_manual_crop import AzManualSlice
+from .az_exp_mnist import PageMNIST
 
 from .base_experiments import ExperimentUI
 from .base_settings import SettingsUI

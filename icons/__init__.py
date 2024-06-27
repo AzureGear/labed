@@ -18,6 +18,8 @@
 # glyph_hand: meaicon
 # glyph_arrow_left: Flowicon
 # glyph_arrow_right: Flowicon
+# glyph_mnist: Those Icons
+
 
 
 # glyph_add_image: Pixel perfect

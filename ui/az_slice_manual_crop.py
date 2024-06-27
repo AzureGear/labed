@@ -1,6 +1,4 @@
-from PyQt5 import QtCore
-from PyQt5 import QtWidgets
-from PyQt5 import QtGui
+from PyQt5 import QtCore, QtWidgets, QtGui
 from utils import AppSettings, UI_COLORS, UI_AZ_SLICE_MANUAL, load, save, dn_crop, AzImageViewer, ViewState
 from ui import az_file_dialog, az_custom_dialog, new_act, natural_order
 from datetime import datetime

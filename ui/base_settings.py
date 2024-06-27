@@ -1,6 +1,4 @@
-from PyQt5 import QtCore
-from PyQt5 import QtWidgets
-from PyQt5 import QtGui
+from PyQt5 import QtCore, QtWidgets, QtGui
 from utils import AppSettings, UI_COLORS
 from ui import AzButtonLineEdit, coloring_icon
 import os

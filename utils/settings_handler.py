@@ -1,4 +1,4 @@
-from qdarktheme.qtpy import QtCore
+from PyQt5 import QtCore
 from utils import config
 
 

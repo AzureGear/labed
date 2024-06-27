@@ -1,6 +1,4 @@
-from PyQt5 import QtCore
-from PyQt5 import QtWidgets
-from PyQt5 import QtGui
+from PyQt5 import QtCore, QtWidgets, QtGui
 from utils import AppSettings, UI_COLORS, UI_BASE_VIEW, AzImageViewer
 from ui import new_act, new_button, az_file_dialog
 import os

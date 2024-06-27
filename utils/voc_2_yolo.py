@@ -53,9 +53,9 @@ def save_file(img_jpg_file_name, size, img_box):  # разметка: исход
     print(save_file_name)
     file_path = open(save_file_name, "a+")
     for box in img_box:
-        cls_num = classes.index(box[0])  # find class_id
+        cls_num = classes.index(box[0])  # поиск по class_id
 
-        new_box = cord_converter(size, box[1:])  # convert box coord into YOLO x,y,w,h
+        new_box = cord_converter(size, box[1:])  # Конвертация координат ограничительной рамки в формат YOLO x, y, w, h
 
         file_path.write(f"{cls_num} {new_box[0]} {new_box[1]} {new_box[2]} {new_box[3]}\n")
 
@@ -113,13 +113,13 @@ def copy_data(img_set_source, img_labels_root, imgs_source, type):
         img_sor_file = imgs_source + '/' + img_name + '.jpg'
         label_sor_file = img_labels_root + '/' + img_name + '.txt'
 
-        # Copy image
+        # Копирование изображений
         DICT_DIR = DATA_ROOT + DEST_IMAGES_PATH + '/' + type
         img_dict_file = DICT_DIR + '/' + img_name + '.jpg'
 
         copyfile(img_sor_file, img_dict_file)
 
-        # Copy label
+        # Копирование меток
         DICT_DIR = DATA_ROOT + DEST_LABELS_PATH + '/' + type
         img_dict_file = DICT_DIR + '/' + img_name + '.txt'
         copyfile(label_sor_file, img_dict_file)

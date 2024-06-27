@@ -15,7 +15,7 @@ APP_MIN_SIZE = {"WIDTH": 720,
 UI_COLORS = {
     "sidepanel_color": "dodgerblue",
     "processing_color": "deeppink",
-    "experiments_color": "forestgreen",
+    "experiments_color": "limegreen",
     "datasets_color": "mediumorchid",
     "datasets_change_color": "goldenrod",
     "automation_color": "darkorange",

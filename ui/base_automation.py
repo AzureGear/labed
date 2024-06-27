@@ -1,8 +1,5 @@
-from PyQt5 import QtCore
-from PyQt5 import QtWidgets
-from PyQt5 import QtGui
-from utils import AppSettings
-from utils import UI_COLORS
+from PyQt5 import QtCore, QtWidgets, QtGui
+from utils import AppSettings, UI_COLORS
 import numpy as np
 import os
 
