@@ -422,3 +422,30 @@ class ViewDatasetUI(QtWidgets.QWidget):
             self.mdi_window_set_image(active_mdi, filename)
         # self.files_list.repaint()
         # return
+
+    def tr(self, text):
+        return QtCore.QCoreApplication.translate("ViewDatasetUI", text)
+
+    def translate_ui(self):
+        self.tb_info_dataset.setText(self.tr(' Info'))
+        self.tb_info_dataset.setToolTip(self.tr('Show dataset information'))
+        self.tb_load_preset.setText(self.tr('Load preset dataset'))
+        self.tb_load_preset.setToolTip(self.tb_load_preset.text())
+        self.actions_load[0].setText(self.tr('Load last data'))
+        self.actions_load[1].setText(self.tr('Load dir'))
+        self.actions_load[2].setText(self.tr('Load dataset'))
+        self.action_load_presets.setText(self.tr('Load preset dataset'))
+        self.actions_show_data[0].setText(self.tr('One window'))
+        self.actions_show_data[1].setText(self.tr('Add window'))
+        self.actions_show_data[2].setText(self.tr('4x windows'))
+        self.actions_show_data[3].setText(self.tr('16x windows'))
+        self.actions_adjust[0].setText(self.tr('Tiled'))
+        self.actions_adjust[1].setText(self.tr('Cascade'))
+        self.actions_adjust[2].setText(self.tr('Disable layout'))
+        self.actions_labels[0].setText(self.tr('Show labels'))
+        self.actions_labels[1].setText(self.tr('Show filenames'))
+        self.actions_control_images[0].setText(self.tr('Preview'))
+        self.actions_control_images[1].setText(self.tr('Next'))
+        self.action_shuffle_data.setText(self.tr('Shuffle data'))
+        self.files_search.setPlaceholderText(self.tr('Filter files'))
+        self.files_dock.setWindowTitle(self.tr('Files List'))

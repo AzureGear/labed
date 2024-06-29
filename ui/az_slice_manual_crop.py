@@ -109,7 +109,6 @@ class AzManualSlice(QtWidgets.QMainWindow):
         if self.slice_actions[self.actions_names["Autosave"]].isChecked():  # активен пункт автосохранения
             self.update_mc_data(self.current_mc_file, points)  # сохраняем текущий перечень
 
-
     def update_mc_data(self, file, data, update_crop=True):
         mc_dict = load(file)  # загружаем файл json
         if not mc_dict:
@@ -436,6 +435,25 @@ class AzManualSlice(QtWidgets.QMainWindow):
     def get_mc_image_data(filename, value):  # загрузить данные раздела словаря по названию файла
         file_mc = load(filename)  # внутренний файл РК *.json_mc
         return file_mc[value]  # словарь раздела
+
+    def tr(self, text):
+        return QtCore.QCoreApplication.translate("AzManualSlice", text)
+
+    def translate_ui(self):
+        self.slice_toolbar.setWindowTitle(self.tr("Toolbar for manual cropping"))
+        self.label_info.setText(self.tr("Current manual project:"))
+        self.files_dock.setWindowTitle(self.tr('Files List'))
+        self.slice_actions[0].setText(self.tr('Open'))
+        self.slice_actions[1].setText(self.tr('New'))
+        self.slice_actions[2].setText(self.tr('Save'))
+        self.slice_actions[3].setText(self.tr('Autosave'))
+        self.slice_actions[4].setText(self.tr('Fit image'))
+        self.slice_actions[5].setText(self.tr('Hand'))
+        self.slice_actions[6].setText(self.tr('Add'))
+        self.slice_actions[7].setText(self.tr('Move'))
+        self.slice_actions[8].setText(self.tr('Delete'))
+        self.slice_actions[9].setText(self.tr('Change crop size'))
+        self.slice_actions[10].setText(self.tr('Slice'))
 
 
 if __name__ == '__main__':

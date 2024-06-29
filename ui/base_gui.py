@@ -176,7 +176,6 @@ class BaseGUI(QtWidgets.QMainWindow):
         self._ui.ui_processing.manual_wid.signal_message.connect(self.show_statusbar_msg)  # Ручное кадрирование
         self._ui.ui_viewdataset.signal_message.connect(self.show_statusbar_msg)  # вкладка Просмотр данных
 
-
         for action in self._ui.actions_switch_lang:  # соединяем смену языка
             action.triggered.connect(self.change_lang)
         for i, action in enumerate(self._ui.actions_page_side_panel):
@@ -185,7 +184,7 @@ class BaseGUI(QtWidgets.QMainWindow):
 
         # Локализация
         self.trans = QtCore.QTranslator(self)  # переводчик
-        self._retranslate_ui()  # переключение языка
+        self.retranslate_ui()  # переключение языка
 
         # Настройки по умолчанию и сохранённые настройки
         self._theme = self.settings.read_ui_theme()  # тема светлая
@@ -212,97 +211,33 @@ class BaseGUI(QtWidgets.QMainWindow):
     def closeEvent(self, event):
         self.settings.write_ui_position(self.pos(), self.size(), self.windowState())
 
-    def _retranslate_ui(self):
-        # Перечень всех виджетов и объектов для которых будет выполняться локализация
-        _tr = QtWidgets.QApplication.translate  # не работает при использовании сокращения перевод не выполняется
-        self._ui.actions_page_side_panel[0].setText(QtWidgets.QApplication.translate('BaseGUI', 'Processing'))
-        self._ui.actions_page_side_panel[1].setText(QtWidgets.QApplication.translate('BaseGUI', 'Experiments'))
-        self._ui.actions_page_side_panel[2].setText(QtWidgets.QApplication.translate('BaseGUI', 'View datasets'))
-        self._ui.actions_page_side_panel[3].setText(QtWidgets.QApplication.translate('BaseGUI', 'Move to mdi'))
-        self._ui.actions_page_side_panel[4].setText(QtWidgets.QApplication.translate('BaseGUI', 'Settings'))
-        self._ui.action_switch_theme.setText(QtWidgets.QApplication.translate('BaseGUI', 'Switch theme'))
-        self._ui.action_help.setText(QtWidgets.QApplication.translate('BaseGUI', 'Help'))
-        self._ui.action_exit.setText(QtWidgets.QApplication.translate('BaseGUI', 'Exit'))
+    def tr(self, text):
+        return QtCore.QCoreApplication.translate("BaseGUI", text)
 
+    def translate_ui(self):
+        # Перечень всех виджетов и объектов для которых будет выполняться локализация
+        self._ui.actions_page_side_panel[0].setText(self.tr('Processing'))
+        self._ui.actions_page_side_panel[1].setText(self.tr('Experiments'))
+        self._ui.actions_page_side_panel[2].setText(self.tr('View datasets'))
+        self._ui.actions_page_side_panel[3].setText(self.tr('Automation'))
+        self._ui.actions_page_side_panel[4].setText(self.tr('Settings'))
+        self._ui.action_switch_theme.setText(self.tr('Switch theme'))
+        self._ui.action_help.setText(self.tr('Help'))
+        self._ui.action_exit.setText(self.tr('Exit'))
         # Панель Меню
-        self._ui.menu_file.setTitle(QtWidgets.QApplication.translate('BaseGUI', "&File"))
-        self._ui.menu_view.setTitle(QtWidgets.QApplication.translate('BaseGUI', "&View"))
-        self._ui.menu_help.setTitle(QtWidgets.QApplication.translate('BaseGUI', "&Help"))
+        self._ui.menu_file.setTitle(self.tr("&File"))
+        self._ui.menu_view.setTitle(self.tr("&View"))
+        self._ui.menu_help.setTitle(self.tr("&Help"))
+
+    def retranslate_ui(self):  # Перевод всех виджетов
+        # BaseGUI
+        self.translate_ui()
 
         # QStackWidgets
-        # Processing
-        pc = self._ui.ui_processing
-        pc.tab_widget.setTabText(0, QtWidgets.QApplication.translate('BaseGUI', "Merge"))
-        pc.tab_widget.setTabText(1, QtWidgets.QApplication.translate('BaseGUI', "Slicing"))
-        pc.tab_widget.setTabText(2, QtWidgets.QApplication.translate('BaseGUI', "Attributes"))
-        pc.tab_widget.setTabText(3, QtWidgets.QApplication.translate('BaseGUI', "Geometry"))
-        # Processing - Merge
-        pc.merge_actions[0].setText(QtWidgets.QApplication.translate('BaseGUI', "Add files"))
-        pc.merge_actions[1].setText(QtWidgets.QApplication.translate('BaseGUI', "Remove files"))
-        pc.merge_actions[2].setText(QtWidgets.QApplication.translate('BaseGUI', "Select all"))
-        pc.merge_actions[3].setText(QtWidgets.QApplication.translate('BaseGUI', "Clear list"))
-        pc.merge_actions[4].setText(QtWidgets.QApplication.translate('BaseGUI', "Merge selected files"))
-        pc.merge_actions[5].setText(QtWidgets.QApplication.translate('BaseGUI', "Open output folder"))
-        pc.merge_output_label.setText(QtWidgets.QApplication.translate('BaseGUI', "Output type:"))
-        pc.merge_output_file_check.setText(
-            QtWidgets.QApplication.translate('BaseGUI', "Set user output file path other than default:"))  # noqa
-        pc.merge_toolbar.setWindowTitle(
-            QtWidgets.QApplication.translate('BaseGUI', "Toolbar for merging project files"))  # noqa
-        # Processing - Cutting Images (crop)
-        pc.slice_input_file_label.setText(QtWidgets.QApplication.translate('BaseGUI', "Path to file project *.json:"))
-        pc.slice_output_file_check.setText(
-            QtWidgets.QApplication.translate('BaseGUI', "Set user output file path other than default:"))  # noqa
-        pc.slice_scan_size_label.setText(QtWidgets.QApplication.translate('BaseGUI', "Scan size:"))
-        pc.slice_overlap_window_label.setText(
-            QtWidgets.QApplication.translate('BaseGUI', "Scanning window overlap percentage:"))  # noqa
-        pc.slice_overlap_pols_default_label.setText(
-            QtWidgets.QApplication.translate('BaseGUI', "Default overlap percentage for classes:"))  # noqa
-        pc.slice_edge_label.setText(QtWidgets.QApplication.translate('BaseGUI', "Offset from the edge"))
-        pc.slice_smart_crop.setText(
-            QtWidgets.QApplication.translate('BaseGUI', "Simplified grid framing (no smart grouping)"))  # noqa
-        pc.slice_exec.setText(QtWidgets.QApplication.translate('BaseGUI', " Automatically crop images"))
-        pc.slice_open_result.setText(QtWidgets.QApplication.translate('BaseGUI', " Open results"))
-        pc.manual_wid.slice_toolbar.setWindowTitle(
-            QtWidgets.QApplication.translate('BaseGUI', "Toolbar for manual cropping"))  # noqa
-        pc.manual_wid.files_dock.setWindowTitle(QtWidgets.QApplication.translate('BaseGUI', "Files List"))
-        pc.manual_wid.top_dock.setWindowTitle(
-            QtWidgets.QApplication.translate('BaseGUI', "Visual manual cropping project name"))  # noqa
-        pc.manual_wid.label_info.setText(QtWidgets.QApplication.translate('BaseGUI', "Current manual project:"))
-        pc.slice_up_group.setTitle(QtWidgets.QApplication.translate('BaseGUI', "Automatic image cropping"))
-        pc.slice_down_group.setTitle(QtWidgets.QApplication.translate('BaseGUI', "Manual visual image cropping"))
-
-        # Baseview
-        bv = self._ui.ui_viewdataset
-        bv.tb_info_dataset.setText(QtWidgets.QApplication.translate('BaseGUI', ' Info'))
-        bv.tb_info_dataset.setToolTip(QtWidgets.QApplication.translate('BaseGUI', 'Show dataset information'))
-        bv.tb_load_preset.setText(QtWidgets.QApplication.translate('BaseGUI', 'Load preset dataset'))
-        bv.tb_load_preset.setToolTip(bv.tb_load_preset.text())
-        bv.actions_load[0].setText(QtWidgets.QApplication.translate('BaseGUI', 'Load last data'))
-        bv.actions_load[1].setText(QtWidgets.QApplication.translate('BaseGUI', 'Load dir'))
-        bv.actions_load[2].setText(QtWidgets.QApplication.translate('BaseGUI', 'Load dataset'))
-        bv.action_load_presets.setText(QtWidgets.QApplication.translate('BaseGUI', 'Load preset dataset'))
-        bv.actions_show_data[0].setText(QtWidgets.QApplication.translate('BaseGUI', 'One window'))
-        bv.actions_show_data[1].setText(QtWidgets.QApplication.translate('BaseGUI', 'Add window'))
-        bv.actions_show_data[2].setText(QtWidgets.QApplication.translate('BaseGUI', '4x windows'))
-        bv.actions_show_data[3].setText(QtWidgets.QApplication.translate('BaseGUI', '16x windows'))
-        bv.actions_adjust[0].setText(QtWidgets.QApplication.translate('BaseGUI', 'Tiled'))
-        bv.actions_adjust[1].setText(QtWidgets.QApplication.translate('BaseGUI', 'Cascade'))
-        bv.actions_adjust[2].setText(QtWidgets.QApplication.translate('BaseGUI', 'Disable layout'))
-        bv.actions_labels[0].setText(QtWidgets.QApplication.translate('BaseGUI', 'Show labels'))
-        bv.actions_labels[1].setText(QtWidgets.QApplication.translate('BaseGUI', 'Show filenames'))
-        bv.actions_control_images[0].setText(QtWidgets.QApplication.translate('BaseGUI', 'Preview'))
-        bv.actions_control_images[1].setText(QtWidgets.QApplication.translate('BaseGUI', 'Next'))
-        bv.action_shuffle_data.setText(QtWidgets.QApplication.translate('BaseGUI', 'Shuffle data'))
-        bv.files_search.setPlaceholderText(QtWidgets.QApplication.translate('BaseGUI', 'Filter files'))
-        bv.files_dock.setWindowTitle(QtWidgets.QApplication.translate('BaseGUI', 'Files List'))
-
-        # Settings
-        st = self._ui.ui_settings
-        st.output_dir.setText(QtWidgets.QApplication.translate('BaseGUI', 'Default output dir:'))
-        st.datasets_dir.setText(QtWidgets.QApplication.translate('BaseGUI', 'Default datasets directory:'))
-        st.tab_widget.setTabText(0, QtWidgets.QApplication.translate('BaseGUI', 'Common settings'))
-        st.chk_load_sub_dirs.setText(
-            QtWidgets.QApplication.translate('BaseGUI', 'Load subdirectories, when use "Load image dir"'))
+        self._ui.ui_processing.translate_ui()  # Processing
+        self._ui.ui_viewdataset.translate_ui()  # Base View
+        self._ui.ui_settings.translate_ui()  # Settings
+        self._ui.ui_experiment.translate_ui()  # Experiments
 
     def show_statusbar_msg(self, msg):
         self.statusBar().showMessage(msg)
@@ -310,16 +245,13 @@ class BaseGUI(QtWidgets.QMainWindow):
     def changeEvent(self, event):
         # перегружаем функцию для возможности перевода "на лету"
         if event.type() == QtCore.QEvent.LanguageChange:
-            self._retranslate_ui()  # что именно переводим
-        super(BaseGUI, self).changeEvent(event)
+            self.retranslate_ui()  # запуск перевода...
+        super(BaseGUI, self).changeEvent(event)  # ...и отправляем событие дальше
 
     @QtCore.pyqtSlot()
     # Смена языка
     def change_lang(self):
         action_name: str = self.sender().text()
-        # if self.settings.read_lang() == action_name:
-        #     return  # если выбора, как такового не произошло
-        # else:
         if action_name:
             self.trans.load(os.path.join(current_folder, "../", config.LOCALIZATION_FOLDER, action_name))
             # загружаем перевод с таким же именем как и имя QAction

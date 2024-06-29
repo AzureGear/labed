@@ -239,7 +239,8 @@ class ProcessingUI(QtWidgets.QWidget):
             if model:
                 for row in range(model.rowCount(-198)):  # -198 чтобы тебя запутать))
                     # процент указан во втором столбце, роль "Редактирования" включает "Отображение"
-                    pols_overlap_percent.append((model.data(model.index(row, 1), QtCore.Qt.ItemDataRole.DisplayRole)) / 100)
+                    pols_overlap_percent.append(
+                        (model.data(model.index(row, 1), QtCore.Qt.ItemDataRole.DisplayRole)) / 100)
             self.crop_options["percent_overlap_polygons"] = pols_overlap_percent
         self.crop_options["percent_overlap_scan"] = self.slice_overlap_window.value() / 100
         self.crop_options["edge"] = self.slice_edge.value()
@@ -509,6 +510,38 @@ class ProcessingUI(QtWidgets.QWidget):
         if not self.slice_output_file_check.isChecked():
             self.slice_toggle_output_file()
 
+    def tr(self, text):
+        return QtCore.QCoreApplication.translate("ProcessingUI", text)
+
+    def translate_ui(self):
+        # Processing
+        self.tab_widget.setTabText(0, self.tr("Merge"))
+        self.tab_widget.setTabText(1, self.tr("Slicing"))
+        self.tab_widget.setTabText(2, self.tr("Attributes"))
+        self.tab_widget.setTabText(3, self.tr("Geometry"))
+        # Processing - Merge
+        self.merge_actions[0].setText(self.tr("Add files"))
+        self.merge_actions[1].setText(self.tr("Remove files"))
+        self.merge_actions[2].setText(self.tr("Select all"))
+        self.merge_actions[3].setText(self.tr("Clear list"))
+        self.merge_actions[4].setText(self.tr("Merge selected files"))
+        self.merge_actions[5].setText(self.tr("Open output folder"))
+        self.merge_output_label.setText(self.tr("Output type:"))
+        self.merge_output_file_check.setText(self.tr("Set user output file path other than default:"))
+        self.merge_toolbar.setWindowTitle(self.tr("Toolbar for merging project files"))
+        # Processing - Cutting Images (crop)
+        self.slice_input_file_label.setText(self.tr("Path to file project *.json:"))
+        self.slice_output_file_check.setText(self.tr("Set user output file path other than default:"))
+        self.slice_scan_size_label.setText(self.tr("Scan size:"))
+        self.slice_overlap_window_label.setText(self.tr("Scanning window overlap percentage:"))
+        self.slice_overlap_pols_default_label.setText(self.tr("Default overlap percentage for classes:"))
+        self.slice_edge_label.setText(self.tr("Offset from the edge"))
+        self.slice_smart_crop.setText(self.tr("Simplified grid framing (no smart grouping)"))
+        self.slice_exec.setText(self.tr(" Automatically crop images"))
+        self.slice_open_result.setText(self.tr(" Open results"))
+        self.slice_up_group.setTitle(self.tr("Automatic image cropping"))
+        self.slice_down_group.setTitle(self.tr("Manual visual image cropping"))
+        self.manual_wid.translate_ui()
 
 # ----------------------------------------------------------------------------------------------------------------------
 

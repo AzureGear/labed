@@ -15,9 +15,16 @@ class ExperimentUI(QtWidgets.QWidget):
     def __init__(self, parent):
         super().__init__()
         self.settings = AppSettings()  # настройки программы
+        self.tab_widget = QtWidgets.QTabWidget()  # создаём виджет со вкладками
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)  # уменьшаем границу
-        self.tab_widget = QtWidgets.QTabWidget()  # создаём виджет со вкладками
         layout.addWidget(self.tab_widget)
-        tab_mnist = PageMNIST(self)
-        self.tab_widget.addTab(tab_mnist, QtGui.QIcon(coloring_icon("glyph_mnist", the_color)), tab_mnist.name)
+        self.tab_mnist = PageMNIST(self)
+        self.tab_widget.addTab(self.tab_mnist, QtGui.QIcon(coloring_icon("glyph_mnist", the_color)),
+                               self.tab_mnist.name)
+
+    def tr(self, text):
+        return QtCore.QCoreApplication.translate("ExperimentUI", text)
+
+    def translate_ui(self):
+        self.tab_widget.setTabText(0, self.tr(self.tab_mnist.name))

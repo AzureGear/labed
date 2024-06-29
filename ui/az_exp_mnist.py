@@ -83,52 +83,52 @@ class PageMNIST(QtWidgets.QWidget):
 #             self.last_point = None
 #             self.update()
 
-import sys
-from PyQt5.QtWidgets import QWidget, QApplication
-from PyQt5.QtGui import QPainter, QColor, QMouseEvent, QImage
-from PyQt5.QtCore import Qt
-
-
-class Example(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.flag = False
-        self.resize(200, 200)
-        self.image = QImage(self.width(), self.height(), QImage.Format_Grayscale8)
-        self.image.fill(QColor(255, 255, 255))
-        self.show()
-
-    def mousePressEvent(self, event):
-        self.clear()
-        if event.button() == Qt.LeftButton:
-            self.flag = True
-            self.paint = QPainter(self.image)
-            self.ellips(event)
-
-    def paintEvent(self, event):
-        paint = QPainter(self)
-        paint.drawImage(0, 0, self.image)
-
-    def mouseMoveEvent(self, event):
-        if self.flag:
-            # print(event.pos())
-            self.ellips(event)
-
-    def mouseReleaseEvent(self, event) -> None:
-        if event.button() == Qt.RightButton:
-            self.clear()
-        elif event.button() == Qt.LeftButton:
-            self.flag = False
-        self.update()
-
-    def ellips(self, event):
-        self.paint.setBrush(QColor('black'))
-        self.paint.drawEllipse(event.pos(), 3, 3)
-        self.update()
-
-    def clear(self):
-        self.image.fill(QColor(255, 255, 255))
-
-app = QApplication(sys.argv)
-w = Example()
-sys.exit(app.exec_())
+# import sys
+# from PyQt5.QtWidgets import QWidget, QApplication
+# from PyQt5.QtGui import QPainter, QColor, QMouseEvent, QImage
+# from PyQt5.QtCore import Qt
+#
+#
+# class Example(QWidget):
+#     def __init__(self):
+#         super().__init__()
+#         self.flag = False
+#         self.resize(200, 200)
+#         self.image = QImage(self.width(), self.height(), QImage.Format_Grayscale8)
+#         self.image.fill(QColor(255, 255, 255))
+#         self.show()
+#
+#     def mousePressEvent(self, event):
+#         self.clear()
+#         if event.button() == Qt.LeftButton:
+#             self.flag = True
+#             self.paint = QPainter(self.image)
+#             self.ellips(event)
+#
+#     def paintEvent(self, event):
+#         paint = QPainter(self)
+#         paint.drawImage(0, 0, self.image)
+#
+#     def mouseMoveEvent(self, event):
+#         if self.flag:
+#             # print(event.pos())
+#             self.ellips(event)
+#
+#     def mouseReleaseEvent(self, event) -> None:
+#         if event.button() == Qt.RightButton:
+#             self.clear()
+#         elif event.button() == Qt.LeftButton:
+#             self.flag = False
+#         self.update()
+#
+#     def ellips(self, event):
+#         self.paint.setBrush(QColor('black'))
+#         self.paint.drawEllipse(event.pos(), 3, 3)
+#         self.update()
+#
+#     def clear(self):
+#         self.image.fill(QColor(255, 255, 255))
+#
+# app = QApplication(sys.argv)
+# w = Example()
+# sys.exit(app.exec_())

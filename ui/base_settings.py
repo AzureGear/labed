@@ -73,3 +73,11 @@ class SettingsUI(QtWidgets.QWidget):
         hlayout.addWidget(self.chk_load_sub_dirs)
         page_common_layout.addRow(hlayout)
 
+    def tr(self, text):
+        return QtCore.QCoreApplication.translate("SettingsUI", text)
+
+    def translate_ui(self):
+        self.output_dir.setText(self.tr('Default output dir:'))
+        self.datasets_dir.setText(self.tr('Default datasets directory:'))
+        self.tab_widget.setTabText(0, self.tr('Common settings'))
+        self.chk_load_sub_dirs.setText(self.tr('Load subdirectories, when use "Load image dir"'))
