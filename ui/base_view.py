@@ -6,6 +6,7 @@ import re
 import random
 
 # import natsort
+# TODO: исправить тот косяк с DatasetInfo, там в margin дело было
 
 the_color = UI_COLORS.get("datasets_color")
 the_color2 = UI_COLORS.get("datasets_change_color")

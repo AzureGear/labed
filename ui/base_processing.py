@@ -15,7 +15,7 @@ class ProcessingUI(QtWidgets.QWidget):
     """
     Класс виджета обработки датасетов
     """
-    signal_message = QtCore.pyqtSignal(str)
+    signal_message = QtCore.pyqtSignal(str) # сигнал вывода сообщения
 
     def __init__(self, parent):
         super().__init__()

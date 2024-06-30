@@ -16,6 +16,7 @@ class AzCanvas(QtWidgets.QLabel):
     """
     Холст для рисования цифр, для распознавания при работе MNIST
     """
+    signal_draw = QtCore.pyqtSignal(QtGui.QPixmap)  # сигнал завершения отрисовки
 
     def __init__(self):
         super().__init__()
@@ -23,7 +24,7 @@ class AzCanvas(QtWidgets.QLabel):
         self.clear(pixmap)
         self.setPixmap(pixmap)
         self.draw = False  # рисование
-        self.last_x, self.last_y = None, None
+        self.last_x, self.last_y = None, None  # координаты точки рисования
         self.pen_color = QtCore.Qt.GlobalColor.black
 
     def mousePressEvent(self, event):
@@ -56,6 +57,7 @@ class AzCanvas(QtWidgets.QLabel):
         self.draw = False
         self.last_x = None
         self.last_y = None
+        self.signal_draw.emit(self.pixmap())  # отправляем сигнал-картинку
 
     def clear(self, pixmap):  # очистка холста = по сути заливка всего белым цветом
         pixmap.fill(QtCore.Qt.GlobalColor.white)
@@ -63,22 +65,19 @@ class AzCanvas(QtWidgets.QLabel):
 
 
 class PageMNIST(QtWidgets.QWidget):
+    """
+    Виджет типа страницы QTabWidget для работы с MNIST
+    """
+    signal_message = QtCore.pyqtSignal(str)  # сигнал для вывода сообщения
+
     def __init__(self, parent=None):
         super(PageMNIST, self).__init__(parent)
-
-        # Создаем текстовое поле для примера
         self.name = "MNIST"
-        # Устанавливаем разметку для виджетов на вкладке
-        self.layout = QtWidgets.QVBoxLayout(self)
+
         self.draw28x28 = AzCanvas()
-        self.button = QtWidgets.QPushButton("Push")
-        self.resizedPixmap = QtWidgets.QLabel()
-        self.resizedPixmap.setPixmap(QtGui.QPixmap(140, 140))
-        self.resizedPixmap.pixmap().fill(QtGui.QColor(QtCore.Qt.GlobalColor.white))
-        self.button.clicked.connect(self.push_click)
-        self.layout.addWidget(self.draw28x28)
-        self.layout.addWidget(self.resizedPixmap)
-        self.layout.addWidget(self.button)
+        self.preview = QtWidgets.QLabel()
+        self.preview.setPixmap(QtGui.QPixmap(140, 140))
+        self.preview.pixmap().fill(QtGui.QColor(QtCore.Qt.GlobalColor.white))
 
         self.lcd = QtWidgets.QLCDNumber(self)
         self.lcd.setSegmentStyle(QtWidgets.QLCDNumber.Filled)  # Устанавливаем стиль сегментов
@@ -86,23 +85,58 @@ class PageMNIST(QtWidgets.QWidget):
         self.lcd.setMode(QtWidgets.QLCDNumber.Dec)  # Устанавливаем режим (Dec, Hex, Bin или Oct)
         self.lcd.setSmallDecimalPoint(True)  # Устанавливаем размер десятичной точки
         self.lcd.display(123.45)  # Отображаем число
-        self.layout.addWidget(self.lcd)
+
+        # Устанавливаем разметку для виджетов на вкладке
+        gb_draw = QtWidgets.QGroupBox("Draw")
+        gb_draw.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        h_draw = QtWidgets.QVBoxLayout()
+        h_draw.addWidget(self.draw28x28)
+        gb_draw.setLayout(h_draw)
+
+        gb_preview = QtWidgets.QGroupBox("Preview")
+        gb_preview.setAlignment(QtCore.Qt.AlignCenter)
+        h_preview = QtWidgets.QVBoxLayout()
+        h_preview.addWidget(self.preview)
+        gb_preview.setLayout(h_preview)
+
+        # for group, frame in ((gb_draw, frame_draw),
+        #                      (gb_preview, frame_preview)):
+        #     v_layout = QtWidgets.QVBoxLayout(group)
+        #     v_layout.addWidget(frame)
+
+        h_layout = QtWidgets.QHBoxLayout()
+        h_layout.addWidget(gb_draw)
+        h_layout.addWidget(gb_preview)
+        h_layout.addWidget(self.lcd)
+        h_layout.addStretch(1)
+
+        self.layout = QtWidgets.QVBoxLayout(self)
+        self.layout.addLayout(h_layout)
+        # self.layout.addWidget(self.draw28x28)
+        # self.layout.addWidget(self.preview)
 
         self.layout.addStretch(1)
 
-    def push_click(self):
-        small_img = self.draw28x28.pixmap().scaled(28, 28, QtCore.Qt.KeepAspectRatio,
-                                                   QtCore.Qt.TransformationMode.SmoothTransformation)
-        big_again = small_img.scaled(28 * 5, 28 * 5, QtCore.Qt.IgnoreAspectRatio, QtCore.Qt.TransformationMode.FastTransformation)
-        painter = QtGui.QPainter(big_again)
+        # Соединения
+        self.draw28x28.signal_draw.connect(self.preview_show)
+
+    def preview_show(self, pixmap):  # Пикселизация нарисованного объекта
+        the28x28 = pixmap.scaled(28, 28, QtCore.Qt.KeepAspectRatio, QtCore.Qt.TransformationMode.SmoothTransformation)
+        pixelated = the28x28.scaled(28 * 5, 28 * 5, QtCore.Qt.IgnoreAspectRatio,
+                                    QtCore.Qt.TransformationMode.FastTransformation)
+        pixelated = self.print_grid(pixelated)
+        self.preview.setPixmap(pixelated)
+        self.update()
+
+    def print_grid(self, pixmap):
+        painter = QtGui.QPainter(pixmap)
         painter.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.gray, 1))
         # Рисуем сетку
-        for x in range(0, big_again.width(), 5):
-            painter.drawLine(x, 0, x, big_again.height())
-        for y in range(0, big_again.height(), 5):
-            painter.drawLine(0, y, big_again.width(), y)
+        for x in range(0, pixmap.width(), 5):
+            painter.drawLine(x, 0, x, pixmap.height())
+        for y in range(0, pixmap.height(), 5):
+            painter.drawLine(0, y, pixmap.width(), y)
         # Заканчиваем рисование
         painter.end()
-        self.resizedPixmap.setPixmap(big_again)
-        self.update()
+        return pixmap
 
