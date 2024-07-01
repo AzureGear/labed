@@ -157,7 +157,7 @@ class ViewDatasetUI(QtWidgets.QWidget):
             if last_dir and os.path.exists(last_dir):
                 using_folder = last_dir
             # каталог с данными получаем через диалог
-            sel_dir = az_file_dialog(self, "Select directory to load images", using_folder, True)
+            sel_dir = az_file_dialog(self, "Select directory to load images", using_folder, dir_only= True)
         if sel_dir:
             self.settings.write_last_load_data(sel_dir)  # сохраняем последние добавленные данные
             self.prepear_for_load()  # подготавливаем: закрываем SubWindows, очищаем все

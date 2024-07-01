@@ -2,6 +2,9 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 import numpy as np
 
 
+# TODO: сделать класс наследуемый от LCD цифр с кружочком вокруг них, который показывает процентное отношение распоз.
+# Тип полностью закрытый кружок = 100%, на четверть = 25%.
+
 def pixelate_rgb(img, window):
     n, m, _ = img.shape
     n, m = n - n % window, m - m % window
@@ -75,9 +78,12 @@ class PageMNIST(QtWidgets.QWidget):
         self.name = "MNIST"
 
         self.draw28x28 = AzCanvas()
+        self.draw28x28.setToolTip(self.tr('Left click to draw, right click to clear'))
+
         self.preview = QtWidgets.QLabel()
         self.preview.setPixmap(QtGui.QPixmap(140, 140))
         self.preview.pixmap().fill(QtGui.QColor(QtCore.Qt.GlobalColor.white))
+        self.preview.setPixmap(self.print_grid(self.preview.pixmap()))
 
         self.lcd = QtWidgets.QLCDNumber(self)
         self.lcd.setSegmentStyle(QtWidgets.QLCDNumber.Filled)  # Устанавливаем стиль сегментов
@@ -87,40 +93,29 @@ class PageMNIST(QtWidgets.QWidget):
         self.lcd.display(123.45)  # Отображаем число
 
         # Устанавливаем разметку для виджетов на вкладке
-        gb_draw = QtWidgets.QGroupBox("Draw")
-        gb_draw.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        h_draw = QtWidgets.QVBoxLayout()
-        h_draw.addWidget(self.draw28x28)
-        gb_draw.setLayout(h_draw)
-
-        gb_preview = QtWidgets.QGroupBox("Preview")
-        gb_preview.setAlignment(QtCore.Qt.AlignCenter)
-        h_preview = QtWidgets.QVBoxLayout()
-        h_preview.addWidget(self.preview)
-        gb_preview.setLayout(h_preview)
-
-        # for group, frame in ((gb_draw, frame_draw),
-        #                      (gb_preview, frame_preview)):
-        #     v_layout = QtWidgets.QVBoxLayout(group)
-        #     v_layout.addWidget(frame)
+        self.gb_draw = QtWidgets.QGroupBox("Draw")
+        self.gb_preview = QtWidgets.QGroupBox("Preview")
+        for group, widget in ((self.gb_draw, self.draw28x28),
+                              (self.gb_preview, self.preview)):
+            group.setAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter)
+            v_lay = QtWidgets.QVBoxLayout()
+            v_lay.addWidget(widget)
+            group.setLayout(v_lay)
 
         h_layout = QtWidgets.QHBoxLayout()
-        h_layout.addWidget(gb_draw)
-        h_layout.addWidget(gb_preview)
+        h_layout.addWidget(self.gb_draw)
+        h_layout.addWidget(self.gb_preview)
         h_layout.addWidget(self.lcd)
         h_layout.addStretch(1)
 
         self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.addLayout(h_layout)
-        # self.layout.addWidget(self.draw28x28)
-        # self.layout.addWidget(self.preview)
-
         self.layout.addStretch(1)
 
         # Соединения
         self.draw28x28.signal_draw.connect(self.preview_show)
 
-    def preview_show(self, pixmap):  # Пикселизация нарисованного объекта
+    def preview_show(self, pixmap):  # пикселизация нарисованного объекта
         the28x28 = pixmap.scaled(28, 28, QtCore.Qt.KeepAspectRatio, QtCore.Qt.TransformationMode.SmoothTransformation)
         pixelated = the28x28.scaled(28 * 5, 28 * 5, QtCore.Qt.IgnoreAspectRatio,
                                     QtCore.Qt.TransformationMode.FastTransformation)
@@ -128,15 +123,26 @@ class PageMNIST(QtWidgets.QWidget):
         self.preview.setPixmap(pixelated)
         self.update()
 
-    def print_grid(self, pixmap):
-        painter = QtGui.QPainter(pixmap)
+    @staticmethod
+    def print_grid(pixmap):
+        # увеличиваем на 1 пиксель, чтобы сетка была ровной
+        new_pixmap = QtGui.QPixmap(pixmap.width() + 1, pixmap.height() + 1)
+        painter = QtGui.QPainter(new_pixmap)
+        painter.drawPixmap(0, 0, pixmap.width(), pixmap.height(), pixmap)  # рисуем старую в новом
         painter.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.gray, 1))
-        # Рисуем сетку
-        for x in range(0, pixmap.width(), 5):
-            painter.drawLine(x, 0, x, pixmap.height())
-        for y in range(0, pixmap.height(), 5):
-            painter.drawLine(0, y, pixmap.width(), y)
-        # Заканчиваем рисование
+        # рисуем сетку
+        for x in range(0, new_pixmap.width(), 5):
+            painter.drawLine(x, 0, x, new_pixmap.height())
+        for y in range(0, new_pixmap.height(), 5):
+            painter.drawLine(0, y, new_pixmap.width(), y)
         painter.end()
-        return pixmap
+        return new_pixmap
 
+    def tr(self, text):
+        return QtCore.QCoreApplication.translate("PageMNIST", text)
+
+    def translate_ui(self):
+        self.draw28x28.setToolTip(self.tr('Left click to draw, right click to clear'))
+        self.gb_draw.setToolTip(self.tr('Left click to draw, right click to clear'))
+        self.gb_draw.setTitle(self.tr('Draw'))
+        self.gb_preview.setTitle(self.tr('Preview'))

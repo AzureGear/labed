@@ -1,6 +1,6 @@
 from PyQt5 import QtCore, QtWidgets, QtGui
 from utils import AppSettings, UI_COLORS, config
-from ui import new_act, new_button, coloring_icon, az_file_dialog, natural_order, AzButtonLineEdit, AzSpinBox, PageMNIST
+from ui import new_act, coloring_icon, az_file_dialog, natural_order, AzButtonLineEdit, AzSpinBox, PageMNIST
 import os
 
 the_color = UI_COLORS.get("experiments_color")
@@ -27,5 +27,6 @@ class ExperimentUI(QtWidgets.QWidget):
     def tr(self, text):
         return QtCore.QCoreApplication.translate("ExperimentUI", text)
 
-    def translate_ui(self):
-        self.tab_widget.setTabText(0, self.tr(self.tab_mnist.name))
+    def translate_ui(self):  # переводим текущие тексты и добавленные/вложенные вкладки
+        if self.tab_mnist is not None:
+            self.tab_mnist.translate_ui()

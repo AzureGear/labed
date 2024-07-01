@@ -47,7 +47,7 @@ MAXIMUM_ZOOM = 50
 MAX_CROP_SIZE = 8000
 MIN_CROP_SIZE = 16
 
-ALPHA = 50  # степень прозрачности заливки у меток по умолчанию (0 ... 255)
+ALPHA = 215  # степень прозрачности заливки у меток по умолчанию (0 ... 255)
 
 UI_OUTPUT_TYPES = ["SAMA.json"]  # типы выходных данных
 UI_INPUT_TYPES = ["LabelMe.json", "SAMA.json"]

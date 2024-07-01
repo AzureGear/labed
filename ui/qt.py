@@ -318,32 +318,6 @@ def labelValidator():
     # self.slice_output_file_path.setValidator(validator)  # применяем его к нашей строке
 
 
-def AzCustomDialog(self, caption, message, yes=False, no=False, back=False, parent=None):
-    """
-    Кастомизация диалоговых окон (вопросы, диалоги)
-    """
-    dlg = QtWidgets.QMessageBox()
-    # self.dlg.setIcon(QtWidgets.QMessageBox.Information)
-    dlg.setWindowTitle(caption)
-    dlg.setInformativeText(message)
-    if yes:
-        dlg.addButton("Да", QtWidgets.QMessageBox.AcceptRole)
-    if no:
-        dlg.addButton("Нет", QtWidgets.QMessageBox.RejectRole)
-    if back:
-        dlg.addButton("Назад", QtWidgets.QMessageBox.RejectRole)
-    bttn = dlg.exec()
-    if dlg.clickedButton().text() == "Да":  # + text()
-        print("Да")
-        return 1
-    elif dlg.clickedButton().text() == "Нет":  # + text()
-        print("Нет")
-        return 1
-    else:
-        print("Назад")
-        return 0
-
-
 # ----------------------------------------------------------------------------------------------------------------------
 def az_custom_dialog(caption, message, yes=False, no=False, back=False, custom_button=False, custom_text="",
                      parent=None):
@@ -377,22 +351,29 @@ def az_custom_dialog(caption, message, yes=False, no=False, back=False, custom_b
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-def az_file_dialog(self, caption=None, last_dir=None, dir_only=False, filter=None, initial_filter=None,
-                   save_dir=True, parent=None):
+def az_file_dialog(parent=None, caption=None, last_dir=None, dir_only=False, filter=None, initial_filter=None,
+                   remember_dir=True, file_to_save=False):
     """ Базовые варианты диалоговых окон (открыть, сохранить, указать путь и т.п.)"""
     settings = AppSettings()  # чтение настроек
-    save_dir = settings.read_last_dir()  # вспоминаем прошлый открытый каталог
-    if dir_only:
-        select_dir = QtWidgets.QFileDialog.getExistingDirectory(self, caption, last_dir)
+    if not last_dir:  # если исходный каталог не настроен
+        last_dir = settings.read_last_dir()  # вспоминаем прошлый открытый каталог
+    if dir_only:  # выбрать только каталог
+        select_dir = QtWidgets.QFileDialog.getExistingDirectory(parent, caption, last_dir)
         if select_dir:
-            if save_dir:
+            if remember_dir:
                 settings.write_last_dir(select_dir)
             return select_dir
     else:
-        arr = QtWidgets.QFileDialog.getOpenFileNames(self, caption, last_dir, filter, initial_filter)
+
+        if file_to_save:
+            # сохранение файла
+            arr = QtWidgets.QFileDialog.getSaveFileName(parent, caption, last_dir, filter, initial_filter)
+        else:
+            # открытие файла
+            arr = QtWidgets.QFileDialog.getOpenFileNames(parent, caption, last_dir, filter, initial_filter)
         select_files = arr[0]
         if len(arr[0]) > 0:
-            if save_dir:
+            if remember_dir:
                 settings.write_last_dir(os.path.dirname(select_files[0]))
             return select_files
 

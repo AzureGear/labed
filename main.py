@@ -9,7 +9,7 @@ log_file_name = 'labed.log'  # имя файла ведения лога при 
 
 # TODO: сделать загрузку предустановленных датасетов self.tb_load_preset.addActions
 # TODO: сделать сброс всех настроек по нажатию изменению настроек в файле settings.ini Reset = True
-
+# TODO: сделать корректные переводы текстов для диалогов
 
 # Ловчий ошибок
 def excepthook_catcher(t, v, tb):

@@ -49,7 +49,7 @@ class AzPointWithRect(QtWidgets.QGraphicsRectItem):
 
         rect = QtCore.QRectF(point.x() - crop_size / 2, point.y() - crop_size / 2, crop_size, crop_size)
         self.setRect(rect)
-        self.setPen(QtGui.QPen(color, 2, QtCore.Qt.PenStyle.SolidLine))
+        self.setPen(QtGui.QPen(color, 4, QtCore.Qt.PenStyle.SolidLine))
         self.setFlags(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable |
                       QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable)
 
@@ -309,7 +309,7 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
         pcol = QtGui.QColor(color)
         pcol.setAlpha(config.ALPHA)
         brush = QtGui.QBrush(pcol, QtCore.Qt.BrushStyle.SolidPattern)
-        pen = QtGui.QPen(QtGui.QColor(the_color), 1, QtCore.Qt.PenStyle.SolidLine)
+        pen = QtGui.QPen(QtGui.QColor(the_color), 2, QtCore.Qt.PenStyle.SolidLine)
         graph_poly.setPen(pen)
         graph_poly.setBrush(brush)
         graph_poly.setPolygon(poly)

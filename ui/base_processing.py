@@ -432,7 +432,7 @@ class ProcessingUI(QtWidgets.QWidget):
                 self.merge_actions[4].setEnabled(True)
 
     def merge_add_files(self):
-        sel_files = az_file_dialog(self, "Select project files to add", self.settings.read_last_dir(), False,
+        sel_files = az_file_dialog(self, "Select project files to add", self.settings.read_last_dir(), dir_only=False,
                                    filter="LabelMe projects (*.json)", initial_filter="json (*.json)")
         if sel_files:
             self.merge_fill_files(sel_files)

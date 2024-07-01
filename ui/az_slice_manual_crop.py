@@ -224,7 +224,7 @@ class AzManualSlice(QtWidgets.QMainWindow):
 
     def project_open(self):  # открыть проект
         sel_file = az_file_dialog(self, "Загрузить существующий проект ручного кадрирования",
-                                  self.settings.read_last_dir(), False,
+                                  self.settings.read_last_dir(), dir_only=False, remember_dir=True,
                                   filter="Manual crop projects (*.json_mc)", initial_filter="json_mc (*.json_mc)")
         if sel_file is not None:
             if os.path.exists(sel_file[0]):
