@@ -21,4 +21,3 @@ from .base_view import ViewDatasetUI
 from .base_processing import ProcessingUI
 from .base_automation import AutomationUI
 
-

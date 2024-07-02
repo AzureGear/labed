@@ -17,7 +17,7 @@ def pixelate_rgb(img, window):
 
 class AzCanvas(QtWidgets.QLabel):
     """
-    Холст для рисования цифр, для распознавания при работе MNIST
+    Холст рисования цифр, для распознавания при работе MNIST
     """
     signal_draw = QtCore.pyqtSignal(QtGui.QPixmap)  # сигнал завершения отрисовки
 
@@ -108,9 +108,9 @@ class PageMNIST(QtWidgets.QWidget):
         h_layout.addWidget(self.lcd)
         h_layout.addStretch(1)
 
-        self.layout = QtWidgets.QVBoxLayout(self)
-        self.layout.addLayout(h_layout)
-        self.layout.addStretch(1)
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addLayout(h_layout)
+        layout.addStretch(1)
 
         # Соединения
         self.draw28x28.signal_draw.connect(self.preview_show)
@@ -146,3 +146,11 @@ class PageMNIST(QtWidgets.QWidget):
         self.gb_draw.setToolTip(self.tr('Left click to draw, right click to clear'))
         self.gb_draw.setTitle(self.tr('Draw'))
         self.gb_preview.setTitle(self.tr('Preview'))
+
+
+if __name__ == "__main__":
+    import sys
+    app = QtWidgets.QApplication(sys.argv)
+    w = PageMNIST()
+    w.show()
+    app.exec()
