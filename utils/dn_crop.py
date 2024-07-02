@@ -1051,6 +1051,8 @@ class DNImgCut:
             # Перебор по всем картинкам в Json-файле
             JsonAllData['images'] = {}
             for i in range(len(self.JsonObj.ImgsName)):
+                if DEBUG:
+                    print(self.JsonObj.ImgsName[i])
                 CutData = self.CutImg(i, SizeWind, ProcOverlapPol, ProcOverlapW,
                                       os.path.dirname(NameJsonFile), DKray, IsSmartCut)
 

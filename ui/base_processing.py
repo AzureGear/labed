@@ -9,6 +9,7 @@ the_color = UI_COLORS.get("processing_color")
 the_color_side = UI_COLORS.get("sidepanel_color")
 current_folder = os.path.dirname(os.path.abspath(__file__))
 
+# TODO: добавить флаг "Копировать изображения при объединении".
 
 # ----------------------------------------------------------------------------------------------------------------------
 class ProcessingUI(QtWidgets.QWidget):
@@ -483,13 +484,13 @@ class ProcessingUI(QtWidgets.QWidget):
             elif input_type == "SAMA.json":
                 new_name = os.path.join(self.merge_output_dir,
                                         "merged_%s.json" % datetime.now().strftime("%Y-%m-%d--%H-%M-%S"))
-                merge = merge_sama_to_sama(unique, new_name)
+                merge = merge_sama_to_sama(unique, new_name, False)
                 if merge == 0:
                     self.signal_message.emit(f"Файлы успешно объединены в файл: '{new_name}'")
-                elif merge == 1:
-                    self.signal_message.emit(f"Файлы объединены с ошибками: '{new_name}'")
+                elif merge > 0:
+                    self.signal_message.emit(f"Файлы объединены с ошибками ({merge} ошибок): '{new_name}'")
                 else:
-                    self.signal_message.emit(f"Ошибка при объединении данных. Проверьте исходные файлы.'")
+                    self.signal_message.emit(f"Ошибка при объединении данных. Проверьте исходные файлы либо указаннаые параметры конвертации.'")
 
         except Exception as e:
             raise e
@@ -529,6 +530,7 @@ class ProcessingUI(QtWidgets.QWidget):
         self.merge_output_label.setText(self.tr("Output type:"))
         self.merge_output_file_check.setText(self.tr("Set user output file path other than default:"))
         self.merge_toolbar.setWindowTitle(self.tr("Toolbar for merging project files"))
+        self.merge_input_label.setText(self.tr("Input type:"))
         # Processing - Cutting Images (crop)
         self.slice_input_file_label.setText(self.tr("Path to file project *.json:"))
         self.slice_output_file_check.setText(self.tr("Set user output file path other than default:"))

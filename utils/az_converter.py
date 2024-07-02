@@ -89,7 +89,7 @@ def convert_labelme_to_sama(input_files, output_file):
                             "lrm": None,
                             'status': 'empty'}
 
-    if error_numbers == len(input_files): # всё завершилось ошибками
+    if error_numbers == len(input_files):  # всё завершилось ошибками
         return False
 
     for label in labels_set:  # для всех меток...
@@ -101,7 +101,7 @@ def convert_labelme_to_sama(input_files, output_file):
     return True
 
 
-def merge_sama_to_sama(input_files, output_file):
+def merge_sama_to_sama(input_files, output_file, copy_files=True):
     """
     Слияние файлов проектов формата SAMA с копированием файлов
     """
@@ -154,17 +154,18 @@ def merge_sama_to_sama(input_files, output_file):
                 new_image_dict["shapes"] = new_shapes  # передаём новый shapes с переназначенными индексами
                 new_image_dict["lrm"] = image_dict["lrm"]
                 new_image_dict["status"] = image_dict["status"]
-                new_image_dict["last_user"] = image_dict["last_user"]
+                new_image_dict["last_user"] = None
                 # копируем изображение из исходного в выходной каталог, если оно в наличии
-                if os.path.exists(os.path.join(input_dir, image)):
-                    shutil.copyfile(os.path.join(input_dir, image), os.path.join(os.path.dirname(output_file), image))
+                if copy_files:
+                    if os.path.exists(os.path.join(input_dir, image)):
+                        shutil.copyfile(os.path.join(input_dir, image), os.path.join(os.path.dirname(output_file), image))
                 images[image] = new_image_dict
             else:
                 error_duplicate_images += 1
     data["images"] = images
     save(output_file, data, 'w+')  # записываем результат
     if error_main_count != 0 or error_duplicate_images != 0:  # сигнализируем об ошибках
-        return 1
+        return error_main_count + error_duplicate_images
     else:
         return 0
 
