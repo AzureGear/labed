@@ -165,7 +165,7 @@ class AzManualSlice(QtWidgets.QMainWindow):
             new_act(self, "Delete", "glyph_point_remove", the_color, self.point_delete, True),  # удалить метку
             new_act(self, "Change crop size", "glyph_resize", the_color, self.change_crop_size),
             # сменить размер кадрирования
-            new_act(self, "Slice", "glyph_cutter", the_color, self.manual_slice_exec))  # разрезать снимки
+            new_act(self, "Slice", "glyph_slice", the_color, self.manual_slice_exec))  # разрезать снимки
 
     def fit_image(self):  # отобразить изображение целиком
         self.image_widget.fitInView(self.image_widget.pixmap_item, QtCore.Qt.KeepAspectRatio)

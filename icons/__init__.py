@@ -8,7 +8,7 @@
 # glyph_pickaxe: smashingstocks
 # glyph_black-and-white: Ch.designer
 # glyph_normalization orvipixel
-# glyph_cutter: Aranagraphics
+# glyph_slice: Aranagraphics
 # glyph_transform: Wahyu Adam
 # glyph_info: afif fudin
 # glyph_dice: Smashicons

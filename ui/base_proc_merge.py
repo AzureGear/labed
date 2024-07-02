@@ -6,17 +6,8 @@ import os
 
 the_color = UI_COLORS.get("processing_color")
 
-class TabMergeUI(QtWidgets.QWidget):
-    """
-    Страницы QTabWidget раздела Обработки для Объединения/конвертации данных
-    """
-    signal_message = QtCore.pyqtSignal(str)  # сигнал для вывода сообщения
 
-    def __init__(self, parent=None):
-        super(TabMergeUI, self).__init__(parent)
-        self.name = "Merge"
-
-class TabMergeUI(QtWidgets.QWidget):
+class TabMergeUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     """
     Страницы QTabWidget раздела Обработки для Объединения/конвертации данных
     """
@@ -26,7 +17,6 @@ class TabMergeUI(QtWidgets.QWidget):
         super(TabMergeUI, self).__init__(parent)
         self.settings = AppSettings()  # настройки программы
         self.name = "Merge"
-        self.ui_tab_merge = QtWidgets.QMainWindow()  # виджет типа QMainWindow
         # Действия для страницы
         self.merge_actions = (
             new_act(self, "Add files", "glyph_add", the_color, self.merge_add_files),
@@ -96,11 +86,10 @@ class TabMergeUI(QtWidgets.QWidget):
         vlayout.addWidget(split)  # добавляем область с разделением
         wid = QtWidgets.QWidget()  # создаём виджет-контейнер...
         wid.setLayout(vlayout)  # ...куда помещаем vlayout (поскольку Central Widget может быть только QWidget)
-        self.ui_tab_merge.addToolBar(self.merge_toolbar)  # добавляем панель меню
-        self.ui_tab_merge.setCentralWidget(wid)  # устанавливаем главный виджет страницы "Слияние"
+        self.addToolBar(self.merge_toolbar)  # добавляем панель меню
+        self.setCentralWidget(wid)  # устанавливаем главный виджет страницы "Слияние"
         self.merge_toggle_instruments()  # устанавливаем доступные инструменты
-        layout = QtWidgets.QVBoxLayout(self)
-        layout.addWidget(self.ui_tab_merge)
+
 
     @QtCore.pyqtSlot()
     def merge_output_file_path_change(self):

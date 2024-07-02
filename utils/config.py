@@ -25,6 +25,13 @@ UI_COLORS = {
     "crop_color": "yellow"  # цвет центральной точки и границ для ручного кадрирования
 }
 
+# настройка Интерфейса доступных модулей
+UI_ENABLE = {
+    "process": {"merge": True, "slice": True, "attributes": True, "geometry": True},
+    "automation": True,
+    "experiment": {"mnist": True, "nor": True},
+}
+
 # настройки Интерфейса со структурой:
 # dock_widget : { "widget_name":
 # 0 - show, 1 - closable, 2 - movable, 3 - floatable, 4 - no_caption, 5 - no_actions }
