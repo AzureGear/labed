@@ -11,7 +11,10 @@ default_color = UI_COLORS.get("default_color")
 # ----------------------------------------------------------------------------------------------------------------------
 class AzButtonLineEdit(QtWidgets.QLineEdit):
     """
-    Упрощённая QLineEdit с кнопкой внутри
+    Упрощённая QLineEdit с кнопкой внутри: color - цвет, caption - заголовок,
+    read_only - возможность изменения строки вручную, dir_only - возвращает только каталог,
+    save_dialog - возвращает только файл для сохранения, filter - фильтр типа файлов, initial_filter - то же,
+    save_dir - запоминание каталога, в который заходим, on_button_clicked_callback - слот.
     """
 
     def __init__(self, icon_name, color="Black", caption=None, read_only=True, dir_only=False, save_dialog=False,

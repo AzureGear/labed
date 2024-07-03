@@ -1,10 +1,12 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
 from utils import AppSettings, UI_COLORS, config
-from ui import new_button
+from utils.sama_project_handler import DatasetSAMAHandler
+from ui import new_button, AzButtonLineEdit
 
 import os
 
 the_color = UI_COLORS.get("processing_color")
+
 
 class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     """
@@ -12,12 +14,43 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     """
     signal_message = QtCore.pyqtSignal(str)  # сигнал для вывода сообщения
 
+    # загрузить проект; экспорт; задать пространственное разрешение
+
+    # Инфо о датасете: количество снимков в датасете, количество меток
+    # среднее ЛРМ.
+    # Номер, имя класса, количество, частота встречаемости проценты от общего, сбалансированность класса, палитра
+    # перечень действий: слить с классом, переименовать класс, удалить
+    #
     def __init__(self, parent=None):
         super(TabAttributesUI, self).__init__(parent)
         self.settings = AppSettings()  # настройки программы
         self.name = "Attributes"
+
+        # данные из проекта SAMA буду загружаться в DatasetSAMAHandler:
+        self.sama_data = DatasetSAMAHandler("D:/data_sets/nuclear_power_stations/project.json")
+
+        # данные из DatasetSAMAHandler будут отображаться в таблице:
         self.table_widget = AzTableAttributes()
-        self.setCentralWidget(self.table_widget)
+
+        # Далее настройка ui
+        wid = QtWidgets.QWidget()
+        self.setCentralWidget(wid)
+        self.sama_json = AzButtonLineEdit("glyph_folder", the_color, caption=self.tr("Load dataset SAMA project"),
+                                          read_only=True, dir_only=False, filter=self.tr("Projects files (*.json)"),
+                                          on_button_clicked_callback=self.attr_load_projects_data,
+                                          initial_filter="json (*.json)")
+        vlayout = QtWidgets.QVBoxLayout(self)
+        vlayout.addWidget(self.sama_json)
+        vlayout.addWidget(self.table_widget)
+        wid.setLayout(vlayout)
+
+    def attr_load_projects_data(self):
+        if self.sama_data.correct_file:
+            # TODO: сделать сохранение в реестр последнего успешного файла json
+            pass
+        print(self.sama_data.get_labels())
+        print(self.sama_data.get_all_images_info())
+        pass
 
     def tr(self, text):
         return QtCore.QCoreApplication.translate("TabAttributesUI", text)
@@ -27,7 +60,8 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.name = self.tr("Attributes")
         self.setToolTip(self.tr("Поиск и редактирование снимков по атрибутам разметки"))
 
-class AzTableAttributes(QtWidgets.QTableWidget()):
+
+class AzTableAttributes(QtWidgets.QTableWidget):
     """
     Таблица для взаимодействия с QTabWidget для работы с MNIST
     """
@@ -40,6 +74,7 @@ class AzTableAttributes(QtWidgets.QTableWidget()):
         self.setColumnCount(4)
         self.setHorizontalHeaderLabels(["Column 1", "Column 2", "Column 3", "Actions"])
         self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)  # Disable editing
 
         items = [["Item 1", "A", "20"],
                  ["Item 2", "C", "15"],
@@ -75,18 +110,16 @@ class AzTableAttributes(QtWidgets.QTableWidget()):
     def rename_item(self, row):
         text, ok = QtWidgets.QInputDialog.getText(self, "Rename Item", "Enter new name:")
         if ok and text:
-            self.table_widget.item(row, 0).setText(text)
+            self.item(row, 0).setText(text)
 
     def delete_item(self, row):
-        self.table_widget.removeRow(row)
+        self.removeRow(row)
 
 
 if __name__ == "__main__":
     import sys
+
     app = QtWidgets.QApplication(sys.argv)
-
     window = TabAttributesUI()
-    window.setWindowTitle("Sortable Table with PyQt5")
     window.show()
-
     sys.exit(app.exec_())
