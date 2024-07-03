@@ -5,13 +5,10 @@ from datetime import datetime
 import os
 
 the_color = UI_COLORS.get("processing_color")
-the_color_side = UI_COLORS.get("sidepanel_color")
-current_folder = os.path.dirname(os.path.abspath(__file__))
-
 
 class TabSliceUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     """
-    Виджет типа страницы QTabWidget для работы с MNIST
+    Страница QTabWidget раздела Автоматической нарезки данных
     """
     signal_message = QtCore.pyqtSignal(str)  # сигнал для вывода сообщения
 
@@ -247,8 +244,7 @@ class TabSliceUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     def translate_ui(self):  # переводим текущие тексты и добавленные/вложенные вкладки
         # Processing - Slice
         self.name = self.tr("Slice")
-        # Processing - Cutting Images (crop)
-        self.setToolTip(self.tr("Нарезка снимков заданного размера"))
+        self.setToolTip(self.tr("Кадрирование разметки"))
         self.slice_input_file_label.setText(self.tr("Path to file project *.json:"))
         self.slice_output_file_check.setText(self.tr("Set user output file path other than default:"))
         self.slice_scan_size_label.setText(self.tr("Scan size:"))

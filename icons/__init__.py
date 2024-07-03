@@ -48,7 +48,7 @@
 # glyph_normalization: KP Arts
 # glyph_picture: KP Arts
 # glyph_save: KP Arts
-# glyph_search-file: KP Arts
+# glyph_attributes: KP Arts
 # glyph_search-folder: KP Arts
 # glyph_setups: KP Arts
 

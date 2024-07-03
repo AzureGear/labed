@@ -9,7 +9,7 @@ the_color = UI_COLORS.get("processing_color")
 
 class TabMergeUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     """
-    Страницы QTabWidget раздела Обработки для Объединения/конвертации данных
+    Страница QTabWidget раздела Обработки для Объединения/конвертации данных
     """
     signal_message = QtCore.pyqtSignal(str)  # сигнал для вывода сообщения
 
@@ -217,6 +217,7 @@ class TabMergeUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     def translate_ui(self):  # переводим текущие тексты и добавленные/вложенные вкладки
         # Processing - Merge
         self.name = self.tr("Merge")
+        self.setToolTip(self.tr("Конвертация и объединение проектов разметки"))
         self.merge_actions[0].setText(self.tr("Add files"))
         self.merge_actions[1].setText(self.tr("Remove files"))
         self.merge_actions[2].setText(self.tr("Select all"))

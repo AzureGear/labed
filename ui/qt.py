@@ -83,9 +83,6 @@ class AzAction(QtWidgets.QAction):
         self.setCheckable(True)
         self.toggled.connect(self.tog1)
 
-    def toggle(self):
-        pass
-
     def tog1(self):
         if self.isChecked():
             self.setIcon(self.icon_activate)
