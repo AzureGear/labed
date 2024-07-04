@@ -74,9 +74,9 @@ class AutomationUI(QtWidgets.QWidget):
         file = az_file_dialog(self, self.tr("Сохранение палитры проекта SAMA *.json"), self.settings.read_last_dir(),
                               dir_only=False, file_to_save=True, filter="Palette (*.palette)",
                               initial_filter="palette (*.palette)")
-        if len(file[0]) > 0:
+        if len(file) > 0:
             save(file, data, 'w+')  # сохраняем файл как палитру
-        self.log.append(f"\nПалитра сохранена: &{file[0]}")
+        self.log.append(f"\nПалитра сохранена: &{file}")
 
     def palette_apply(self):
         """Применить палитру к файлу проекта SAMA"""

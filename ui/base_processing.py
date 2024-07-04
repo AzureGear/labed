@@ -30,49 +30,54 @@ class ProcessingUI(QtWidgets.QWidget):
         self.tab_widget.setIconSize(QtCore.QSize(24, 24))
         layout.addWidget(self.tab_widget)  # добавляем виджет со вкладками в расположение
 
+        # добавляем страницы-вкладки
         if config.UI_ENABLE.get("process", {}).get("merge", None):
             from ui import base_proc_merge
             self.add_tab("merge", base_proc_merge.TabMergeUI)
-            self.tab_merge.signal_message.connect(self.retranslate_message)
 
         if config.UI_ENABLE.get("process", {}).get("slice", None):
             from ui import base_proc_slice
             self.add_tab("slice", base_proc_slice.TabSliceUI)
-            self.tab_slice.signal_message.connect(self.retranslate_message)
 
         if config.UI_ENABLE.get("process", {}).get("attributes", None):
             from ui import base_proc_attrs
             self.add_tab("attributes", base_proc_attrs.TabAttributesUI)
-            self.tab_attributes.signal_message.connect(self.retranslate_message)
 
-        if config.UI_ENABLE.get("process", {}).get("attributes", None):
+        if config.UI_ENABLE.get("process", {}).get("geometry", None):
             from ui import base_proc_geom
-            self.add_tab("attributes", base_proc_geom.TabGeometryUI)
-            self.tab_attributes.signal_message.connect(self.retranslate_message)
+            self.add_tab("geometry", base_proc_geom.TabGeometryUI)
 
-        # Создание и настройка перечня виджетов-вкладок
-        self.tab_geometry_setup()  # "Геометрия"
-
-        # Загрузка последней активной вкладки "Обработки"
+        # Активация последней активной с прошлого запуска
         self.tab_widget.setCurrentIndex(self.settings.read_ui_proc_page())
 
         # Signals
         self.tab_widget.currentChanged.connect(self.change_tab)  # изменение вкладки
-        self.change_tab()  # запускам, чтобы изменить цвет активной вкладки
+        self.change_tab()  # запускаем, чтобы изменить цвет активной вкладки
 
-    def retranslate_message(self, text):
+    @QtCore.pyqtSlot()
+    def default_output_dir_change(self):
+        # TODO:  изменение в настройках выходного каталога
+        if not self.tab_merge.merge_output_file_check.isChecked():
+            self.merge_toggle_output_file()
+        if not self.slice_output_file_check.isChecked():
+            self.slice_toggle_output_file()
+
+    @QtCore.pyqtSlot()
+    def retranslate_message(self, text):  # перенаправление сообщений в строку состояния базового GUI
         self.signal_message.emit(text)
 
     def add_tab(self, tab_name, tab_class):
-        """Добавление вкладок с цветными иконками, где к"""
+        """Добавление вкладок с цветными иконками"""
         tab = tab_class(parent=self, color_active=the_color, color_inactive=the_color_side)
         self.tab_widget.addTab(tab, tab.icon_inactive, tab.name)
         setattr(self, f"tab_{tab_name}", tab)
+        tab.signal_message.connect(self.retranslate_message)
 
     @QtCore.pyqtSlot()
     def change_tab(self):  # сохранение последней активной вкладки "Обработки"
         c_i = self.tab_widget.currentIndex()
         self.settings.write_ui_proc_page(c_i)
+
         # изменение цвета иконки активной вкладки
         for i in range(self.tab_widget.count()):
             if i == c_i:  # активная вкладка
@@ -80,38 +85,15 @@ class ProcessingUI(QtWidgets.QWidget):
             else:
                 self.tab_widget.setTabIcon(i, self.tab_widget.widget(i).icon_inactive)
 
-    def tab_geometry_setup(self):  # настройка страницы "Геометрия"
-        self.ui_tab_geometry = self.tab_basic_setup()
-
-    def tab_basic_setup(self, complex=False):  # базовая настройка каждой страницы QTabWidget
-        if complex:
-            widget = QtWidgets.QMainWindow()
-        else:
-            widget = QtWidgets.QWidget()
-            widget.layout = QtWidgets.QVBoxLayout(widget)  # не забываем указать ссылку на объект
-        return widget
-
-    def default_output_dir_change(self):
-        # изменение в настройках выходного каталога
-        if not self.tab_merge.merge_output_file_check.isChecked():
-            self.merge_toggle_output_file()
-        if not self.slice_output_file_check.isChecked():
-            self.slice_toggle_output_file()
-
     def tr(self, text):
         return QtCore.QCoreApplication.translate("ProcessingUI", text)
 
     def translate_ui(self):
-        # В самом виджете никакого перевода не требуется, он осуществляется в самих вкладках
-
-        if config.UI_ENABLE.get("process", {}).get("merge", None):
-            self.tab_merge.translate_ui()  # страница Объединения/конвертации
-
-        if config.UI_ENABLE.get("process", {}).get("slice", None):
-            self.tab_slice.translate_ui()  # страница Кадрирования
-
-        if config.UI_ENABLE.get("process", {}).get("attributes", None):
-            self.tab_attributes.translate_ui()  # страница Атрибутов
-
-        if config.UI_ENABLE.get("process", {}).get("geometry", None):
-            self.tab_attributes.translate_ui()  # страница Атрибутов
+        # В самом ProcessingUI основной перевод осуществляется для вкладок, добавленных к нему.
+        i = 0  # мы же не знаем сколько вкладок разрешено активировать
+        for key in config.UI_ENABLE.get("process", {}):  # проходим по всем объектам в нашем файле настроек
+            if config.UI_ENABLE["process"][key]:  # если есть флаг True, то...
+                getattr(self, f"tab_{key}", None).translate_ui()  # ...запускаем перевод
+                self.tab_widget.setTabText(i, self.tr(getattr(self, f"tab_{key}", None).name))  # перевод заголовков
+                self.tab_widget.setTabToolTip(i, self.tr(getattr(self, f"tab_{key}", None).tool_tip_title))  # подсказок
+            i += 1

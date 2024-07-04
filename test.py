@@ -2,6 +2,17 @@
 
 # ----------------------------------------------------------------------------------------------------------------------
 
+# def tab_geometry_setup(self):  # настройка страницы "Геометрия"
+#     self.ui_tab_geometry = self.tab_basic_setup()
+#
+#
+# def tab_basic_setup(self, complex=False):  # базовая настройка каждой страницы QTabWidget
+#     if complex:
+#         widget = QtWidgets.QMainWindow()
+#     else:
+#         widget = QtWidgets.QWidget()
+#         widget.layout = QtWidgets.QVBoxLayout(widget)  # не забываем указать ссылку на объект
+#     return widget
 # ----------------------------------------------------------------------------------------------------------------------
 # import sys
 # from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout

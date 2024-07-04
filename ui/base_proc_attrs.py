@@ -1,8 +1,8 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
 from utils import AppSettings, UI_COLORS, config
 from utils.sama_project_handler import DatasetSAMAHandler
-from ui import new_button, AzButtonLineEdit, coloring_icon
-
+from ui import new_button, AzButtonLineEdit, coloring_icon, new_text, az_file_dialog, save_via_qtextstream
+import shutil
 import os
 
 the_color = UI_COLORS.get("processing_color")
@@ -27,6 +27,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         super(TabAttributesUI, self).__init__(parent)
         self.settings = AppSettings()  # настройки программы
         self.name = "Attributes"
+        self.tool_tip_title = "Searching and editing dataset attributes"
         if color_active:
             self.icon_active = coloring_icon("glyph_attributes", color_active)
         if color_inactive:
@@ -50,25 +51,46 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                                           read_only=True, dir_only=False, filter=self.tr("Projects files (*.json)"),
                                           on_button_clicked_callback=self.attr_load_projects_data,
                                           initial_filter="json (*.json)")
-        self.dataset_info = QtWidgets.QLabel("Dataset information:")
+
+        self.dataset_info_images_desc = new_text(self, "Numbers of images: ", alignment= "r")
+        self.dataset_info_images_val = new_text(self, "13", bald=True)
+        self.dataset_info_labels_desc = new_text(self, "Numbers of labels: ", "indianred", "r")
+        self.dataset_info_labels_val = new_text(self, "42", "indianred", bald=True)
+        self.dataset_info_lrm_desc = new_text(self, "Average LRM:", alignment="r")
+        self.dataset_info_lrm_val = new_text(self, "0.62", bald=True)
+        self.dataset_info_devi_lrm_desc = new_text(self, "Deviation LRM:", "peru", "r")
+        self.dataset_info_devi_lrm_val = new_text(self, "0.22-0.89", "peru", bald=True)
+
         hlay = QtWidgets.QHBoxLayout()
-        hlay.addWidget(self.label_project)
-        hlay.addWidget(self.file_json)
+        hlay.addWidget(self.label_project)  # метка для пути проекта
+        hlay.addWidget(self.file_json)  # текущий проект
         hlay2 = QtWidgets.QHBoxLayout()
-        hlay2.addWidget(self.dataset_info)
+        # информация о датасете
+        hlay2.addWidget(self.dataset_info_images_desc)
+        hlay2.addWidget(self.dataset_info_images_val)
+        hlay2.addWidget(self.dataset_info_labels_desc)
+        hlay2.addWidget(self.dataset_info_labels_val)
+        hlay2.addWidget(self.dataset_info_lrm_desc)
+        hlay2.addWidget(self.dataset_info_lrm_val)
+        hlay2.addWidget(self.dataset_info_devi_lrm_desc)
+        hlay2.addWidget(self.dataset_info_devi_lrm_val)
+
         vlay2 = QtWidgets.QVBoxLayout()
         vlay2.addLayout(hlay)
         vlay2.addLayout(hlay2)
-        self.button1 = QtWidgets.QPushButton("Test")
-        self.button2 = QtWidgets.QPushButton("Test2")
+        self.btn_copy = new_button(self, "tb", icon="glyph_add_image", slot=self.attrs_copy_project, color=the_color,
+                                   icon_size=32, tooltip=self.tr("Make copy of current project"))
+        self.btn_export = new_button(self, "tb", icon="glyph_check_all", slot=self.attrs_export, color=the_color,
+                                     icon_size=32, tooltip=self.tr("Export current project info"))
         hlay3 = QtWidgets.QHBoxLayout()
-        hlay3.addWidget(self.button1)
-        hlay3.addWidget(self.button2)
+        hlay3.addSpacing(50)
+        hlay3.addWidget(self.btn_copy)
+        hlay3.addWidget(self.btn_export)
         hlay_finish = QtWidgets.QHBoxLayout()
         hlay_finish.addLayout(vlay2)
         hlay_finish.addLayout(hlay3)
         vlayout = QtWidgets.QVBoxLayout(self)  # главный Layout, наследуемый класс
-        vlayout.addLayout(hlay_finish) # добавляем ему расположение с кнопками и QLabel
+        vlayout.addLayout(hlay_finish)  # добавляем ему расположение с кнопками и QLabel
         vlayout.addWidget(self.table_widget)
         wid.setLayout(vlayout)
 
@@ -80,15 +102,27 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         print(self.sama_data.get_all_images_info())
         pass
 
+    def attrs_copy_project(self):  # копирование проекта
+        pass
+
+    def attrs_export(self):  # экспорт проекта
+        file = az_file_dialog(self, self.tr("Export table data to text file"), self.settings.read_last_dir(),
+                              dir_only=False, remember_dir=False, file_to_save=True, filter="txt (*.txt)",
+                              initial_filter="txt (*.txt)")
+        if len(file) > 0:  # сохраняем в файл, при этом пропускаем определенные столбцы
+            save_via_qtextstream(self.table_widget, file)
+
     def tr(self, text):
         return QtCore.QCoreApplication.translate("TabAttributesUI", text)
 
     def translate_ui(self):  # переводим текущие тексты и добавленные/вложенные вкладки
         # Processing - Attributes
         self.table_widget.translate_ui()
-        self.name = self.tr("Attributes")
-        self.setToolTip(self.tr("Searching and editing dataset attributes"))
         self.label_project.setText(self.tr("Path to file project *.json:"))
+        self.dataset_info_images_desc.setText(self.tr("Numbers of images: "))
+        self.dataset_info_labels_desc.setText(self.tr("Numbers of labels: "))
+        self.dataset_info_lrm_desc.setText(self.tr("Average LRM:"))
+        self.dataset_info_devi_lrm_desc.setText(self.tr("Deviation LRM:"))
 
 
 class AzTableAttributes(QtWidgets.QTableWidget):

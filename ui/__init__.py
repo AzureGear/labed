@@ -1,3 +1,4 @@
+from .helper import natural_order
 
 from .qt import labelValidator
 from .qt import AzAction
@@ -7,10 +8,11 @@ from .qt import AzSpinBox
 from .qt import AzTableModel
 from .qt import az_custom_dialog
 from .qt import coloring_icon
-from .qt import natural_order
 from .qt import new_icon
 from .qt import new_button
 from .qt import new_act
+from .qt import new_text
+from .qt import save_via_qtextstream
 
 from .az_slice_manual_crop import AzManualSlice
 from .az_exp_mnist import PageMNIST

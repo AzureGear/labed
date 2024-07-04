@@ -2,7 +2,6 @@ from PyQt5 import QtCore, QtWidgets, QtGui
 from utils import AppSettings, UI_COLORS
 import os.path as osp
 import os
-import re
 
 here = osp.dirname(osp.abspath(__file__))
 default_color = UI_COLORS.get("default_color")
@@ -228,11 +227,6 @@ class AzSpinBox(QtWidgets.QSpinBox):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-def natural_order(val):  # естественная сортировка
-    return [int(text) if text.isdigit() else text.lower() for text in re.split('(\d+)', val)]
-
-
-# ----------------------------------------------------------------------------------------------------------------------
 def coloring_icon(path, color):
     """
     Перекрашивает иконку в заданный цвет, возвращает QIcon
@@ -256,7 +250,7 @@ def new_icon(icon):
 # ----------------------------------------------------------------------------------------------------------------------
 def new_act(parent, text, icon=None, color=None, slot=None, checkable=False, checked=False, enabled=True, shortcut=None,
             tip=None):
-    """Create a new action and assign callbacks, shortcuts, etc."""
+    """Create a new action and assign callbacks, shortcuts, etc. Implement LabelME"""
     a = QtWidgets.QAction(text, parent)
     if icon is not None:
         a.setIconText(text.replace(" ", "\n"))
@@ -280,21 +274,51 @@ def new_act(parent, text, icon=None, color=None, slot=None, checkable=False, che
 
 # ----------------------------------------------------------------------------------------------------------------------
 def new_pixmap(path):
+    """Возвращает иконку из каталога icons по передаваемому имени, расширение 'png' дописывает сама.
+    Implement LabelME"""
     icons_dir = osp.join(here, "../icons")
     return QtGui.QPixmap(osp.join(":/", icons_dir, "%s.png" % path))
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-def new_button(parent, obj="pb", text=None, icon=None, color=None, slot=None, checkable=False, checked=False):
+def new_text(parent, text: str = None, text_color: str = None, alignment="l", bald = False):
+    """Объект QLabel. Добавление центрированного (alignment = "l", "r", "c") текста (text) с заданным
+    цветом (text_color)"""
+    label = QtWidgets.QLabel(parent)
+    if text is not None:
+        label.setText(text)
+        if bald:
+            label.setText("<b>" + label.text() + "</b>")
+
+    qt_alignment = None  # центрирование текста
+    if alignment == "r":
+        qt_alignment = QtCore.Qt.AlignmentFlag.AlignRight
+    elif alignment == "c":
+        qt_alignment = QtCore.Qt.AlignmentFlag.AlignCenter
+    else:  # во всех остальных случаях
+        qt_alignment = QtCore.Qt.AlignmentFlag.AlignLeft
+    label.setAlignment(qt_alignment)
+    if text_color is not None:
+        label.setStyleSheet("color: " + text_color)
+    return label
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+def new_button(parent, obj="pb", text=None, icon=None, color=None, slot=None, checkable=False, checked=False,
+               icon_size=None, tooltip=None):
     """
-    Создание и настройка кнопки PyQt5
-    obj (тип кнопки): pb (QPushButton), tb (QToolButton)
+    Создание и настройка кнопки PyQt5 (основа реализована из LabelMe)
+    obj (тип кнопки): pb (QPushButton), tb (QToolButton);
+    text - надпись; icon - имя иконки из каталога "icons" без расширения; color - цвет; icon_size - размер иконок
+    checkable - возможность активации/деактивации; checked - активна/неактивная, если выбрано "checkable"
+    tooltip - выплывающая подсказка
     """
     b = None
     if obj == "tb":
         b = QtWidgets.QToolButton(parent)
-        b.setCheckable(checkable)
-        b.setChecked(checked)
+        if checkable:
+            b.setCheckable(checkable)
+            b.setChecked(checked)
     elif obj == "pb":
         b = QtWidgets.QPushButton(parent)
     else:
@@ -307,6 +331,10 @@ def new_button(parent, obj="pb", text=None, icon=None, color=None, slot=None, ch
         b.setIcon(coloring_icon(icon, color))
     if slot is not None:
         b.clicked.connect(slot)
+    if icon_size is not None:
+        b.setIconSize(QtCore.QSize(icon_size, icon_size))
+    if tooltip is not None:
+        b.setToolTip(tooltip)
     return b
 
 
@@ -376,5 +404,36 @@ def az_file_dialog(parent=None, caption=None, last_dir=None, dir_only=False, fil
             if remember_dir:
                 settings.write_last_dir(os.path.dirname(select_files[0]))
             return select_files
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+def save_via_qtextstream(table_data, path, exclude_columns: list = None):
+    """Экспорт и сохранение табличных данных (table_data) в файл (path),
+    исключая перечень столбцов указанный в exclude_columns"""
+    file = QtCore.QFile(path)
+    if file.open(QtCore.QIODevice.WriteOnly | QtCore.QIODevice.Text):
+        stream = QtCore.QTextStream(file)
+        stream.setCodec("UTF-8")
+
+        if exclude_columns is not None:
+            for row in range(table_data.rowCount()):
+                for col in range(table_data.columnCount()):
+                    if col not in exclude_columns:  # пропускаем столбцы из списка исключений
+                        item = table_data.item(row, col)
+                        if item is not None:
+                            stream << item.text() << "\t"
+                stream << "\n"
+        else:  # если "левых" столбцов нет, то сохраняем таблицу целиком
+            for row in range(table_data.rowCount()):
+                for col in range(table_data.columnCount()):
+                    item = table_data.item(row, col)
+                    if item is not None:
+                        stream << item.text() << "\t"
+                stream << "\n"
+
+        file.close()
+
+# ----------------------------------------------------------------------------------------------------------------------
+
 
 # ----------------------------------------------------------------------------------------------------------------------

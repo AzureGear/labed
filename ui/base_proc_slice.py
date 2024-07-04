@@ -19,6 +19,7 @@ class TabSliceUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         super(TabSliceUI, self).__init__(parent)
         self.settings = AppSettings()  # настройки программы
         self.name = "Slice"
+        self.tool_tip_title = "Dataset cropping"
         if color_active:
             self.icon_active = coloring_icon("glyph_slice", color_active)
         if color_inactive:
@@ -250,8 +251,6 @@ class TabSliceUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     def translate_ui(self):  # переводим текущие тексты и добавленные/вложенные вкладки
         # Processing - Slice
-        self.name = self.tr("Slice")
-        self.setToolTip(self.tr("Кадрирование разметки"))
         self.slice_input_file_label.setText(self.tr("Path to file project *.json:"))
         self.slice_output_file_check.setText(self.tr("Set user output file path other than default:"))
         self.slice_scan_size_label.setText(self.tr("Scan size:"))

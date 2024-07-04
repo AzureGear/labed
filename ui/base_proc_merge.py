@@ -17,6 +17,7 @@ class TabMergeUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         super(TabMergeUI, self).__init__(parent)
         self.settings = AppSettings()  # настройки программы
         self.name = "Merge"
+        self.tool_tip_title ="Converting and merging datasets projects"
         if color_active:
             self.icon_active = coloring_icon("glyph_merge", color_active)
         if color_inactive:
@@ -221,8 +222,6 @@ class TabMergeUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     def translate_ui(self):  # переводим текущие тексты и добавленные/вложенные вкладки
         # Processing - Merge
-        self.name = self.tr("Merge")
-        self.setToolTip(self.tr("Конвертация и объединение проектов разметки"))
         self.merge_actions[0].setText(self.tr("Add files"))
         self.merge_actions[1].setText(self.tr("Remove files"))
         self.merge_actions[2].setText(self.tr("Select all"))

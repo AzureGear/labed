@@ -18,6 +18,7 @@ class TabGeometryUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         super(TabGeometryUI, self).__init__(parent)
         self.settings = AppSettings()  # настройки программы
         self.name = "Geometry"
+        self.tool_tip_title ="Geometry of labeling"
         if color_active:
             self.icon_active = coloring_icon("glyph_geometry", color_active)
         if color_inactive:
@@ -29,8 +30,7 @@ class TabGeometryUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     def translate_ui(self):  # переводим текущие тексты и добавленные/вложенные вкладки
         # Processing - Merge
-        self.name = self.tr("Geometry")
-        self.setToolTip(self.tr("Geometry of labeling"))
+        pass
 
 
 if __name__ == "__main__":
