@@ -19,7 +19,9 @@
 # glyph_arrow_left: Flowicon
 # glyph_arrow_right: Flowicon
 # glyph_mnist: Those Icons
-
+# glyph_paint_brush: Prosymbols Premium
+# glyph_palette: apien
+# glyph_duplicate: Icongeek26
 
 
 # glyph_add_image: Pixel perfect

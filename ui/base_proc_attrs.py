@@ -16,7 +16,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     """
     signal_message = QtCore.pyqtSignal(str)  # сигнал для вывода сообщения
 
-    # загрузить проект; экспорт; задать пространственное разрешение
+    #     # загрузить проект+; экспорт+; сохранить палитру; применить палитру;
 
     # Инфо о датасете: количество снимков в датасете, количество меток, среднее ЛРМ.
     # Номер, имя класса, количество, частота встречаемости на изображении, проценты от общего, сбалансированность
@@ -52,7 +52,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                                           on_button_clicked_callback=self.attr_load_projects_data,
                                           initial_filter="json (*.json)")
 
-        self.dataset_info_images_desc = new_text(self, "Numbers of images: ", alignment= "r")
+        self.dataset_info_images_desc = new_text(self, "Numbers of images: ", alignment="r")
         self.dataset_info_images_val = new_text(self, "13", bald=True)
         self.dataset_info_labels_desc = new_text(self, "Numbers of labels: ", "indianred", "r")
         self.dataset_info_labels_val = new_text(self, "42", "indianred", bald=True)
@@ -78,13 +78,21 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         vlay2 = QtWidgets.QVBoxLayout()
         vlay2.addLayout(hlay)
         vlay2.addLayout(hlay2)
-        self.btn_copy = new_button(self, "tb", icon="glyph_add_image", slot=self.attrs_copy_project, color=the_color,
-                                   icon_size=32, tooltip=self.tr("Make copy of current project"))
+        self.btn_copy = new_button(self, "tb", icon="glyph_duplicate", slot=self.attrs_copy_project, color=the_color,
+                                   icon_size=28, tooltip=self.tr("Make copy of current project"))
         self.btn_export = new_button(self, "tb", icon="glyph_check_all", slot=self.attrs_export, color=the_color,
-                                     icon_size=32, tooltip=self.tr("Export current project info"))
+                                     icon_size=28, tooltip=self.tr("Export current project info"))
+        self.btn_save_palette = new_button(self, "tb", icon="glyph_palette", slot=self.attrs_save_palette,
+                                           color=the_color,
+                                           icon_size=28, tooltip=self.tr("Save palette from current project"))
+        self.btn_apply_palette = new_button(self, "tb", icon="glyph_paint_brush", slot=self.attrs_apply_palette,
+                                            color=the_color,
+                                            icon_size=28, tooltip=self.tr("Apply palette for current project"))
         hlay3 = QtWidgets.QHBoxLayout()
         hlay3.addSpacing(50)
         hlay3.addWidget(self.btn_copy)
+        hlay3.addWidget(self.btn_save_palette)
+        hlay3.addWidget(self.btn_apply_palette)
         hlay3.addWidget(self.btn_export)
         hlay_finish = QtWidgets.QHBoxLayout()
         hlay_finish.addLayout(vlay2)
@@ -103,6 +111,12 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         pass
 
     def attrs_copy_project(self):  # копирование проекта
+        pass
+
+    def attrs_save_palette(self):  # сохранение палитры
+        pass
+
+    def attrs_apply_palette(self):  # применение палитры
         pass
 
     def attrs_export(self):  # экспорт проекта
