@@ -39,7 +39,7 @@ class SettingsUI(QtWidgets.QWidget):
         self.tab_widget.setIconSize(QtCore.QSize(24, 24))
         page_common_layout = QtWidgets.QFormLayout()  # страница общих настроек имеет расположение QGrid
         page_common.setLayout(page_common_layout)
-        self.tab_widget.addTab(page_common, QtGui.QIcon(coloring_icon("glyph_setups", the_colors)),
+        self.tab_widget.addTab(page_common, coloring_icon("glyph_setups", the_colors),
                                "Common settings")  # добавляем страницу
         layout = QtWidgets.QVBoxLayout(self)  # вертикальный класс с расположением элементов интерфейса
         layout.addWidget(self.tab_widget)  # ему добавляем виджет

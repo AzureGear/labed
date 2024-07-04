@@ -1,21 +1,28 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
 from utils import AppSettings, dn_crop, UI_COLORS, config
-from ui import new_button, AzButtonLineEdit, AzSpinBox, AzTableModel, AzManualSlice
+from ui import new_button, AzButtonLineEdit, AzSpinBox, AzTableModel, AzManualSlice, coloring_icon
 from datetime import datetime
 import os
 
 the_color = UI_COLORS.get("processing_color")
 
+
 class TabSliceUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     """
     Страница QTabWidget раздела Автоматической нарезки данных
+    color_active, icon_inactive цвета иконок активные и неактивные соответственно
+    Example: tab_page = TabSliceUI(QtCore.Qt.GlobalColor.red, QtCore.Qt.GlobalColor.white, self)
     """
     signal_message = QtCore.pyqtSignal(str)  # сигнал для вывода сообщения
 
-    def __init__(self, parent=None):
+    def __init__(self, color_active=None, color_inactive=None, parent=None):
         super(TabSliceUI, self).__init__(parent)
         self.settings = AppSettings()  # настройки программы
         self.name = "Slice"
+        if color_active:
+            self.icon_active = coloring_icon("glyph_slice", color_active)
+        if color_inactive:
+            self.icon_inactive = coloring_icon("glyph_slice", color_inactive)
         self.json_obj = None
         split = QtWidgets.QSplitter(QtCore.Qt.Vertical)  # вертикальный разделитель
         slice_auto_form = QtWidgets.QFormLayout()  # форма для расположения виджетов "автоматического разрезания"
@@ -282,4 +289,3 @@ if __name__ == "__main__":
     w = TabSliceUI()
     w.show()
     app.exec()
-

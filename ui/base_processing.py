@@ -45,35 +45,40 @@ class ProcessingUI(QtWidgets.QWidget):
             self.add_tab("attributes", base_proc_attrs.TabAttributesUI)
             self.tab_attributes.signal_message.connect(self.retranslate_message)
 
+        if config.UI_ENABLE.get("process", {}).get("attributes", None):
+            from ui import base_proc_geom
+            self.add_tab("attributes", base_proc_geom.TabGeometryUI)
+            self.tab_attributes.signal_message.connect(self.retranslate_message)
+
         # Создание и настройка перечня виджетов-вкладок
         self.tab_geometry_setup()  # "Геометрия"
-
-        ui_summ = [  # перечень: QWidget, "имя вкладки", "имя иконки", "подсказка"
-            [self.ui_tab_geometry, "Geometry", "glyph_transform", "Изменение геометрии разметки"]]  # "Геометрия"
-
-        for i, elem in enumerate(ui_summ):
-            self.tab_widget.addTab(elem[0], coloring_icon(elem[2], the_color_side), elem[1])  # виджет, иконка, название
-            # print("added tab: " + self.tab_widget.tabText(i))
-            self.tab_widget.setTabToolTip(i, elem[3])
 
         # Загрузка последней активной вкладки "Обработки"
         self.tab_widget.setCurrentIndex(self.settings.read_ui_proc_page())
 
         # Signals
         self.tab_widget.currentChanged.connect(self.change_tab)  # изменение вкладки
+        self.change_tab()  # запускам, чтобы изменить цвет активной вкладки
 
     def retranslate_message(self, text):
         self.signal_message.emit(text)
 
     def add_tab(self, tab_name, tab_class):
         """Добавление вкладок с цветными иконками, где к"""
-        tab = tab_class(self)
-        self.tab_widget.addTab(tab, QtGui.QIcon(coloring_icon(f"glyph_{tab_name}", the_color_side)), tab.name)
+        tab = tab_class(parent=self, color_active=the_color, color_inactive=the_color_side)
+        self.tab_widget.addTab(tab, tab.icon_inactive, tab.name)
         setattr(self, f"tab_{tab_name}", tab)
 
     @QtCore.pyqtSlot()
     def change_tab(self):  # сохранение последней активной вкладки "Обработки"
-        self.settings.write_ui_proc_page(self.tab_widget.currentIndex())
+        c_i = self.tab_widget.currentIndex()
+        self.settings.write_ui_proc_page(c_i)
+        # изменение цвета иконки активной вкладки
+        for i in range(self.tab_widget.count()):
+            if i == c_i:  # активная вкладка
+                self.tab_widget.setTabIcon(i, self.tab_widget.widget(i).icon_active)
+            else:
+                self.tab_widget.setTabIcon(i, self.tab_widget.widget(i).icon_inactive)
 
     def tab_geometry_setup(self):  # настройка страницы "Геометрия"
         self.ui_tab_geometry = self.tab_basic_setup()
@@ -108,4 +113,5 @@ class ProcessingUI(QtWidgets.QWidget):
         if config.UI_ENABLE.get("process", {}).get("attributes", None):
             self.tab_attributes.translate_ui()  # страница Атрибутов
 
-
+        if config.UI_ENABLE.get("process", {}).get("geometry", None):
+            self.tab_attributes.translate_ui()  # страница Атрибутов

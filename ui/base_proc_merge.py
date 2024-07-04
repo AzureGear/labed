@@ -1,6 +1,6 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
 from utils import AppSettings, convert_labelme_to_sama, merge_sama_to_sama, UI_COLORS, UI_READ_LINES, config
-from ui import new_act, az_file_dialog, natural_order, AzButtonLineEdit
+from ui import new_act, az_file_dialog, natural_order, AzButtonLineEdit, coloring_icon
 from datetime import datetime
 import os
 
@@ -13,10 +13,15 @@ class TabMergeUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     """
     signal_message = QtCore.pyqtSignal(str)  # сигнал для вывода сообщения
 
-    def __init__(self, parent=None):
+    def __init__(self, color_active=None, color_inactive=None, parent=None):
         super(TabMergeUI, self).__init__(parent)
         self.settings = AppSettings()  # настройки программы
         self.name = "Merge"
+        if color_active:
+            self.icon_active = coloring_icon("glyph_merge", color_active)
+        if color_inactive:
+            self.icon_inactive = coloring_icon("glyph_merge", color_inactive)
+
         # Действия для страницы
         self.merge_actions = (
             new_act(self, "Add files", "glyph_add", the_color, self.merge_add_files),

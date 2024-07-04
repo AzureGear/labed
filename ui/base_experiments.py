@@ -21,7 +21,7 @@ class ExperimentUI(QtWidgets.QWidget):
         layout.addWidget(self.tab_widget)
         self.tab_mnist = PageMNIST(self)
         self.tab_widget.setIconSize(QtCore.QSize(20, 20))
-        self.tab_widget.addTab(self.tab_mnist, QtGui.QIcon(coloring_icon("glyph_mnist", the_color)),
+        self.tab_widget.addTab(self.tab_mnist, coloring_icon("glyph_mnist", the_color),
                                self.tab_mnist.name)
 
     def tr(self, text):

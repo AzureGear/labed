@@ -9,7 +9,7 @@
 # glyph_black-and-white: Ch.designer
 # glyph_normalization orvipixel
 # glyph_slice: Aranagraphics
-# glyph_transform: Wahyu Adam
+# glyph_geometry: Wahyu Adam
 # glyph_info: afif fudin
 # glyph_dice: Smashicons
 # glyph_signature: Andrejs Kirma

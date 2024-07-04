@@ -1,12 +1,14 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
 from utils import AppSettings, UI_COLORS, config
 from utils.sama_project_handler import DatasetSAMAHandler
-from ui import new_button, AzButtonLineEdit
+from ui import new_button, AzButtonLineEdit, coloring_icon
 
 import os
 
 the_color = UI_COLORS.get("processing_color")
 
+
+# todo: проверка при переименовании, что новое имя not in list[...]
 
 class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     """
@@ -16,31 +18,57 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     # загрузить проект; экспорт; задать пространственное разрешение
 
-    # Инфо о датасете: количество снимков в датасете, количество меток
-    # среднее ЛРМ.
-    # Номер, имя класса, количество, частота встречаемости проценты от общего, сбалансированность класса, палитра
+    # Инфо о датасете: количество снимков в датасете, количество меток, среднее ЛРМ.
+    # Номер, имя класса, количество, частота встречаемости на изображении, проценты от общего, сбалансированность
+    # класса, палитра
     # перечень действий: слить с классом, переименовать класс, удалить
     #
-    def __init__(self, parent=None):
+    def __init__(self, color_active=None, color_inactive=None, parent=None):
         super(TabAttributesUI, self).__init__(parent)
         self.settings = AppSettings()  # настройки программы
         self.name = "Attributes"
+        if color_active:
+            self.icon_active = coloring_icon("glyph_attributes", color_active)
+        if color_inactive:
+            self.icon_inactive = coloring_icon("glyph_attributes", color_inactive)
 
         # данные из проекта SAMA буду загружаться в DatasetSAMAHandler:
         self.sama_data = DatasetSAMAHandler("D:/data_sets/nuclear_power_stations/project.json")
 
         # данные из DatasetSAMAHandler будут отображаться в таблице:
         self.table_widget = AzTableAttributes()
+        header = self.table_widget.horizontalHeader()  # настраиваем отображение столбцов
+        header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
+        header.setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
+        header.setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)
 
-        # Далее настройка ui
+        # Далее идет настройка ui
         wid = QtWidgets.QWidget()
         self.setCentralWidget(wid)
-        self.sama_json = AzButtonLineEdit("glyph_folder", the_color, caption=self.tr("Load dataset SAMA project"),
+        self.label_project = QtWidgets.QLabel("Path to file project *.json:")
+        self.file_json = AzButtonLineEdit("glyph_folder", the_color, caption=self.tr("Load dataset SAMA project"),
                                           read_only=True, dir_only=False, filter=self.tr("Projects files (*.json)"),
                                           on_button_clicked_callback=self.attr_load_projects_data,
                                           initial_filter="json (*.json)")
-        vlayout = QtWidgets.QVBoxLayout(self)
-        vlayout.addWidget(self.sama_json)
+        self.dataset_info = QtWidgets.QLabel("Dataset information:")
+        hlay = QtWidgets.QHBoxLayout()
+        hlay.addWidget(self.label_project)
+        hlay.addWidget(self.file_json)
+        hlay2 = QtWidgets.QHBoxLayout()
+        hlay2.addWidget(self.dataset_info)
+        vlay2 = QtWidgets.QVBoxLayout()
+        vlay2.addLayout(hlay)
+        vlay2.addLayout(hlay2)
+        self.button1 = QtWidgets.QPushButton("Test")
+        self.button2 = QtWidgets.QPushButton("Test2")
+        hlay3 = QtWidgets.QHBoxLayout()
+        hlay3.addWidget(self.button1)
+        hlay3.addWidget(self.button2)
+        hlay_finish = QtWidgets.QHBoxLayout()
+        hlay_finish.addLayout(vlay2)
+        hlay_finish.addLayout(hlay3)
+        vlayout = QtWidgets.QVBoxLayout(self)  # главный Layout, наследуемый класс
+        vlayout.addLayout(hlay_finish) # добавляем ему расположение с кнопками и QLabel
         vlayout.addWidget(self.table_widget)
         wid.setLayout(vlayout)
 
@@ -57,8 +85,10 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     def translate_ui(self):  # переводим текущие тексты и добавленные/вложенные вкладки
         # Processing - Attributes
+        self.table_widget.translate_ui()
         self.name = self.tr("Attributes")
-        self.setToolTip(self.tr("Поиск и редактирование снимков по атрибутам разметки"))
+        self.setToolTip(self.tr("Searching and editing dataset attributes"))
+        self.label_project.setText(self.tr("Path to file project *.json:"))
 
 
 class AzTableAttributes(QtWidgets.QTableWidget):
@@ -72,9 +102,9 @@ class AzTableAttributes(QtWidgets.QTableWidget):
         self.settings = AppSettings()  # настройки программы
         self.setRowCount(5)
         self.setColumnCount(4)
-        self.setHorizontalHeaderLabels(["Column 1", "Column 2", "Column 3", "Actions"])
+        self.setHorizontalHeaderLabels(["Test Column 1", "Test Column 2", "Test Column 3", "Actions"])
         self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
-        self.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)  # Disable editing
+        self.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)  # отключаем редактирование
 
         items = [["Item 1", "A", "20"],
                  ["Item 2", "C", "15"],
@@ -114,6 +144,15 @@ class AzTableAttributes(QtWidgets.QTableWidget):
 
     def delete_item(self, row):
         self.removeRow(row)
+
+    def tr(self, text):
+        return QtCore.QCoreApplication.translate("AzTableAttributes", text)
+
+    def translate_ui(self):  # переводим текущие тексты и добавленные/вложенные вкладки
+        # Processing - Attributes - AzTableAttributes
+        self.setToolTip(self.tr("Data by classes (labels) of the dataset"))
+        # Заголовки таблицы
+        # TODO: headers
 
 
 if __name__ == "__main__":
