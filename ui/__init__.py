@@ -4,6 +4,7 @@ from .qt import AzButtonLineEdit
 from .qt import az_file_dialog
 from .qt import AzSpinBox
 from .qt import AzTableModel
+from .qt import AzInputDialog
 from .qt import az_custom_dialog
 from .qt import coloring_icon
 from .qt import new_icon

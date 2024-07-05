@@ -34,6 +34,7 @@ class AzButtonLineEdit(QtWidgets.QLineEdit):
         self.filter = filter
         self.initial_filter = initial_filter
         self.setReadOnly(read_only)
+        self.setContentsMargins(0, 0, 31, 0)
         self.button.clicked.connect(self.on_button_clicked)  # соединяем сигнал щелчка
         # self.button.setStyleSheet('border: 0px; padding: 0px;')  # убираем границу и отступы
         self.button.setCursor(QtCore.Qt.PointingHandCursor)  # курсор при наведении на иконку
@@ -74,6 +75,134 @@ class AzButtonLineEdit(QtWidgets.QLineEdit):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
+
+class AzInputDialog(QtWidgets.QDialog):
+    def __init__(self, parent, num_rows, labels, window_title, has_ok=True, has_cancel=True, ok_text="OK",
+                 cancel_text="Cancel"):
+        """Кастомизация диалогового окна. В качестве параметров передаются:
+           число строк (num_rows), заголовки строк (labels), заголовок окна и допустимые кнопки. Также возможно
+           указание кастомных заголовков кнопок "ОК" и "Cancel".
+           dialog = AzInputDialog(2, ["age", "stage"], "Your status")
+        """
+        super().__init__(parent)
+
+        # перечень QLineEdit для ввода
+        self.line_edits = []
+        self.setMinimumSize(300,100)
+
+        # форма для размещения
+        form_layout = QtWidgets.QFormLayout()
+        for i in range(num_rows):
+            label = QtWidgets.QLabel(labels[i])  # название/метка
+            line_edit = QtWidgets.QLineEdit()
+            form_layout.addRow(label, line_edit)
+            self.line_edits.append(line_edit)  # добавляем всё в перечень
+
+        # настройка кнопок...
+        # button_box = QtWidgets.QDialogButtonBox()
+        # if has_ok:
+        #     ok_button = button_box.addButton(ok_text, QtWidgets.QDialogButtonBox.AcceptRole)
+        # if has_cancel:
+        #     cancel_button = button_box.addButton(cancel_text, QtWidgets.QDialogButtonBox.RejectRole)
+        self.ok_button = QtWidgets.QPushButton(ok_text, self)
+        self.cancel_button = QtWidgets.QPushButton(cancel_text, self)
+
+        # ...и компоновка
+        h_layout = QtWidgets.QHBoxLayout()
+        h_layout.addStretch(1)
+        if has_ok:
+            h_layout.addWidget(self.ok_button)
+        if has_cancel:
+            h_layout.addWidget(self.cancel_button)
+        # layout.addWidget(button_box)
+        layout = QtWidgets.QVBoxLayout()
+        layout.addLayout(form_layout)
+        layout.addLayout(h_layout)
+
+        self.setLayout(layout)
+
+        # заголовок окна
+        self.setWindowTitle(window_title)
+
+        # если кнопки "OK", то идет слот принятия
+        # if has_ok:
+        #     ok_button.clicked.connect(self.finish)
+        #
+        # # иначе с отказом
+        # if has_cancel:
+        #     cancel_button.clicked.connect(self.reject)
+        if has_ok:
+            self.ok_button.clicked.connect(self.finish)
+        if has_cancel:
+            self.cancel_button.clicked.connect(self.finish)
+
+    def exec_(self):  # переопределяем запуск диалога
+        result = super().exec_()
+        data = [line_edit.text() for line_edit in self.line_edits]
+        return result, data  # возвращаем нажатую кнопку и данные
+
+    def finish(self):  # переопределяем запуск диалога
+        result = super().exec_()
+        data = [line_edit.text() for line_edit in self.line_edits]
+        return result, data  # возвращаем нажатую кнопку и данные
+        self.close
+
+
+class OkCancelDialog(QtWidgets.QWidget):
+    def __init__(self, parent, title, text, on_ok=None, on_cancel=None,
+                 ok_text=None, cancel_text=None):
+
+        super().__init__(parent)
+        self.settings = AppSettings()
+        self.lang = self.settings.read_lang()
+
+        self.setWindowFlag(QtCore.Qt.Tool)
+
+        self.setWindowTitle(title)
+
+        layout = QtWidgets.QVBoxLayout()
+
+        self.label = QtWidgets.QLabel(text)
+
+        buttons_layout = QtWidgets.QHBoxLayout()
+
+        # Reset text
+        if not ok_text:
+            ok_text = 'Ок' if self.lang == 'RU' else "OK"
+        if not cancel_text:
+            cancel_text = 'Отменить' if self.lang == 'RU' else "Cancel"
+
+        self.ok_button = QtWidgets.QPushButton(ok_text, self)
+        self.cancel_button = QtWidgets.QPushButton(cancel_text, self)
+
+        if not on_ok:
+            self.ok_button.clicked.connect(self.on_ok_clicked)
+        else:
+            self.ok_button.clicked.connect(on_ok)
+
+        if not on_cancel:
+            self.cancel_button.clicked.connect(self.cancel_button_clicked)
+        else:
+            self.cancel_button.clicked.connect(on_cancel)
+
+        buttons_layout.addWidget(self.ok_button)
+        buttons_layout.addWidget(self.cancel_button)
+        layout.addWidget(self.label)
+        layout.addLayout(buttons_layout)
+        self.setLayout(layout)
+
+        self.show()
+
+    def on_ok_clicked(self):
+        self.close()
+
+    def cancel_button_clicked(self):
+        self.close()
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+
 class AzAction(QtWidgets.QAction):
     """
     Кастомизация QAction, в виде зажимаемой кнопки с переменой цвета иконки, когда она активна
@@ -283,7 +412,7 @@ def new_pixmap(path):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-def new_text(parent, text: str = None, text_color: str = None, alignment="l", bald = False):
+def new_text(parent, text: str = None, text_color: str = None, alignment="l", bald=False):
     """Объект QLabel. Добавление центрированного (alignment = "l", "r", "c") текста (text) с заданным
     цветом (text_color)"""
     label = QtWidgets.QLabel(parent)
@@ -348,6 +477,8 @@ def labelValidator():
     # validator = QtGui.QRegExpValidator(regexp, self.slice_output_file_path)  # создаём валидатор
     # self.slice_output_file_path.setValidator(validator)  # применяем его к нашей строке
 
+
+# ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
 def az_custom_dialog(caption, message, yes=False, no=False, back=False, custom_button=False, custom_text="",

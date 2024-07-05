@@ -46,6 +46,8 @@ UI_AZ_SLICE_MANUAL = {
     "top_dock": [True, False, False, False, True, True],
     "files_dock": [True, False, True, False, False, False]
 }
+UI_AZ_PROC_ATTR_ICON_SIZE = 24  # размер иконок вкладки Обработка-Атрибуты
+
 # настройка приближения/отдаления для отображения изображений
 MINIMUM_ZOOM = -2
 MAXIMUM_ZOOM = 50

@@ -7,6 +7,41 @@
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
+from PyQt5 import QtWidgets, QtGui, QtCore
+
+
+
+
+
+if __name__ == "__main__":
+    import sys
+
+    app = QtWidgets.QApplication(sys.argv)
+    # Создаем родительское окно
+    parent_window = QtWidgets.QWidget()
+    parent_window.setWindowTitle("Родительское окно")
+    parent_window.resize(300, 200)
+    parent_window.show()
+
+    # Создаем диалоговое окно
+    num_rows = 3
+    labels = ["Имя:", "Возраст:", "Адрес:"]
+    window_title = "Диалоговое окно"
+    has_ok = True
+    has_cancel = True
+    dialog = MyDialog(num_rows, labels, window_title, has_ok, has_cancel, parent_window)
+
+    # Отображаем диалоговое окно
+    result = dialog.exec_()
+
+    # Проверяем, было ли нажато OK
+    if result == QtWidgets.QDialog.Accepted:
+        data = [dialog.line_edits[i].text() for i in range(num_rows)]
+        print(data)
+        self.close
+    else:
+        print("Нажата кнопка Отмена")
+    app.exec()
 
 # ----------------------------------------------------------------------------------------------------------------------
 

@@ -1,7 +1,8 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
-from utils import AppSettings, UI_COLORS, helper
+from utils import AppSettings, UI_COLORS, helper, config
 from utils.sama_project_handler import DatasetSAMAHandler
-from ui import new_button, AzButtonLineEdit, coloring_icon, new_text, az_file_dialog, save_via_qtextstream, new_act
+from ui import new_button, AzButtonLineEdit, coloring_icon, new_text, az_file_dialog, save_via_qtextstream, new_act, \
+    AzInputDialog
 import os
 
 the_color = UI_COLORS.get("processing_color")
@@ -66,15 +67,19 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         vlay2.addLayout(hlay)
         vlay2.addLayout(hlay2)
         self.btn_copy = new_button(self, "tb", icon="glyph_duplicate", slot=self.attrs_copy_project, color=the_color,
-                                   icon_size=28, tooltip=self.tr("Make copy of current project"))
+                                   icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE,
+                                   tooltip=self.tr("Make copy of current project"))
         self.btn_export = new_button(self, "tb", icon="glyph_check_all", slot=self.attrs_export, color=the_color,
-                                     icon_size=28, tooltip=self.tr("Export current project info"))
+                                     icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE,
+                                     tooltip=self.tr("Export current project info"))
         self.btn_save_palette = new_button(self, "tb", icon="glyph_palette", slot=self.attrs_save_palette,
                                            color=the_color,
-                                           icon_size=28, tooltip=self.tr("Save palette from current project"))
+                                           icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE,
+                                           tooltip=self.tr("Save palette from current project"))
         self.btn_apply_palette = new_button(self, "tb", icon="glyph_paint_brush", slot=self.attrs_apply_palette,
                                             color=the_color,
-                                            icon_size=28, tooltip=self.tr("Apply palette for current project"))
+                                            icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE,
+                                            tooltip=self.tr("Apply palette for current project"))
         hlay3 = QtWidgets.QHBoxLayout()
         hlay3.addSpacing(50)
         hlay3.addWidget(self.btn_copy)
@@ -91,6 +96,8 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.sama_data = DatasetSAMAHandler()  # делаем изначально пустым
         if os.path.exists(self.settings.read_attributes_input()):  # смотрим есть ли в реестре использованный файл
             self.load_project(self.settings.read_attributes_input())  # пробуем его загрузить
+        else:  # файла нет, тогда ограничиваем функционал
+            self.toggle_tool_buttons(False)
 
         # данные из DatasetSAMAHandler будут отображаться в таблице
 
@@ -251,36 +258,41 @@ class AzTableAttributes(QtWidgets.QTableWidget):
                 new_item = QtWidgets.QTableWidgetItem(text)
                 self.setItem(row, col, new_item)
 
-            button = QtWidgets.QPushButton("...")
-            button.clicked.connect(lambda ch, row=row: self.show_context_menu(row))
-            self.setCellWidget(row, 6, button)
+            act_button = new_button(self, "tb", icon="glyph_menu", color=the_color, tooltip=self.tr("Select action"),
+                                    icon_size=14)
+            act_button.clicked.connect(lambda ch, row=row: self.show_context_menu(row))
+            self.setCellWidget(row, 6, act_button)
 
-            button2 = QtWidgets.QToolButton()
-            button2.setAutoRaise(True)
-            button2.setStyleSheet("QToolButton { background-color: rgb(255, 0, 0); }")
-            button2.clicked.connect(lambda ch, btn=button2: self.change_color(btn))
-            self.setCellWidget(row, 5, button2)
+            color_button = new_button(self, "tb", tooltip=self.tr("Select color"))
+            color_button.setAutoRaise(True)
+            color_button.setStyleSheet("QToolButton { background-color: rgb(255, 0, 0); }")
+            color_button.clicked.connect(lambda ch, btn=color_button: self.change_color(btn))
+            self.setCellWidget(row, 5, color_button)
 
     def change_color(self, button):
-        color = QtWidgets.QColorDialog.getColor(button.palette().color(button.backgroundRole()))
+        color = QtWidgets.QColorDialog.getColor(button.palette().color(button.backgroundRole()), self,
+                                                self.tr("Select label color"))
+        # (initial=QtGui.QColor("#ff0000"),
+        # parent = window, title = "Окно выбора цвета",
+        #                          options = QtWidgets.QColorDialog.ShowAlphaChannel)
+
         if color.isValid():
             button.setStyleSheet(
                 f"QToolButton {{ background-color: rgb({color.red()}, {color.green()}, {color.blue()}); }}")
 
     def show_context_menu(self, row):
+        """Дополнительное меню"""
         menu = QtWidgets.QMenu()
 
-        rename_act = new_act(self, self.tr("Rename"), "glyph_signature", the_color, self.label_rename,
-                                tip=self.tr("Rename current label"))
-        rename_act.triggered.connect(lambda ch, row=row: self.label_rename(row))
+        rename_act = new_act(self, self.tr("Rename"), "glyph_signature", the_color, tip=self.tr("Rename current label"))
+        rename_act.triggered.connect(lambda ch, the_row=row: self.label_rename(row))
 
-        delete_act = new_act(self, self.tr("Delete"), "glyph_delete2", the_color, self.label_delete,
-                                tip=self.tr("Delete current label"))
-        delete_act.triggered.connect(lambda ch, row=row: self.label_delete(row))
+        delete_act = new_act(self, self.tr("Delete"), "glyph_delete2", the_color, tip=self.tr("Delete current label"))
+        delete_act.triggered.connect(lambda ch, the_row=row: self.label_delete(row))
 
-        merge_act = new_act(self, self.tr("Merge"), "glyph_merge", the_color, self.label_merge,
-                                tip=self.tr("Merge current label to other label"))
-        merge_act.triggered.connect(lambda ch, row=row: self.label_delete(row))
+        merge_act = new_act(self, self.tr("Merge"), "glyph_merge", the_color,
+                            tip=self.tr("Merge current label to other label"))
+        merge_act.triggered.connect(lambda ch, the_row=row: self.label_merge(row))
 
         menu.addAction(rename_act)
         menu.addAction(merge_act)
@@ -303,22 +315,25 @@ class AzTableAttributes(QtWidgets.QTableWidget):
         self.table.cellClicked.connect(self.cell_changed)
 
     def label_rename(self, row):
-        """ Перечень действий переименовать класс"""
-        text, ok = QtWidgets.QInputDialog.getText(self, self.tr("Rename Label"), self.tr("Enter new name:"))
-        # TODO: rename
-        if ok and text:
-            self.item(row, 0).setText(text)
-        self.signal_message.emit(self.tr(f"Объекты с меткой {row} переименованы в класс {row}"))
+        """ Перечень действий: переименовать класс"""
+        dialog = AzInputDialog(self, 1, [self.tr("Enter new label name:")],"Rename label" ,
+                               cancel_text=self.tr("Cancel"))
+        from ui.qt import OkCancelDialog
+        # dialog2 = OkCancelDialog(self, "Rename label","Please:")
+        result, text = dialog.exec_()
+        if text:
+            self.item(row, 0).setText(text[0])
+            self.signal_message.emit(self.tr(f"Objects with label '{row}' was renamed to '{row}'"))
 
     def label_delete(self, row):
         """ Перечень действий: удалить метку"""
         # TODO: remove
-        self.signal_message.emit(self.tr(f"Объекты с меткой {row} удалены"))
+        self.signal_message.emit(self.tr(f"Objects with label '{row}' was deleted"))
 
     def label_merge(self, row):
         """ Перечень действий: слить с другой меткой"""
         # TODO: merge
-        self.signal_message.emit(self.tr(f"Объединение объектов меток {row} и {row}"))
+        self.signal_message.emit(self.tr(f"Merged object with labels {row} и {row}"))
 
     def tr(self, text):
         return QtCore.QCoreApplication.translate("AzTableAttributes", text)
