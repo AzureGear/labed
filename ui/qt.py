@@ -3,6 +3,8 @@ from utils import AppSettings, UI_COLORS
 import os.path as osp
 import os
 
+# Если есть проблема с сигналами, то возможно следует удалить декоратор @QtCore.pyqtSlot()
+
 here = osp.dirname(osp.abspath(__file__))
 default_color = UI_COLORS.get("default_color")
 
@@ -290,6 +292,7 @@ def new_text(parent, text: str = None, text_color: str = None, alignment="l", ba
         if bald:
             label.setText("<b>" + label.text() + "</b>")
 
+    # label.setFrameShape(QtWidgets.QFrame.Box)
     qt_alignment = None  # центрирование текста
     if alignment == "r":
         qt_alignment = QtCore.Qt.AlignmentFlag.AlignRight
@@ -410,7 +413,10 @@ def az_file_dialog(parent=None, caption=None, last_dir=None, dir_only=False, fil
 def save_via_qtextstream(table_data, path, exclude_columns: list = None):
     """Экспорт и сохранение табличных данных (table_data) в файл (path),
     исключая перечень столбцов указанный в exclude_columns"""
+
+    # Добавить ловлю ошибок при экспорте
     file = QtCore.QFile(path)
+    result = False
     if file.open(QtCore.QIODevice.WriteOnly | QtCore.QIODevice.Text):
         stream = QtCore.QTextStream(file)
         stream.setCodec("UTF-8")
@@ -432,6 +438,8 @@ def save_via_qtextstream(table_data, path, exclude_columns: list = None):
                 stream << "\n"
 
         file.close()
+        result = True
+    return result
 
 # ----------------------------------------------------------------------------------------------------------------------
 

@@ -9,7 +9,6 @@ current_folder = os.path.dirname(os.path.abspath(__file__))
 
 
 # TODO: добавить флаг "Копировать изображения при объединении".
-# TODO: соединить сигналы вывода сообщения
 
 # ----------------------------------------------------------------------------------------------------------------------
 class ProcessingUI(QtWidgets.QWidget):
@@ -47,6 +46,8 @@ class ProcessingUI(QtWidgets.QWidget):
             from ui import base_proc_geom
             self.add_tab("geometry", base_proc_geom.TabGeometryUI)
 
+        # self.tab_widget.tab_attribute =
+
         # Активация последней активной с прошлого запуска
         self.tab_widget.setCurrentIndex(self.settings.read_ui_proc_page())
 
@@ -54,7 +55,6 @@ class ProcessingUI(QtWidgets.QWidget):
         self.tab_widget.currentChanged.connect(self.change_tab)  # изменение вкладки
         self.change_tab()  # запускаем, чтобы изменить цвет активной вкладки
 
-    @QtCore.pyqtSlot()
     def default_output_dir_change(self):
         # TODO:  изменение в настройках выходного каталога
         if not self.tab_merge.merge_output_file_check.isChecked():
@@ -62,16 +62,15 @@ class ProcessingUI(QtWidgets.QWidget):
         if not self.slice_output_file_check.isChecked():
             self.slice_toggle_output_file()
 
-    @QtCore.pyqtSlot()
-    def retranslate_message(self, text):  # перенаправление сообщений в строку состояния базового GUI
-        self.signal_message.emit(text)
+    def forward_signal(self, message):
+        self.signal_message.emit(message)  # перенаправление сигналов
 
     def add_tab(self, tab_name, tab_class):
         """Добавление вкладок с цветными иконками"""
         tab = tab_class(parent=self, color_active=the_color, color_inactive=the_color_side)
-        self.tab_widget.addTab(tab, tab.icon_inactive, tab.name)
-        setattr(self, f"tab_{tab_name}", tab)
-        tab.signal_message.connect(self.retranslate_message)
+        self.tab_widget.addTab(tab, tab.icon_inactive, tab.name)  # добавляем страницу-вкладку
+        setattr(self, f"tab_{tab_name}", tab)  # добавляем имя объекта класса
+        tab.signal_message.connect(self.forward_signal)  # добавляем сигнал в строку состояния
 
     @QtCore.pyqtSlot()
     def change_tab(self):  # сохранение последней активной вкладки "Обработки"
@@ -96,4 +95,5 @@ class ProcessingUI(QtWidgets.QWidget):
                 getattr(self, f"tab_{key}", None).translate_ui()  # ...запускаем перевод
                 self.tab_widget.setTabText(i, self.tr(getattr(self, f"tab_{key}", None).name))  # перевод заголовков
                 self.tab_widget.setTabToolTip(i, self.tr(getattr(self, f"tab_{key}", None).tool_tip_title))  # подсказок
+                pass
             i += 1

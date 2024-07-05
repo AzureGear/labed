@@ -1,6 +1,6 @@
 from PyQt5 import QtCore, QtWidgets, QtGui
-from utils import AppSettings, UI_COLORS, UI_AZ_SLICE_MANUAL, load, save, dn_crop, AzImageViewer, ViewState
-from ui import az_file_dialog, az_custom_dialog, new_act, natural_order
+from utils import AppSettings, UI_COLORS, UI_AZ_SLICE_MANUAL, dn_crop, AzImageViewer, ViewState, natural_order, helper
+from ui import az_file_dialog, az_custom_dialog, new_act
 from datetime import datetime
 import sys
 import os
@@ -110,7 +110,7 @@ class AzManualSlice(QtWidgets.QMainWindow):
             self.update_mc_data(self.current_mc_file, points)  # сохраняем текущий перечень
 
     def update_mc_data(self, file, data, update_crop=True):
-        mc_dict = load(file)  # загружаем файл json
+        mc_dict = helper.load(file)  # загружаем файл json
         if not mc_dict:
             self.signal_message.emit(f"Ошибка обращения к файлу ручного кадрирования: '{file}'")
             return
@@ -121,7 +121,7 @@ class AzManualSlice(QtWidgets.QMainWindow):
         current_image = os.path.basename(self.current_image_file)  # определяем текущее изображение
         images[current_image] = data  # обновляем словарь изображения новыми данными
         mc_dict["images"] = images  # обновляем словарь изображений
-        save(file, mc_dict)
+        helper.save(file, mc_dict)
 
     def set_image(self, image):  # загрузка снимка и разметки для отображения
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)
@@ -216,10 +216,10 @@ class AzManualSlice(QtWidgets.QMainWindow):
                 self.load_mc_file(check_file)  # загружаем найденный файл проекта РК
             elif dialog == 4:  # пересоздать
                 self.clear()
-                save(check_file, self.create_blank_file())  # пересоздаём
+                helper.save(check_file, self.create_blank_file())  # пересоздаём
                 self.load_mc_file(check_file)
         else:  # файла не существует, значит...
-            save(check_file, self.create_blank_file())  # ...создаём новый пустой файл
+            helper.save(check_file, self.create_blank_file())  # ...создаём новый пустой файл
             self.load_mc_file(check_file, "Создан проект ручного кадрирования '%s'")
 
     def project_open(self):  # открыть проект
@@ -239,7 +239,7 @@ class AzManualSlice(QtWidgets.QMainWindow):
                 self.signal_message.emit("Ошибка загрузки")
                 return
             original_json = self.input_file.FullNameJsonFile
-            manual_crop_json = load(path)  # внутренний файл РК *.json_mc
+            manual_crop_json = helper.load(path)  # внутренний файл РК *.json_mc
             if manual_crop_json is None:  # ошибка загрузки
                 self.signal_message.emit(f"Произошла ошибка при загрузке проекта ручного кадрирования: '{path}'")
                 return
@@ -433,7 +433,7 @@ class AzManualSlice(QtWidgets.QMainWindow):
 
     @staticmethod
     def get_mc_image_data(filename, value):  # загрузить данные раздела словаря по названию файла
-        file_mc = load(filename)  # внутренний файл РК *.json_mc
+        file_mc = helper.load(filename)  # внутренний файл РК *.json_mc
         return file_mc[value]  # словарь раздела
 
     def tr(self, text):

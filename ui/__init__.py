@@ -1,5 +1,3 @@
-from .helper import natural_order
-
 from .qt import labelValidator
 from .qt import AzAction
 from .qt import AzButtonLineEdit

@@ -11,7 +11,7 @@ class DatasetSAMAHandler:
     Реализация Романа Хабарова. Класс для работы с данными проекта. Осуществляет хранение данных разметки словарем.
     """
 
-    def __init__(self, filename):
+    def __init__(self, filename=None):
         # Инициализация
         self.data = dict()
         self.data["path_to_images"] = ""
@@ -19,28 +19,31 @@ class DatasetSAMAHandler:
         self.data["labels"] = []
         self.data["labels_color"] = {}
         self.is_loaded = False
+        self.is_correct_file = False
 
         # проверка реальности
+        if filename is None:
+            return
         if not os.path.exists(filename):
-            self.correct_file = False
             return
 
         # загрузка и простая проверка данных
         self.load(filename)
 
-    def load(self, json_path): # загрузка проекта через ujson
+    def load(self, json_path):  # загрузка проекта через ujson
+        self.is_correct_file = False
+        self.is_loaded = False
         try:
             with open(json_path, 'r') as f:
                 self.data = ujson.load(f)
                 if self.check_json(self.data):
-                    self.correct_file = True
-                self.update_ids()
+                    self.is_correct_file = True
+                    self.update_ids()
                 self.is_loaded = True
 
         except ujson.JSONDecodeError:
             print(f"Файл {json_path} пустой, либо содержит некорректные данные.")
             return None
-            self.correct_file = False
 
     @staticmethod
     def check_json(json_project_data):

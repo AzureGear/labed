@@ -1,6 +1,7 @@
-from PyQt5 import QtCore, QtWidgets, QtGui
-from utils import AppSettings, UI_COLORS, save, load
-from ui import new_button, coloring_icon, az_file_dialog
+from PyQt5 import QtCore, QtWidgets
+from utils import AppSettings, UI_COLORS
+from utils.helper import load, save, check_file
+from ui import az_file_dialog
 import cv2
 import random
 import os
@@ -51,39 +52,14 @@ class AutomationUI(QtWidgets.QWidget):
         self.button04.clicked.connect(self.none)
 
     def palette_get(self):
-        """Извлечь и сохранить палитру из проекта SAMA"""
-        papa = self.settings.read_last_dir()
-        print("init: " + papa)
-        sel_file = az_file_dialog(self, self.tr("Выбрать палитру из файла проекта SAMA *.json"),
-                                  self.settings.read_last_dir(), dir_only=False,
-                                  filter="SAMA project (*.json)", initial_filter="json (*.json)")
-
-        # if sel_file is None:  # проверки на существование и открытие
-        #     return
-        # if not os.path.exists(sel_file[0]):
-        #     return
-        if not self.check_file(sel_file):
-            return
-        json = load(sel_file[0])
-        self.log.append(f"\nВыбран файл: &{sel_file[0]}")
-        colors = json["labels_color"]
-        data = dict()
-        data["labels_color"] = colors
-        dict_images = dict()
-
-        file = az_file_dialog(self, self.tr("Сохранение палитры проекта SAMA *.json"), self.settings.read_last_dir(),
-                              dir_only=False, file_to_save=True, filter="Palette (*.palette)",
-                              initial_filter="palette (*.palette)")
-        if len(file) > 0:
-            save(file, data, 'w+')  # сохраняем файл как палитру
-        self.log.append(f"\nПалитра сохранена: &{file}")
+        pass # перемещено в Attrs
 
     def palette_apply(self):
         """Применить палитру к файлу проекта SAMA"""
         # загружаем файл с палитрой
         sel_file = az_file_dialog(self, self.tr("Выберете палитру *.palette"), self.settings.read_last_dir(),
                                   dir_only=False, filter="Palette (*.palette)", initial_filter="palette (*.palette)")
-        if not self.check_file(sel_file):
+        if not check_file(sel_file):
             return
         self.log.append(f"\nВыбрана палитра: &{sel_file[0]}")
         palette = load(sel_file[0])
@@ -93,7 +69,7 @@ class AutomationUI(QtWidgets.QWidget):
         input_file = az_file_dialog(self, self.tr("Применить палитру к проекту SAMA *.json"),
                                     self.settings.read_last_dir(),
                                     dir_only=False, filter="SAMA project (*.json)", initial_filter="json (*.json)")
-        if not self.check_file(input_file):
+        if not check_file(input_file):
             return
         json = load(input_file[0])
         input_colors = json["labels_color"]
@@ -134,14 +110,6 @@ class AutomationUI(QtWidgets.QWidget):
     def translate_ui(self):
         pass
         # self.tab_widget.setTabText(0, self.tr(self.tab_mnist.name))
-
-    @staticmethod
-    def check_file(args):  # двойная проверка на наличие файлов
-        if args is None:  # проверка на существование...
-            return False
-        if not os.path.exists(args[0]):  # ...и открытие
-            return False
-        return True
 
     @staticmethod
     def get_random_files(dir, count: int, images=True, files_exts=None):

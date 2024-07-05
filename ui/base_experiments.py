@@ -1,6 +1,6 @@
 from PyQt5 import QtCore, QtWidgets, QtGui
 from utils import AppSettings, UI_COLORS, config
-from ui import new_act, coloring_icon, az_file_dialog, natural_order, AzButtonLineEdit, AzSpinBox, PageMNIST
+from ui import coloring_icon, PageMNIST
 import os
 
 the_color = UI_COLORS.get("experiments_color")

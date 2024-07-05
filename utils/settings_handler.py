@@ -99,3 +99,9 @@ class AppSettings:
 
     def write_slice_crop_size(self, size):  # размер сканирующего окна/окна кадрирования [w]
         self.settings.setValue('slicing/slice_crop_size', size)
+
+    def read_attributes_input(self):  # файл проекта для страницы атрибутов [r]
+        return self.settings.value('attributes/input_file', '')
+
+    def write_attributes_input(self, path):  # файл проекта для страницы атрибутов [w]
+        self.settings.setValue('attributes/input_file', path)

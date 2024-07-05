@@ -1,6 +1,6 @@
 from random import randint
+from utils.helper import load, save
 import shutil
-import ujson  # поскольку он показывает большую производительность по сравнению с json
 import os
 
 
@@ -45,6 +45,7 @@ import os
 # ----------------------------------------------------------------------------------------------------------------------
 
 # TODO: сделать функцию считывания ЛРМ изо всех файлов *.MAP, ее усреднения и записи в файл SAMA
+
 
 def convert_labelme_to_sama(input_files, output_file):
     """
@@ -173,21 +174,6 @@ def merge_sama_to_sama(input_files, output_file, copy_files=True):
 def random_color():  # генерируем случайные цвета
     rand_col = [randint(0, 255), randint(0, 255), randint(0, 255), 120]  # оттенок alfa по умолчанию оставляем 120
     return rand_col
-
-
-def load(file_path):
-    try:
-        with open(file_path, 'r') as f:
-            data = ujson.load(f)
-            return data
-    except ujson.JSONDecodeError:
-        print(f"Файл {file_path} пустой, либо содержит некорректные данные.")
-        return None
-
-
-def save(json_path, data, mode='w'):
-    with open(json_path, mode) as f:
-        ujson.dump(data, f)
 
 
 if __name__ == '__main__':  # заглушка для отладки
