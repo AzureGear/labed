@@ -1,3 +1,3 @@
 @echo off
-pylupdate5 tr.pro
+D:\\venvs\\labed\\Scripts\\pylupdate5 tr.pro
 pause

@@ -1,3 +1,4 @@
+import numpy as np
 import os
 import ujson
 
@@ -18,6 +19,7 @@ class DatasetSAMAHandler:
         self.data["images"] = {}
         self.data["labels"] = []
         self.data["labels_color"] = {}
+        self.filename = filename
         self.is_loaded = False
         self.is_correct_file = False
 
@@ -38,6 +40,7 @@ class DatasetSAMAHandler:
                 self.data = ujson.load(f)
                 if self.check_json(self.data):
                     self.is_correct_file = True
+                    self.filename = json_path
                     self.update_ids()
                 self.is_loaded = True
 
@@ -455,6 +458,54 @@ class DatasetSAMAHandler:
             else:
                 print(f"Checking files: image {filename} doesn't exist")
         self.data['images'] = images
+
+    def calc_stat(self):  # Реализация Романа Хабарова
+        labels = self.data['labels']
+        stats = {lbl: {'count': 0, 'percent': 0, 'frequency': 0, 'size': {'mean': 0, 'second': 0, 'std': 0}} for lbl in
+                 labels}
+        frequency = {label: 0 for label in labels}  # Az+: создаем словарь "имя метки: число появлений метки"
+        total_label_count = 0
+        size_mass = {lbl: [] for lbl in labels}  # Az: создаем словарь "имя метки: []"
+        for im in self.data['images'].values():
+            appears = {label: 0 for label in labels}  # Az+: строим вектор флагов. Никаких меток еще не встречали.
+            for shape in im['shapes']:
+                cls_num = shape['cls_num']  # Az: номер метки (класс)
+                if cls_num > len(labels) - 1:  # Az?Question: зачем здесь "-1"?
+                    continue
+                label_name = labels[cls_num]  # Az: имя метки (название)
+                if label_name in appears:
+                    appears[label_name] = 1  # Az+: меняем флаг появления
+                xs = [x for x, y in shape['points']]  # Az: массив точек x
+                ys = [y for x, y in shape['points']]  # Az: массив точек y
+                width = max(xs) - min(xs)  # Az: находим ширину...
+                height = max(ys) - min(ys)  # Az: ...и высоту
+                size = max(width, height)  # находим габариты
+
+                size_mass[label_name].append(size)
+
+                stats[label_name]['count'] += 1
+                total_label_count += 1
+
+            # Az+: Суммируем прошлые результаты встречаемости с текущими
+            for key in appears:
+                if key in frequency:
+                    frequency[key] += appears[key]
+
+        number_of_images = len(self.data['images'])
+        for label_name in labels:
+            if total_label_count == 0:
+                stats[label_name]['percent'] = 0
+            else:
+                stats[label_name]['percent'] = float(stats[label_name]['count']) / total_label_count * 100
+            mass = np.array(size_mass[label_name])
+
+            if len(mass) > 0:
+                stats[label_name]['size']['mean'] = mass.mean()
+                stats[label_name]['size']['std'] = mass.std()
+
+            stats[label_name]['frequency'] = float(frequency[label_name] / number_of_images * 100)
+
+        return stats
 
 
 if __name__ == '__main__':

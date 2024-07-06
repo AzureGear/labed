@@ -5,44 +5,121 @@
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
+import sys
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QDialogButtonBox, QPushButton, QApplication
 
-# ----------------------------------------------------------------------------------------------------------------------
-from PyQt5 import QtWidgets, QtGui, QtCore
+class MyDialog(QDialog):
+    def __init__(self, num_rows, labels, window_title, has_ok=True, has_cancel=True, ok_text="OK", cancel_text="Cancel", parent=None):
+        super().__init__(parent)
 
+        self.setWindowTitle(window_title)
 
+        layout = QVBoxLayout(self)
+        self.inputs = []
 
+        for i in range(num_rows):
+            label = QLabel(labels[i])
+            input_field = QLineEdit()
+            layout.addWidget(label)
+            layout.addWidget(input_field)
+            self.inputs.append(input_field)
 
+        button_box = QDialogButtonBox(self)
+        if has_ok:
+            ok_button = button_box.addButton(ok_text, QDialogButtonBox.ActionRole)
+            ok_button.clicked.connect(self.accept)
+        if has_cancel:
+            cancel_button = button_box.addButton(cancel_text, QDialogButtonBox.RejectRole)
+            cancel_button.clicked.connect(self.reject)
+
+        layout.addWidget(button_box)
+
+        # Автоматически изменяем размер диалогового окна, чтобы оно соответствовало размеру виджетов
+        self.adjustSize()
+
+        # Устанавливаем фиксированный размер диалогового окна
+        self.setFixedSize(self.size())
+
+    def get_inputs(self):
+        return [input_field.text() for input_field in self.inputs]
 
 if __name__ == "__main__":
-    import sys
+    app = QApplication(sys.argv)
 
-    app = QtWidgets.QApplication(sys.argv)
-    # Создаем родительское окно
-    parent_window = QtWidgets.QWidget()
-    parent_window.setWindowTitle("Родительское окно")
-    parent_window.resize(300, 200)
-    parent_window.show()
-
-    # Создаем диалоговое окно
     num_rows = 3
-    labels = ["Имя:", "Возраст:", "Адрес:"]
-    window_title = "Диалоговое окно"
+    labels = ["Label 1", "Label 2", "Label 3"]
+    window_title = "My Dialog"
     has_ok = True
     has_cancel = True
-    dialog = MyDialog(num_rows, labels, window_title, has_ok, has_cancel, parent_window)
+    ok_text = "OK"
+    cancel_text = "Cancel"
 
-    # Отображаем диалоговое окно
-    result = dialog.exec_()
+    dialog = MyDialog(num_rows, labels, window_title, has_ok, has_cancel, ok_text, cancel_text)
 
-    # Проверяем, было ли нажато OK
-    if result == QtWidgets.QDialog.Accepted:
-        data = [dialog.line_edits[i].text() for i in range(num_rows)]
-        print(data)
-        self.close
+    if dialog.exec_() == QDialog.Accepted:
+        print("OK clicked")
+        inputs = dialog.get_inputs()
+        print(inputs)
     else:
-        print("Нажата кнопка Отмена")
-    app.exec()
+        print("Cancel clicked")
 
+    sys.exit(app.exec_())
+# ----------------------------------------------------------------------------------------------------------------------
+#
+#
+# class AzInputDialog(QtWidgets.QWidget):
+#     def __init__(self, parent, num_rows, labels, window_title, has_ok=True, has_cancel=True, ok_text="OK",
+#                  cancel_text="Cancel"):
+#
+#         super().__init__(parent)
+#
+#         self.data = None  # результат
+#         self.line_edits = []
+#         self.num_rows = num_rows
+#
+#
+#         self.setWindowTitle(window_title)
+#         self.setWindowFlag(QtCore.Qt.Tool)
+#
+#
+#         form_layout = QtWidgets.QFormLayout()
+#         for i in range(num_rows):
+#             label = QtWidgets.QLabel(labels[i])
+#             line_edit = QtWidgets.QLineEdit()
+#             form_layout.addRow(label, line_edit)
+#             self.line_edits.append(line_edit)
+#
+#
+#         self.ok_button = QtWidgets.QPushButton(ok_text, self)
+#         self.cancel_button = QtWidgets.QPushButton(cancel_text, self)
+#         # соединяем сигналы
+#         if has_ok:
+#             self.ok_button.clicked.connect(self.finish)
+#         if has_cancel:
+#             self.cancel_button.clicked.connect(self.close)
+#
+#         # ...и компоновка
+#         h_layout = QtWidgets.QHBoxLayout()
+#         # h_layout.addStretch(1)
+#         if has_ok:
+#             h_layout.addWidget(self.ok_button)
+#         if has_cancel:
+#             h_layout.addWidget(self.cancel_button)
+#         # layout.addWidget(button_box)
+#         layout = QtWidgets.QVBoxLayout()
+#         layout.addLayout(form_layout)
+#         layout.addLayout(h_layout)
+#         self.setLayout(layout)
+#
+#     def finish(self):  # переопределяем запуск диалога
+#         self.data = [line_edit.text() for line_edit in self.line_edits]
+#         self.close()
+
+    # def showEvent(self, event):
+    #     # Устанавливаем фокус на первое поле ввода
+    #     if self.num_rows > 0:
+    #         self.line_edits[0].setFocus()
+    #     #super().showEvent(event)
 # ----------------------------------------------------------------------------------------------------------------------
 
 # def tab_geometry_setup(self):  # настройка страницы "Геометрия"
