@@ -79,7 +79,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.btn_apply_palette = new_button(self, "tb", icon="glyph_paint_brush", slot=self.attrs_apply_palette,
                                             color=the_color, icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE,
                                             tooltip=self.tr("Apply palette for current project and reload it"))
-        #self.btn_apply_lrm = new_button(self,"tb", icon=) # TODO: tool for LRM aplly
+        #self.btn_apply_lrm = new_button(self,"tb", icon=glyph_sat_image) # TODO: tool for LRM aplly
         self.btn_save = new_button(self, "tb", icon="glyph_save2", tooltip=self.tr("Save changes to the project"),
                                    slot=self.save_data, color=the_color, icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE)
         self.common_buttons = [self.btn_copy, self.btn_save_palette, self.btn_apply_palette, self.btn_export,

@@ -24,6 +24,7 @@
 # glyph_duplicate: Icongeek26
 # glyph_menu: feen
 # glyph_save2: PIXARTIST
+# glyph_sat_image: PixelVerse
 
 # glyph_add_image: Pixel perfect
 # glyph_crop: me & Pixel perfect
