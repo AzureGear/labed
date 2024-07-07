@@ -182,7 +182,6 @@ class DatasetSAMAHandler:
         new_alpha = alpha
         if not alpha:
             old_color = self.data["labels_color"][cls_name]
-            print(f"alpha: {old_color[3]}")
             new_alpha = old_color[3]
         color = [color[0], color[1], color[2], new_alpha]
         self.data["labels_color"][cls_name] = color
@@ -240,6 +239,13 @@ class DatasetSAMAHandler:
 
     def get_labels(self):
         return self.data["labels"]
+
+    def get_labels_count(self):  # Az+: общее количество меток
+        count = 0
+        for image_data in self.data["images"].values():
+            for shape in image_data["shapes"]:
+                count += 1
+        return count
 
     def get_label_name(self, cls_num):
         if cls_num < len(self.data["labels"]):
@@ -375,11 +381,12 @@ class DatasetSAMAHandler:
             image["shapes"] = new_shapes
             self.data["images"][im_name] = image
 
-    def change_data_class_from_to(self, from_cls_name, to_cls_name):
+    def change_data_class_from_to(self, from_cls_name, to_cls_name):  # Az: слияние одного класса в другой
 
         name_to_name_map = {}  # Конвертер старого имени в новое
         old_name_to_num = {}
         new_labels = []
+
 
         for i, label in enumerate(self.data["labels"]):
 

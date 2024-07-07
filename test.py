@@ -6,53 +6,6 @@
 
 # ----------------------------------------------------------------------------------------------------------------------
 
-import sys
-from PyQt5.QtWidgets import QApplication, QTableWidget, QTableWidgetItem, QToolButton
-from PyQt5.QtCore import Qt
-
-class MyTable(QTableWidget):
-    def __init__(self):
-        super().__init__()
-
-        # Создаем таблицу с 3 строками и 2 столбцами
-        self.setRowCount(3)
-        self.setColumnCount(2)
-
-        # Добавляем кнопки в первый столбец таблицы
-        for row in range(3):
-            button = QToolButton()
-            button.setText("Button")
-            button.clicked.connect(lambda ch, row=row: self.on_button_clicked(row))
-            self.setCellWidget(row, 0, button)
-
-        # Добавляем текст во второй столбец таблицы
-        for row in range(3):
-            item = QTableWidgetItem("Text {}".format(row))
-            self.setItem(row, 1, item)
-
-    def on_button_clicked(self, row):
-        print("Button clicked in row:", row)
-
-    def removeRow(self, row):
-        # Удаляем строку из таблицы
-        super().removeRow(row)
-
-        # Обновляем индексы строк, расположенных ниже удаленной
-        for i in range(row, self.rowCount()):
-            button = self.cellWidget(i, 0)
-            button.clicked.disconnect()
-            button.clicked.connect(lambda ch, row=i: self.on_button_clicked(row))
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-
-    table = MyTable()
-    table.show()
-
-    # Удаляем вторую строку таблицы
-    table.removeRow(1)
-
-    sys.exit(app.exec_())
 # ----------------------------------------------------------------------------------------------------------------------
 #
 #

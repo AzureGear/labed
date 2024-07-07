@@ -1,3 +1,5 @@
+import copy
+
 from PyQt5 import QtWidgets, QtGui, QtCore
 from utils import AppSettings, UI_COLORS, helper, config
 from utils.sama_project_handler import DatasetSAMAHandler
@@ -77,6 +79,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.btn_apply_palette = new_button(self, "tb", icon="glyph_paint_brush", slot=self.attrs_apply_palette,
                                             color=the_color, icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE,
                                             tooltip=self.tr("Apply palette for current project and reload it"))
+        #self.btn_apply_lrm = new_button(self,"tb", icon=) # TODO: tool for LRM aplly
         self.btn_save = new_button(self, "tb", icon="glyph_save2", tooltip=self.tr("Save changes to the project"),
                                    slot=self.save_data, color=the_color, icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE)
         self.common_buttons = [self.btn_copy, self.btn_save_palette, self.btn_apply_palette, self.btn_export,
@@ -190,8 +193,8 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         QtWidgets.QApplication.restoreOverrideCursor()
 
     def load_dataset_info(self):  # общая информация о датасете
-        self.dataset_info_labels_val.setText(str(len(self.sama_data.data["labels"])))
         self.dataset_info_images_val.setText(str(self.sama_data.get_images_num()))
+        self.dataset_info_labels_val.setText(str(self.sama_data.get_labels_count()))
 
         # рассчитаем ЛРМ
         min_lrm = float('inf')
@@ -232,7 +235,6 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     def attrs_save_palette(self):  # сохранение палитры
         """Извлечь и сохранить палитру из проекта SAMA"""
-        # todo: Извлекать именно текущую палитру, а не оригинальную
         json = helper.load(self.file_json.text())
         colors = json["labels_color"]
         data = dict()
@@ -240,6 +242,8 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         file = az_file_dialog(self, self.tr("Save project SAMA *.json palette"), self.settings.read_last_dir(),
                               dir_only=False, file_to_save=True, filter="Palette (*.palette)",
                               initial_filter="palette (*.palette)")
+        if file is None:
+            return
         if len(file) > 0:
             helper.save(file, data, 'w+')  # сохраняем файл как палитру
         self.signal_message.emit(self.tr(f"Palette saved to: &{file}"))
@@ -359,14 +363,9 @@ class AzTableAttributes(QtWidgets.QTableWidget):
         # color_button.clicked.connect(lambda ch, btn=color_button, row=row: self.change_color(btn, row))
         return color_button
 
-    def button_clicked(self):
-        button = self.sender()
-        index = self.indexAt(button.pos())
-        row = index.row()
-        print("Button clicked in row:", row)
-
     def show_context_menu(self):
         """Дополнительное меню действий с именами меток/классами"""
+        self.my_data.get_labels
         button = self.sender()  # определяем от кого пришёл сигнал
         index = self.indexAt(button.pos())  # вот и индекс (проклятье, часа четыре потратил на эти 3 строчки!)
         row = index.row()
@@ -408,6 +407,8 @@ class AzTableAttributes(QtWidgets.QTableWidget):
         if self.special_cols is not None and self.my_data is not None:  # в конец, т.к. изначально установим цвет
             self.set_special_cols()
             self.col_color = next((k for k, v in self.special_cols.items() if v == "color"), None)  # номер столбца
+
+        # data_for_stat = copy.copy(project_data)
 
         stat = self.my_data.calc_stat()  # рассчитываем статистику
 
@@ -518,14 +519,12 @@ class AzTableAttributes(QtWidgets.QTableWidget):
         """ Перечень действий: слить с другой меткой"""
         if self.my_data is None:
             return
-        name = self.item(row, 0).text()
-        names = self.my_data.get_labels()
+        name = self.item(row, 0).text()  # имя текущей метки
+        names = copy.copy(self.my_data.get_labels())  # имена всех меток
         if len(names) < 2:
             self.signal_message.emit(self.tr("There are not enough labels for merging."))
             return
-        print(self.item(row, 0).text())
-        names.remove(name)
-        print(self.item(row, 0).text())
+        names.remove(name)  # сделать копию! ибо будет удаление
 
         dialog = AzInputDialog(self, 1, [self.tr(f"Select the label {name} to merge with:")],
                                self.tr("Merge labels"), input_type=[1],
@@ -537,6 +536,8 @@ class AzTableAttributes(QtWidgets.QTableWidget):
             return
         if len(result) < 1:
             return
+        self.my_data.change_data_class_from_to(name, result[0])
+        self.removeRow(row)
         self.signal_message.emit(self.tr(f"Merged object with labels '{name}' to '{result[0]}'"))
 
     def tr(self, text):
