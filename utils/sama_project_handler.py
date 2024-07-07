@@ -19,7 +19,7 @@ class DatasetSAMAHandler:
         self.data["images"] = {}
         self.data["labels"] = []
         self.data["labels_color"] = {}
-        self.filename = filename
+        self.filename = None
         self.is_loaded = False
         self.is_correct_file = False
 
@@ -178,35 +178,14 @@ class DatasetSAMAHandler:
                     self.data["images"][im_name] = im
 
     def set_label_color(self, cls_name, color=None, alpha=None):
-        pass
-        # if not color:
-        #     if not alpha:
-        #         alpha = 255
-        #
-        #     cls_color = self.get_label_color(cls_name)
-        #     if not cls_color:
-        #         proj_colors = self.get_colors()
-        #
-        #         #selected_color = config.COLORS[0]
-        #         tek_color_num = 0
-        #         is_break = False
-        #         while selected_color in proj_colors:
-        #             tek_color_num += 1
-        #             # if tek_color_num == len(config.COLORS) - 1:
-        #             #     is_break = True
-        #             #     break
-        #             #selected_color = config.COLORS[tek_color_num]
-        #
-        #         if is_break:
-        #             pass
-        #             # selected_color = hf.create_random_color(alpha)
-        #
-        #         self.data["labels_color"][cls_name] = selected_color
-        #
-        # else:
-        #     if alpha:
-        #         color = [color[0], color[1], color[2], alpha]
-        #     self.data["labels_color"][cls_name] = color
+        """Замена цвета. Az+ Переписана для своих задач"""
+        new_alpha = alpha
+        if not alpha:
+            old_color = self.data["labels_color"][cls_name]
+            print(f"alpha: {old_color[3]}")
+            new_alpha = old_color[3]
+        color = [color[0], color[1], color[2], new_alpha]
+        self.data["labels_color"][cls_name] = color
 
     def set_labels_colors(self, labels_names, rewrite=False):
         if rewrite:

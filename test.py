@@ -5,63 +5,52 @@
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
+
 import sys
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QDialogButtonBox, QPushButton, QApplication
+from PyQt5.QtWidgets import QApplication, QTableWidget, QTableWidgetItem, QToolButton
+from PyQt5.QtCore import Qt
 
-class MyDialog(QDialog):
-    def __init__(self, num_rows, labels, window_title, has_ok=True, has_cancel=True, ok_text="OK", cancel_text="Cancel", parent=None):
-        super().__init__(parent)
+class MyTable(QTableWidget):
+    def __init__(self):
+        super().__init__()
 
-        self.setWindowTitle(window_title)
+        # Создаем таблицу с 3 строками и 2 столбцами
+        self.setRowCount(3)
+        self.setColumnCount(2)
 
-        layout = QVBoxLayout(self)
-        self.inputs = []
+        # Добавляем кнопки в первый столбец таблицы
+        for row in range(3):
+            button = QToolButton()
+            button.setText("Button")
+            button.clicked.connect(lambda ch, row=row: self.on_button_clicked(row))
+            self.setCellWidget(row, 0, button)
 
-        for i in range(num_rows):
-            label = QLabel(labels[i])
-            input_field = QLineEdit()
-            layout.addWidget(label)
-            layout.addWidget(input_field)
-            self.inputs.append(input_field)
+        # Добавляем текст во второй столбец таблицы
+        for row in range(3):
+            item = QTableWidgetItem("Text {}".format(row))
+            self.setItem(row, 1, item)
 
-        button_box = QDialogButtonBox(self)
-        if has_ok:
-            ok_button = button_box.addButton(ok_text, QDialogButtonBox.ActionRole)
-            ok_button.clicked.connect(self.accept)
-        if has_cancel:
-            cancel_button = button_box.addButton(cancel_text, QDialogButtonBox.RejectRole)
-            cancel_button.clicked.connect(self.reject)
+    def on_button_clicked(self, row):
+        print("Button clicked in row:", row)
 
-        layout.addWidget(button_box)
+    def removeRow(self, row):
+        # Удаляем строку из таблицы
+        super().removeRow(row)
 
-        # Автоматически изменяем размер диалогового окна, чтобы оно соответствовало размеру виджетов
-        self.adjustSize()
+        # Обновляем индексы строк, расположенных ниже удаленной
+        for i in range(row, self.rowCount()):
+            button = self.cellWidget(i, 0)
+            button.clicked.disconnect()
+            button.clicked.connect(lambda ch, row=i: self.on_button_clicked(row))
 
-        # Устанавливаем фиксированный размер диалогового окна
-        self.setFixedSize(self.size())
-
-    def get_inputs(self):
-        return [input_field.text() for input_field in self.inputs]
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     app = QApplication(sys.argv)
 
-    num_rows = 3
-    labels = ["Label 1", "Label 2", "Label 3"]
-    window_title = "My Dialog"
-    has_ok = True
-    has_cancel = True
-    ok_text = "OK"
-    cancel_text = "Cancel"
+    table = MyTable()
+    table.show()
 
-    dialog = MyDialog(num_rows, labels, window_title, has_ok, has_cancel, ok_text, cancel_text)
-
-    if dialog.exec_() == QDialog.Accepted:
-        print("OK clicked")
-        inputs = dialog.get_inputs()
-        print(inputs)
-    else:
-        print("Cancel clicked")
+    # Удаляем вторую строку таблицы
+    table.removeRow(1)
 
     sys.exit(app.exec_())
 # ----------------------------------------------------------------------------------------------------------------------

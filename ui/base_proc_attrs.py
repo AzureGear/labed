@@ -72,14 +72,15 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                                      icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE,
                                      tooltip=self.tr("Export current project info"))
         self.btn_save_palette = new_button(self, "tb", icon="glyph_palette", slot=self.attrs_save_palette,
-                                           color=the_color,
-                                           icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE,
-                                           tooltip=self.tr("Save palette from current project"))
+                                           color=the_color, icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE,
+                                           tooltip=self.tr("Save original project palette"))
         self.btn_apply_palette = new_button(self, "tb", icon="glyph_paint_brush", slot=self.attrs_apply_palette,
-                                            color=the_color,
-                                            icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE,
-                                            tooltip=self.tr("Apply palette for current project"))
-        self.common_buttons = [self.btn_copy, self.btn_save_palette, self.btn_apply_palette, self.btn_export]
+                                            color=the_color, icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE,
+                                            tooltip=self.tr("Apply palette for current project and reload it"))
+        self.btn_save = new_button(self, "tb", icon="glyph_save2", tooltip=self.tr("Save changes to the project"),
+                                   slot=self.save_data, color=the_color, icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE)
+        self.common_buttons = [self.btn_copy, self.btn_save_palette, self.btn_apply_palette, self.btn_export,
+                               self.btn_save]
         hlay3 = QtWidgets.QHBoxLayout()
         hlay3.addSpacing(50)
         for button in self.common_buttons:
@@ -89,10 +90,10 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         hlay_finish.addLayout(hlay3)
 
         # заголовок для таблицы
-        self.headers = (
-            self.tr("Label name"), self.tr("Number of\nlabels"), self.tr("Frequency of\nappearance\non the image"),
-            self.tr("Percentage\nof total\nlabels"), self.tr("Averange\narea,\npixels"), self.tr('SD of area,\npixels'),
-            self.tr("Balance"), self.tr("Color"), self.tr("Action"))
+        self.headers = [
+            self.tr("Label name"), self.tr("Number of labels"), self.tr("Frequency of appearance on the image"),
+            self.tr("Percentage of total labels"), self.tr("Average area, pixels"), self.tr('SD of area, pixels'),
+            self.tr("Balance"), self.tr("Color"), self.tr("Action")]
         # (имя класса, количество объектов, частота встречаемости на изображении, проценты от общего, средний размер, сбалансированность
         # класса, палитра, действия)
 
@@ -102,10 +103,24 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         # данные из DatasetSAMAHandler будут отображаться в таблице
         self.table_widget = AzTableAttributes(headers=self.headers, special_cols={7: "color", 8: "action"},
                                               data=None, parent=self)  # и таблица тоже пустая
-        header = self.table_widget.horizontalHeader()  # настраиваем отображение столбцов
+
+        header = self.table_widget.horizontalHeader()  # настраиваем отображение столбцов именно таблицы SAMA
         for column in range(self.table_widget.columnCount()):
-            header.setSectionResizeMode(column, QtWidgets.QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)  # первый столбец доминантный
+            if column == 0:
+                pass
+                # header.setSectionResizeMode(column, QtWidgets.QHeaderView.Interactive)
+            elif column == 6:
+                self.table_widget.setColumnWidth(column, 55)
+                header.setSectionResizeMode(column, QtWidgets.QHeaderView.Fixed)
+            elif column == 7:
+                self.table_widget.setColumnWidth(column, 45)
+                header.setSectionResizeMode(column, QtWidgets.QHeaderView.Fixed)
+            elif column == 8:
+                self.table_widget.setColumnWidth(column, 45)
+                header.setSectionResizeMode(column, QtWidgets.QHeaderView.Fixed)
+            else:
+                header.setSectionResizeMode(column, QtWidgets.QHeaderView.Stretch)  # ResizeToContents
+        # header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)  # первый столбец доминантный
 
         # смотрим, есть ли в реестре файл, который запускали прошлый раз?
         if os.path.exists(self.settings.read_attributes_input()):
@@ -117,16 +132,21 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         vlayout = QtWidgets.QVBoxLayout(self)  # главный Layout, наследуемый класс
         vlayout.addLayout(hlay_finish)  # добавляем ему расположение с кнопками и QLabel
         vlayout.addWidget(self.table_widget)
+        # vlayout.addWidget(self.text_logger = QTextEdit()) TODO: attrs_logger
         wid.setLayout(vlayout)
 
         # Signals
         self.table_widget.signal_message.connect(self.forward_signal)
-        self.table_widget.signal_reload.connect(self.reload_project)
+        # self.table_widget.signal_reload.connect(self.reload_project)
 
     def forward_signal(self, message):  # перенаправление сигналов
         self.signal_message.emit(message)
 
-    def reload_project(self, b):
+    def save_data(self):  # сохранение данных
+        self.sama_data.save(self.current_file)
+        self.reload_project(True)
+
+    def reload_project(self, b):  # перезагрузка файла
         if b:
             self.load_project(self.current_file)
 
@@ -212,6 +232,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     def attrs_save_palette(self):  # сохранение палитры
         """Извлечь и сохранить палитру из проекта SAMA"""
+        # todo: Извлекать именно текущую палитру, а не оригинальную
         json = helper.load(self.file_json.text())
         colors = json["labels_color"]
         data = dict()
@@ -284,10 +305,11 @@ class AzTableAttributes(QtWidgets.QTableWidget):
 
     signal_reload = QtCore.pyqtSignal(bool)  # сигнал для перезагрузки данных
 
-    def __init__(self, headers=("Column 1", "Column 2", "Actions"), special_cols=None, data=None, parent=None,
+    def __init__(self, headers=None, special_cols=None, data=None, parent=None,
                  translate_headers=False, current_file=None):
         # создать заголовки, построить ячейки, заполнить данными, заполнить особыми столбцами
         super(AzTableAttributes, self).__init__(parent)
+        self.col_color = None  # столбец цвета
         self.current_file = current_file
         self.special_cols = special_cols
         self.translate_headers = translate_headers  # надобность перевода
@@ -297,35 +319,76 @@ class AzTableAttributes(QtWidgets.QTableWidget):
         self.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)  # отключаем редактирование
         self.setSortingEnabled(True)  # включаем сортировку
         self.setAlternatingRowColors(True)  # включаем чередование цветов
-        self.my_data = data  # по умолчанию данных нет
+        # self.setMouseTracking(True)
+        self.horizontalHeader().setFixedHeight(56)
+        self.horizontalHeader().setDefaultAlignment(QtCore.Qt.AlignCenter | QtCore.Qt.Alignment(QtCore.Qt.TextWordWrap))
+        # self.cellClicked[int, int].connect(lambda row, col: self.cell_entered(row, col))
+        self.my_data = data
         self.clear_table()
         if data is not None:
             self.load_table_data(data)
 
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.setColumnWidth(0, int(self.width() * 0.23))  # устанавливаем у первого столбца ширину в 23% от общей ширины
+
     def clear_table(self):  # простая очистка таблицы
+        # pass
         self.setRowCount(0)
 
     def set_special_cols(self):  # установка особых типов столбцов: action - меню; color - цвет;
         for column, item_type in self.special_cols.items():
             if item_type == "color":
                 for row in range(self.rowCount()):
-                    self.setCellWidget(row, column, self.add_color_button(row))
+                    self.setCellWidget(row, column, self.add_color_button())
             elif item_type == "action":
                 for row in range(self.rowCount()):
-                    self.setCellWidget(row, column, self.add_action_button(row))
+                    self.setCellWidget(row, column, self.add_action_button())
 
-    def add_action_button(self, row):  # добавление кнопки меню
+    def add_action_button(self):  # добавление кнопки меню
         act_button = new_button(self, "tb", icon="glyph_menu", color=the_color, tooltip=self.tr("Select action"),
                                 icon_size=14)
-        act_button.setAutoRaise(True)
-        act_button.clicked.connect(lambda ch, row=row: self.show_context_menu(row))
+        act_button.clicked.connect(self.show_context_menu)
+        # act_button.clicked.connect(lambda ch, row=row: self.show_context_menu(row))
         return act_button
 
-    def add_color_button(self, row):  # добавление цветной кнопки выбора цвета
+    def add_color_button(self):  # добавление цветной кнопки выбора цвета
         color_button = new_button(self, "tb", tooltip=self.tr("Select color"))
         color_button.setStyleSheet("QToolButton { background-color: rgb(0, 0, 0); }")  # по умолчанию черного цвета
-        color_button.clicked.connect(lambda ch, btn=color_button, row=row: self.change_color(btn, row))
+        color_button.clicked.connect(self.change_color)
+        # color_button.clicked.connect(lambda ch, btn=color_button, row=row: self.change_color(btn, row))
         return color_button
+
+    def button_clicked(self):
+        button = self.sender()
+        index = self.indexAt(button.pos())
+        row = index.row()
+        print("Button clicked in row:", row)
+
+    def show_context_menu(self):
+        """Дополнительное меню действий с именами меток/классами"""
+        button = self.sender()  # определяем от кого пришёл сигнал
+        index = self.indexAt(button.pos())  # вот и индекс (проклятье, часа четыре потратил на эти 3 строчки!)
+        row = index.row()
+        # print("Button clicked in row:", row)
+
+        menu = QtWidgets.QMenu()
+        rename_act = new_act(self, self.tr(f"Rename"), "glyph_signature", the_color,
+                             tip=self.tr("Rename current label"))
+        rename_act.triggered.connect(lambda ch, the_row=row: self.label_rename(row))
+
+        delete_act = new_act(self, self.tr("Delete"), "glyph_delete2", the_color, tip=self.tr("Delete current label"))
+        delete_act.triggered.connect(lambda ch, the_row=row: self.label_delete(row))
+
+        merge_act = new_act(self, self.tr("Merge"), "glyph_merge", the_color,
+                            tip=self.tr("Merge current label to other label"))
+        merge_act.triggered.connect(lambda ch, the_row=row: self.label_merge(row))
+
+        acts = [rename_act, merge_act, delete_act]  # перечень наших действий
+        menu.addActions(acts)
+
+        pos = QtGui.QCursor.pos()
+        menu.exec_(pos)
 
     def load_table_data(self, data):
         self.clear_table()
@@ -339,36 +402,48 @@ class AzTableAttributes(QtWidgets.QTableWidget):
     def load_sama_data(self):
         labels = self.my_data.get_labels()
         self.setRowCount(len(labels))  # число строк
-        col_color = None  # по умолчанию "цветного" столбца нет
+        self.col_color = None  # по умолчанию "цветного" столбца нет
 
         # устанавливаем особые столбцы
         if self.special_cols is not None and self.my_data is not None:  # в конец, т.к. изначально установим цвет
             self.set_special_cols()
-            col_color = next((k for k, v in self.special_cols.items() if v == "color"), None)  # номер столбца
+            self.col_color = next((k for k, v in self.special_cols.items() if v == "color"), None)  # номер столбца
 
         stat = self.my_data.calc_stat()  # рассчитываем статистику
 
         for row, name in enumerate(labels):
-            if col_color:  # заполнение кнопки цветом
+            if self.col_color:  # заполнение кнопки цветом
                 color_tuple = self.my_data.get_label_color(name)
                 color = QtGui.QColor(*color_tuple)
-                button = self.cellWidget(row, col_color)
+                button = self.cellWidget(row, self.col_color)
                 button.setStyleSheet(f"background-color: rgb({color.red()}, {color.green()}, {color.blue()});")
-            self.add_item_text(row, 0, name)  # имя класса/метки
+            # имя класса/метки
+            self.add_item_text(row, 0, name, QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter)
             self.add_item_number(row, 1, stat[name]['count'])  # количество объектов/меток
             self.add_item_number(row, 2, stat[name]['frequency'], 1)  # частота встречаемости на изображении
             self.add_item_number(row, 3, stat[name]['percent'], 2)  # проценты от общего
             self.add_item_number(row, 4, stat[name]['size']['mean'], 1)  # средний размер
             self.add_item_number(row, 5, stat[name]['size']['std'], 1)  # СКО размера
 
-    def add_item_text(self, row, col, text):  # устанавливаем текстовое значение
+    def add_item_text(self, row, col, text,
+                      align=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter):
+        """ Установка текстовых значений.
+        row - строка, col - столбце,  text - текстовое значение, align - расположение значения по
+        горизонтали | вертикали типа "Qt.AlignmentFlag"
+        """
         item = QtWidgets.QTableWidgetItem(text)
-        # item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
+        item.setTextAlignment(align)
         self.setItem(row, col, item)
 
-    def add_item_number(self, row, col, number, acc=0):  # устанавливаем числовое значение
+    def add_item_number(self, row, col, number, acc=0,
+                        align=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter):
+        """ Установка числовых значений.
+        row - строка, col - столбце, number - отображаемое число, acc - знаки с точностью после запятой
+        align - расположение значения по горизонтали | вертикали типа "Qt.AlignmentFlag"
+        """
         item = QtWidgets.QTableWidgetItem()
-        item.setData(QtCore.Qt.EditRole, round(float(number), acc))
+        item.setData(QtCore.Qt.ItemDataRole.EditRole, round(float(number), acc))
+        item.setTextAlignment(align)
         self.setItem(row, col, item)
 
     def fill_column(self, col, text_data):  # заполнение столбца данными
@@ -376,82 +451,93 @@ class AzTableAttributes(QtWidgets.QTableWidget):
             new_item = QtWidgets.QTableWidgetItem(text)
             self.setItem(row, col, new_item)
 
-    def change_color(self, button, row):
+    def change_color(self):  # изменение цвета
+        button = self.sender()  # определяем от кого пришёл сигнал
+        index = self.indexAt(button.pos())
+        row = index.row()
+        name = self.item(row, 0).text()
+
+        if self.col_color is None:
+            return
+        button = self.cellWidget(row, self.col_color)  # узнаем по какой кнопке щелкнули
+        if button is None:
+            self.signal_message.emit(self.tr("Something goes wrong. Can't assign a button"))
+            return
         color = QtWidgets.QColorDialog.getColor(button.palette().color(button.backgroundRole()), self,
-                                                self.tr("Select label color"))
-        self.selectRow(row)
-        # parent = window, title = "Окно выбора цвета",
-        #                          options = QtWidgets.QColorDialog.ShowAlphaChannel)
+                                                self.tr("Select label color"))  # стандартный диалог цвета
         if color.isValid():
             button.setStyleSheet(
                 f"QToolButton {{ background-color: rgb({color.red()}, {color.green()}, {color.blue()}); }}")
-
-    def show_context_menu(self, row):
-        """Дополнительное меню действий с именами меток/классами"""
-        menu = QtWidgets.QMenu()
-        self.selectRow(row)
-        rename_act = new_act(self, self.tr("Rename"), "glyph_signature", the_color, tip=self.tr("Rename current label"))
-        rename_act.triggered.connect(lambda ch, the_row=row: self.label_rename(row))
-
-        delete_act = new_act(self, self.tr("Delete"), "glyph_delete2", the_color, tip=self.tr("Delete current label"))
-        delete_act.triggered.connect(lambda ch, the_row=row: self.label_delete(row))
-
-        merge_act = new_act(self, self.tr("Merge"), "glyph_merge", the_color,
-                            tip=self.tr("Merge current label to other label"))
-        merge_act.triggered.connect(lambda ch, the_row=row: self.label_merge(row))
-
-        acts = [rename_act, merge_act, delete_act]
-        menu.addActions(acts)
-        pos = QtGui.QCursor.pos()
-        menu.exec_(pos)
+        self.my_data.set_label_color(name, [color.red(), color.green(), color.blue()])  # устанавливаем цвет и в данных
+        self.signal_message.emit(
+            self.tr(f"Label '{name}' color was changed to 'rgb({color.red()}, {color.green()}, {color.blue()})'"))
 
     def label_rename(self, row):
         """ Перечень действий: переименовать класс"""
-        current_names = self.my_data.get_labels()
-        print(current_names)
-        dialog = AzInputDialog(self, 1, [self.tr("Enter new label name:")], "Rename label", input_type=[0],
+        names = self.my_data.get_labels()  # набор исходных имён
+        current_name = self.item(row, 0).text()
+        if current_name not in names:
+            self.signal_message.emit(self.tr("Something goes wrong. Check input data."))
+        dialog = AzInputDialog(self, 1, [self.tr("Enter new label name:")], input_type=[0],
+                               window_title=f"Rename label '{self.item(row, 0).text()}'",
                                cancel_text=self.tr("Cancel"))
         if dialog.exec_() == QtWidgets.QDialog.DialogCode.Rejected:  # нажата "Отмена"
             return
         result = dialog.get_inputs()  # получаем введенные данные
-        if result[0] in current_names:
+
+        # проверки
+        if result is None:
+            return
+        if len(result) < 1:
+            return
+        if result[0] in names:
             self.signal_message.emit(
                 self.tr(f"The specified name '{result[0]}' is present in the dataset, rename was canceled."))
             return
-        if result is not None:
-            self.item(row, 0).setText(result[0])
-            self.signal_message.emit(self.tr(f"Objects with label '{row}' was renamed to '{result[0]}'"))
-            # TODO: self.save data
+        self.my_data.change_name(current_name, result[0])
+        self.item(row, 0).setText(result[0])
+        self.signal_message.emit(self.tr(f"Objects with label '{current_name}' was renamed to '{result[0]}'"))
 
     def label_delete(self, row):
         """ Перечень действий: удалить метку"""
+        name = self.item(row, 0).text()
         dialog = az_custom_dialog(self.tr("Label deleting"),
-                                  (self.tr("Are you sure you want to delete all objects related to this label?")), True,
-                                  True, parent=self)
+                                  self.tr(f"Are you sure you want to delete all objects related to label '{name}'?"),
+                                  parent=self)
         if dialog != 1:  # если не "утверждение", то выходим
             return
-        name = self.item(row, 0).text()
-        print(name)  # delete_data_by_class_number
-        self.my_data.delete_data_by_class_name(name)
-        self.my_data.save(self.parent().current_file)
-        self.signal_reload.emit(True)
+
+        if not self.my_data.filename:  # ошибка, дальше даже не стоит продолжать
+            self.signal_message.emit(self.tr("Something goes wrong."))
+            return
+        self.my_data.delete_data_by_class_name(name)  # удаляем данные
+        self.removeRow(row)
         self.signal_message.emit(self.tr(f"Objects with label '{name}' was deleted"))
 
     def label_merge(self, row):
         """ Перечень действий: слить с другой меткой"""
-        # TODO: merge
-        names = ["John", "Mary", "Bob", "Alice"]
         if self.my_data is None:
             return
+        name = self.item(row, 0).text()
         names = self.my_data.get_labels()
-        print(self.item(row, 0))
-        # names.remove(self.item(row,0))
-        dialog = AzInputDialog(self, 1, [self.tr("Select the label to merge with:")], "Merge labels", input_type=[1],
+        if len(names) < 2:
+            self.signal_message.emit(self.tr("There are not enough labels for merging."))
+            return
+        print(self.item(row, 0).text())
+        names.remove(name)
+        print(self.item(row, 0).text())
+
+        dialog = AzInputDialog(self, 1, [self.tr(f"Select the label {name} to merge with:")],
+                               self.tr("Merge labels"), input_type=[1],
                                combo_inputs=[names], cancel_text=self.tr("Cancel"))
         if dialog.exec_() == QtWidgets.QDialog.DialogCode.Rejected:  # нажата "Отмена"
             return
         result = dialog.get_inputs()  # получаем введенные данные
-        self.signal_message.emit(self.tr(f"Merged object with labels {row} и {result[0]}"))
+        if result is None:
+            return
+        if len(result) < 1:
+            return
+        self.signal_message.emit(self.tr(f"Merged object with labels '{name}' to '{result[0]}'"))
 
     def tr(self, text):
         return QtCore.QCoreApplication.translate("AzTableAttributes", text)
