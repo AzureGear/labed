@@ -38,7 +38,7 @@ class AppSettings:
         # if len(screeninfo.get_monitors()) == 1: # TODO: что если отключили монитор?
         position = self.settings.value('ui/base_gui_position', QtCore.QPoint(250, 250))
         size = self.settings.value('ui/base_gui_size', QtCore.QSize(900, 565))
-        state = self.settings.value('ui/base_gui_state', QtCore.Qt.WindowNoState)  # QWindow
+        state = self.settings.value('ui/base_gui_state', QtCore.Qt.WindowState.WindowNoState)  # QWindow
         return position, size, state
 
     def write_ui_position(self, position, size, state):  # позиция, размер и состояние окна приложения [w]
@@ -46,35 +46,53 @@ class AppSettings:
         self.settings.setValue('ui/base_gui_size', size)
         self.settings.setValue('ui/base_gui_state', state)
 
-    def read_last_load_data(self):  # последние загружаемые данные (каталог/датасет) [r]
+    def read_last_load_data(self):
+        """Последние загружаемые данные (каталог/датасет) [r]"""
         return self.settings.value('common/last_load_data', '')
 
-    def write_last_load_data(self, data):  # последние загружаемые данные (каталог/датасет) [w]
+    def write_last_load_data(self, data):
+        """Последние загружаемые данные (каталог/датасет) [w]"""
         self.settings.setValue('common/last_load_data', data)
 
-    def read_last_dir(self):  # последняя открытая директория [r]
+    def read_last_dir(self):  #
+        """Последняя открытая директория [r]"""
         return self.settings.value('common/last_dir', '')
 
-    def write_last_dir(self, path):  # последняя открытая директория [w]
+    def write_last_dir(self, path):
+        """Последняя открытая директория [w]"""
         self.settings.setValue('common/last_dir', path)
 
-    def read_datasets_dir(self):  # "верхняя" директория для датасетов [r]
-        return self.settings.value('common/datasets_dir', '')
-
-    def write_datasets_dir(self, path):  # "верхняя" директория для датасетов [w]
-        self.settings.setValue('common/datasets_dir', path)
-
-    def read_default_output_dir(self):  # директория по умолчанию для выходных данных [r]
-        return self.settings.value('common/output_dir', '')
-
-    def write_default_output_dir(self, path):  # директория по умолчанию для выходных данных [w]
-        self.settings.setValue('common/output_dir', path)
-
-    def read_load_sub_dir(self):  # загружать ли подкаталоги, когда загружаешь каталог [r]
+    def read_load_sub_dir(self):
+        """Загружать ли подкаталоги, когда загружаешь каталог [r]"""
         return self.settings.value('common/with_sub_dirs', False)
 
-    def write_load_sub_dir(self, b):  # загружать ли подкаталоги, когда загружаешь каталог [w]
+    def write_load_sub_dir(self, b):
+        """Загружать ли подкаталоги, когда загружаешь каталог [w]"""
         self.settings.setValue('common/with_sub_dirs', b)
+
+    def read_default_output_dir(self):
+        """Директория по умолчанию для выходных данных [r]"""
+        return self.settings.value('common/output_dir', '')
+
+    def write_default_output_dir(self, path):
+        """Директория по умолчанию для выходных данных [w]"""
+        self.settings.setValue('common/output_dir', path)
+
+    def read_datasets_dir(self):
+        """'Верхняя' директория для датасетов [r]"""
+        return self.settings.value('common/datasets_dir', '')
+
+    def write_datasets_dir(self, path):
+        """'Верхняя' директория для датасетов [w]"""
+        self.settings.setValue('common/datasets_dir', path)
+
+    def read_dataset_mnist(self):
+        """Датасет MNIST [r]"""
+        return self.settings.value('datasets/mnist', '')
+
+    def write_dataset_mnist(self, path):
+        """Датасет MNIST [w]"""
+        self.settings.setValue('datasets/mnist', path)
 
     def read_slicing_input(self):  # исходный файл проекта для автонарезки [r]
         return self.settings.value('slicing/input_file', '')

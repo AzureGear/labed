@@ -57,11 +57,11 @@
 #         self.data = [line_edit.text() for line_edit in self.line_edits]
 #         self.close()
 
-    # def showEvent(self, event):
-    #     # Устанавливаем фокус на первое поле ввода
-    #     if self.num_rows > 0:
-    #         self.line_edits[0].setFocus()
-    #     #super().showEvent(event)
+# def showEvent(self, event):
+#     # Устанавливаем фокус на первое поле ввода
+#     if self.num_rows > 0:
+#         self.line_edits[0].setFocus()
+#     #super().showEvent(event)
 # ----------------------------------------------------------------------------------------------------------------------
 
 # def tab_geometry_setup(self):  # настройка страницы "Геометрия"

@@ -1,5 +1,5 @@
 from PyQt5 import QtCore, QtWidgets, QtGui
-from utils import AppSettings, UI_COLORS
+from utils import AppSettings, UI_COLORS, DEFAULT_DATASET_USAGE, helper
 from ui import AzButtonLineEdit, coloring_icon
 import os
 
@@ -15,14 +15,16 @@ class SettingsUI(QtWidgets.QWidget):
 
     def __init__(self, parent):
         super().__init__()
+        self.settings = AppSettings()  # настройки программы
         self.line_general_datasets_dir = None
         self.line_default_output_dir = None
         self.datasets_dir = QtWidgets.QLabel('Default datasets directory:')
         self.output_dir = QtWidgets.QLabel('Default output dir:')
         self.chk_load_sub_dirs = QtWidgets.QCheckBox('Load subdirectories, when use "Load image dir"')
         self.tab_widget = QtWidgets.QTabWidget()  # создаём виджет со вкладками
-        self.settings = None
         self.setup_ui()
+        # Определяем доступные датасеты
+        self.check_default_datasets()
 
     def setup_ui(self):
         # SettingsUI(QWidget) - наш главный родительский контейнер
@@ -33,7 +35,6 @@ class SettingsUI(QtWidgets.QWidget):
         #      |   └- ...еще страница с другими настройками
         #      └- ...еще какой-нибудь еще виджет
 
-        self.settings = AppSettings()  # настройки программы
         # Layout and Widgets
         page_common = QtWidgets.QWidget(self.tab_widget)  # создаём страницу
         self.tab_widget.setIconSize(QtCore.QSize(24, 24))
@@ -51,7 +52,8 @@ class SettingsUI(QtWidgets.QWidget):
                                                           read_only=True, dir_only=True)
         self.line_general_datasets_dir.setText(self.settings.read_datasets_dir())  # устанавливаем сохраненное значение
         self.line_general_datasets_dir.textChanged.connect(
-            lambda: self.settings.write_datasets_dir(self.line_general_datasets_dir.text()))  # автосохранение
+            lambda: self.settings.write_datasets_dir(self.line_general_datasets_dir.text()))  # смена датасета
+        self.line_general_datasets_dir.textChanged.connect(self.check_default_datasets)
         page_common_layout.addRow(self.datasets_dir, self.line_general_datasets_dir)  # добавляем виджет
 
         # QLineEdit для хранения выходных результатов
@@ -72,6 +74,16 @@ class SettingsUI(QtWidgets.QWidget):
         hlayout = QtWidgets.QHBoxLayout()
         hlayout.addWidget(self.chk_load_sub_dirs)
         page_common_layout.addRow(hlayout)
+
+    def check_default_datasets(self):  # проверка и запись данных о доступных датасетах
+        init_dir = self.settings.read_datasets_dir()
+        if not helper.check_file(init_dir):
+            return
+        if not DEFAULT_DATASET_USAGE.get("MNIST", {}).get("check", None):
+            return
+        mnist = os.path.join(init_dir, DEFAULT_DATASET_USAGE.get("MNIST", {}).get("path", None))
+        if helper.check_file(mnist):
+            self.settings.write_dataset_mnist(mnist)
 
     def tr(self, text):
         return QtCore.QCoreApplication.translate("SettingsUI", text)
