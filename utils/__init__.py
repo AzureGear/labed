@@ -1,4 +1,4 @@
-from utils.helper import load, save, check_file
+from utils.helper import load, save, check_files
 from utils.helper import natural_order
 
 from .config import APP_MIN_SIZE

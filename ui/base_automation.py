@@ -1,6 +1,6 @@
 from PyQt5 import QtCore, QtWidgets
 from utils import AppSettings, UI_COLORS
-from utils.helper import load, save, check_file
+from utils.helper import load, save, check_files
 from ui import az_file_dialog
 import cv2
 import random
@@ -59,7 +59,7 @@ class AutomationUI(QtWidgets.QWidget):
         # загружаем файл с палитрой
         sel_file = az_file_dialog(self, self.tr("Выберете палитру *.palette"), self.settings.read_last_dir(),
                                   dir_only=False, filter="Palette (*.palette)", initial_filter="palette (*.palette)")
-        if not check_file(sel_file):
+        if not check_files(sel_file):
             return
         self.log.append(f"\nВыбрана палитра: &{sel_file[0]}")
         palette = load(sel_file[0])
@@ -69,7 +69,7 @@ class AutomationUI(QtWidgets.QWidget):
         input_file = az_file_dialog(self, self.tr("Применить палитру к проекту SAMA *.json"),
                                     self.settings.read_last_dir(),
                                     dir_only=False, filter="SAMA project (*.json)", initial_filter="json (*.json)")
-        if not check_file(input_file):
+        if not check_files(input_file):
             return
         json = load(input_file[0])
         input_colors = json["labels_color"]

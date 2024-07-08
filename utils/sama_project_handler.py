@@ -139,21 +139,24 @@ class DatasetSAMAHandler:
             im["last_user"] = last_user
             self.data["images"][image_name] = im
 
-    def set_lrm_for_all_images(self, lrms_data):
+    def set_lrm_for_all_images(self, lrms_data, no_image_then_continue=False):
+        """Az: установка ЛРМ для изображений функция Романа, с дополнением"""
         set_names = []
         unset_names = []
         im_names_in_folder = os.listdir(self.get_image_path())
-        for image_name in lrms_data:
+        for image_name in lrms_data:  # 1. Цикл по объектам в lrms_data
             if image_name not in im_names_in_folder:
                 unset_names.append(image_name)
             else:
 
-                lrm = lrms_data[image_name]
+                lrm = lrms_data[image_name]  # Az: lrms_data = {"image_name" : lrm: float }
                 im = self.get_image_data(image_name)  # im = {shapes:[], lrm:float, status:str}
                 if im:
                     im["lrm"] = round(lrm, 6)
                     self.data["images"][image_name] = im
                 else:
+                    if no_image_then_continue:
+                        continue  # Az+: если есть изображения, о которых нет записей в датасете
                     im = create_blank_image()
                     im['lrm'] = round(lrm, 6)
                     self.data["images"][image_name] = im
@@ -386,7 +389,6 @@ class DatasetSAMAHandler:
         name_to_name_map = {}  # Конвертер старого имени в новое
         old_name_to_num = {}
         new_labels = []
-
 
         for i, label in enumerate(self.data["labels"]):
 

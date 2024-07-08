@@ -1050,9 +1050,29 @@ class DNImgCut:
 
             # Перебор по всем картинкам в Json-файле
             JsonAllData['images'] = {}
+            summ_all_files_Mb = 0
             for i in range(len(self.JsonObj.ImgsName)):
+                # Az: пропускаем несуществующие файлы
+                if not os.path.exists(os.path.join(self.JsonObj.PathToImg, self.JsonObj.ImgsName[i])):
+                    continue
+                # if i < 397:  # Закончил на 441. Проверка Ирландии на 199 i < 199 and i > 202
+                #     continue
+                # bad_files = ["128_FRA_2014-06-13.jpg", "128_FRA_2017-06.jpg", "128_FRA_2018-06.jpg",
+                #              "189_IRL_2006-06.jpg", "421_USA_2018-01.jpg", "446s_USA_2012-11-06.jpg"
+                #              "446s_USA_2014-10.jpg", "446s_USA_2016-04.jpg", "446s_USA_2018-05.jpg",
+                #              "446s_USA_2019-06.jpg", "446s_USA_2020-10.jpg", "446s_USA_2022-04.jpg",
+                #              "446s_USA_2022-06.jpg"]
+                # if not self.JsonObj.ImgsName[i] in bad_files:
+                #     continue
+
                 if DEBUG:
-                    print(self.JsonObj.ImgsName[i])
+                    az_file_size = os.path.getsize(
+                        os.path.join(self.JsonObj.PathToImg, self.JsonObj.ImgsName[i])) / (1024 * 1024)
+                    summ_all_files_Mb += az_file_size
+                    print(
+                        f"{(i + 1)}/{len(self.JsonObj.ImgsName)}, объём файлов: {int(summ_all_files_Mb)}/32500, "
+                        f"% отношение ~{round((i + 1) / len(self.JsonObj.ImgsName) * 100, 2)}, "
+                        f"обрабатываю: {self.JsonObj.ImgsName[i]}")
                 CutData = self.CutImg(i, SizeWind, ProcOverlapPol, ProcOverlapW,
                                       os.path.dirname(NameJsonFile), DKray, IsSmartCut)
 

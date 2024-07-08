@@ -79,11 +79,13 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.btn_apply_palette = new_button(self, "tb", icon="glyph_paint_brush", slot=self.attrs_apply_palette,
                                             color=the_color, icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE,
                                             tooltip=self.tr("Apply palette for current project and reload it"))
-        #self.btn_apply_lrm = new_button(self,"tb", icon=glyph_sat_image) # TODO: tool for LRM aplly
+        self.btn_apply_lrm = new_button(self, "tb", icon="glyph_sat_image", slot=self.attrs_apply_lrm_from_folder,
+                                        color=the_color, icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE,
+                                        tooltip="Set GSD data from map files in folder to current project")
         self.btn_save = new_button(self, "tb", icon="glyph_save2", tooltip=self.tr("Save changes to the project"),
                                    slot=self.save_data, color=the_color, icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE)
         self.common_buttons = [self.btn_copy, self.btn_save_palette, self.btn_apply_palette, self.btn_export,
-                               self.btn_save]
+                               self.btn_apply_lrm, self.btn_save]
         hlay3 = QtWidgets.QHBoxLayout()
         hlay3.addSpacing(50)
         for button in self.common_buttons:
@@ -140,7 +142,9 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
         # Signals
         self.table_widget.signal_message.connect(self.forward_signal)
-        # self.table_widget.signal_reload.connect(self.reload_project)
+        # self.table_widget.signal_reload.connect(self.reload_project) TODO: reload
+        #print(self.sama_data.data["images"].keys())
+
 
     def forward_signal(self, message):  # перенаправление сигналов
         self.signal_message.emit(message)
@@ -253,7 +257,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         # загружаем файл с палитрой
         sel_file = az_file_dialog(self, self.tr("Apply palette file to current project"), self.settings.read_last_dir(),
                                   dir_only=False, filter="Palette (*.palette)", initial_filter="palette (*.palette)")
-        if not helper.check_file(sel_file[0]):
+        if not helper.check_files(sel_file[0]):
             return
         palette = helper.load(sel_file[0])
         colors = palette["labels_color"]  # выгружаем цвета палитры
@@ -267,6 +271,31 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         json["labels_color"] = input_colors
         helper.save(self.current_file, json, "w+")
         self.load_project(self.current_file)  # перезагружаем файл, чтобы поменялась палитра
+
+    def attrs_apply_lrm_from_folder(self):
+        """Поиск в выбранном каталоге файлов *.map с записанными значениями ЛРМ и установка соответствующим данным
+        изображений в проекте ЛРМ"""
+        sel_dir = az_file_dialog(self, self.tr("Directory with map files containing GSD data about "),
+                                 self.settings.read_last_dir(), dir_only=True)
+        if not helper.check_file(sel_dir):
+            return
+        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)
+        lrms = {}  # словарь ("имя изображения": ЛРМ(float))
+        files = [f for f in os.listdir(sel_dir) if f.endswith("map")]  # собираем имена файлов
+        for file in files:
+            res = helper.get_file_line(os.path.join(sel_dir, file), 54)  # в файлах MAP за ЛРМ отвечает 54 строка
+            if res is not None:
+                lrm = float(res.split(',')[1])
+                image_name = os.path.join(os.path.splitext(file)[0]) + ".jpg"
+                lrms[image_name] = lrm
+        # print(lrms)
+        good_files = []
+        bad_files = []
+        good_files, bad_files = self.sama_data.set_lrm_for_all_images(lrms, no_image_then_continue=True)
+        # print(f"good: {good_files}")
+        # print(f"badb: {bad_files}")
+        QtWidgets.QApplication.restoreOverrideCursor()
+        self.signal_message.emit(self.tr(f"Set GSD for {len(good_files)} images"))
 
     def attrs_export(self):
         """ Экспорт табличных данных проекта SAMA в текстовый файл """
