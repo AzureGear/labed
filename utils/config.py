@@ -11,6 +11,9 @@ LOCALIZATION_FOLDER = 'l10n'
 APP_MIN_SIZE = {"WIDTH": 720,
                 "HEIGHT": 0.628}
 
+# проверка доступности датасетов и их расположений
+DEFAULT_DATASET_USAGE = {"MNIST": {"check": True, "path": "MNIST/mnist.npz"}}
+
 # высота кнопки в некоторых классах, для избежания срезания текста в ней при наследовании
 BUTTON_H = 22
 

@@ -56,7 +56,7 @@ class ProcessingUI(QtWidgets.QWidget):
         self.change_tab()  # запускаем, чтобы изменить цвет активной вкладки
 
     def default_output_dir_change(self):
-        # TODO:  изменение в настройках выходного каталога
+        # TODO: изменение в настройках выходного каталога
         if not self.tab_merge.merge_output_file_check.isChecked():
             self.merge_toggle_output_file()
         if not self.slice_output_file_check.isChecked():
