@@ -97,6 +97,10 @@ class TabMergeUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.setCentralWidget(wid)  # устанавливаем главный виджет страницы "Слияние"
         self.merge_toggle_instruments()  # устанавливаем доступные инструменты
 
+    @QtCore.pyqtSlot(str)
+    def default_dir_changed(self, path):
+        if not self.merge_output_file_check.isChecked():
+            self.merge_output_file_path.setText(path)
 
     @QtCore.pyqtSlot()
     def merge_output_file_path_change(self):

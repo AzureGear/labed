@@ -25,6 +25,11 @@ class TabGeometryUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             self.icon_inactive = coloring_icon("glyph_geometry", color_inactive)
         self.setCentralWidget(QtWidgets.QPushButton("text"))
 
+    @QtCore.pyqtSlot(str)
+    def default_dir_changed(self, path):
+        # заглушка на смену каталога для выходных данных по умолчанию
+        pass
+
     def tr(self, text):
         return QtCore.QCoreApplication.translate("TabMergeUI", text)
 

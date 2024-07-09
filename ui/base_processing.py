@@ -18,6 +18,8 @@ class ProcessingUI(QtWidgets.QWidget):
     """
     signal_message = QtCore.pyqtSignal(str)  # сигнал вывода сообщения
 
+    signal_def_dir_changed = QtCore.pyqtSignal(str)  # сигнал смены каталога по умолчанию
+
     def __init__(self, parent):
         super().__init__()
         self.crop_options = None
@@ -55,13 +57,11 @@ class ProcessingUI(QtWidgets.QWidget):
         self.tab_widget.currentChanged.connect(self.change_tab)  # изменение вкладки
         self.change_tab()  # запускаем, чтобы изменить цвет активной вкладки
 
-    def default_output_dir_change(self):
-        # TODO: изменение в настройках выходного каталога
-        if not self.tab_merge.merge_output_file_check.isChecked():
-            self.merge_toggle_output_file()
-        if not self.slice_output_file_check.isChecked():
-            self.slice_toggle_output_file()
+    @QtCore.pyqtSlot(str)
+    def default_output_dir_change(self, path):
+        self.signal_def_dir_changed.emit(path)
 
+    @QtCore.pyqtSlot(str)
     def forward_signal(self, message):
         self.signal_message.emit(message)  # перенаправление сигналов
 
@@ -71,6 +71,7 @@ class ProcessingUI(QtWidgets.QWidget):
         self.tab_widget.addTab(tab, tab.icon_inactive, tab.name)  # добавляем страницу-вкладку
         setattr(self, f"tab_{tab_name}", tab)  # добавляем имя объекта класса
         tab.signal_message.connect(self.forward_signal)  # добавляем сигнал в строку состояния
+        self.signal_def_dir_changed.connect(tab.default_dir_changed)
 
     @QtCore.pyqtSlot()
     def change_tab(self):  # сохранение последней активной вкладки "Обработки"

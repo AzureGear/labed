@@ -166,8 +166,14 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         else:  # файла нет, тогда ограничиваем функционал
             self.toggle_tool_buttons(False)
 
+    @QtCore.pyqtSlot(str)
     def forward_signal(self, message):  # перенаправление сигналов
         self.signal_message.emit(message)
+
+    @QtCore.pyqtSlot(str)
+    def default_dir_changed(self, path):
+        # заглушка на смену каталога для выходных данных по умолчанию
+        pass
 
     def save(self):
         self.save_and_reload(self.current_file, self.tr(f"Project was saved and reload: {self.current_file}"))

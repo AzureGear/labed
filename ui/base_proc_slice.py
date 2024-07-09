@@ -147,6 +147,11 @@ class TabSliceUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.slice_edge.valueChanged.connect(self.slice_options_for_crop_update)  # edge
         self.slice_smart_crop.toggled.connect(self.slice_options_for_crop_update)  # smart
 
+    @QtCore.pyqtSlot(str)
+    def default_dir_changed(self, path):
+        if not self.slice_output_file_check.isChecked():
+            self.slice_output_file_path.setText(path)
+
     def slice_options_for_crop_update(self):  # регулярное обновление словаря с параметрами разрезания
         self.crop_options["crop_size"] = self.slice_scan_size.value()
         if self.slice_tab_labels.isHidden():

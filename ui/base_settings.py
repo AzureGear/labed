@@ -11,7 +11,7 @@ class SettingsUI(QtWidgets.QWidget):
     """
     Класс виджета настройки
     """
-    signal_default_dir_change = QtCore.pyqtSignal(bool)
+    signal_default_dir_change = QtCore.pyqtSignal(str)
 
     def __init__(self, parent):
         super().__init__()
@@ -63,7 +63,8 @@ class SettingsUI(QtWidgets.QWidget):
         self.line_default_output_dir.setText(self.settings.read_default_output_dir())
         self.line_default_output_dir.textChanged.connect(
             lambda: self.settings.write_default_output_dir(self.line_default_output_dir.text()))
-        self.line_default_output_dir.textChanged.connect(lambda: self.signal_default_dir_change.emit(True))
+        self.line_default_output_dir.textChanged.connect(
+            lambda: self.signal_default_dir_change.emit(self.line_default_output_dir.text()))
 
         page_common_layout.addRow(self.output_dir, self.line_default_output_dir)
 
