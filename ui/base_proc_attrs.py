@@ -6,6 +6,7 @@ from utils.sama_project_handler import DatasetSAMAHandler
 from ui import new_button, AzButtonLineEdit, coloring_icon, new_text, az_file_dialog, save_via_qtextstream, new_act, \
     AzInputDialog, az_custom_dialog, new_icon, setup_dock_widgets
 import os
+from datetime import datetime
 
 the_color = UI_COLORS.get("processing_color")
 
@@ -14,7 +15,7 @@ the_color = UI_COLORS.get("processing_color")
 
 class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     """
-    Виджет типа страницы QTabWidget для работы с MNIST
+    Виджет типа страницы QTabWidget для работы с Атрибутивными данными проектов разметки
     """
     signal_message = QtCore.pyqtSignal(str)  # сигнал для вывода сообщения
 
@@ -39,9 +40,9 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.log.setReadOnly(True)
         self.top_dock = QtWidgets.QDockWidget("")  # контейнер для информации о логе
         self.top_dock.setWidget(self.log)  # устанавливаем в контейнер QLabel
-        self.addDockWidget(QtCore.Qt.DockWidgetArea.TopDockWidgetArea, self.top_dock)
-        setup_dock_widgets(self, ["top_dock"], config.UI_BASE_ATTRS)
         self.top_dock.setWindowTitle("Log")
+        self.addDockWidget(QtCore.Qt.DockWidgetArea.TopDockWidgetArea, self.top_dock)
+
 
         self.btn_log_and_status = new_button(self, "tb", icon="glyph_circle_grey", color=None, icon_size=16,
                                              slot=self.toggle_log, checkable=True, tooltip=self.tr("Toggle log"))
@@ -122,10 +123,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
         header = self.table_widget.horizontalHeader()  # настраиваем отображение столбцов именно таблицы SAMA
         for column in range(self.table_widget.columnCount()):
-            if column == 0:
-                pass
-                # header.setSectionResizeMode(column, QtWidgets.QHeaderView.Interactive)
-            elif column == 6:
+            if column == 6:
                 self.table_widget.setColumnWidth(column, 55)
                 header.setSectionResizeMode(column, QtWidgets.QHeaderView.Fixed)
             elif column == 7:
@@ -136,14 +134,15 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                 header.setSectionResizeMode(column, QtWidgets.QHeaderView.Fixed)
             else:
                 header.setSectionResizeMode(column, QtWidgets.QHeaderView.Stretch)  # ResizeToContents
-        # header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)  # первый столбец доминантный
 
-        # смотрим, есть ли в реестре файл, который запускали прошлый раз?
-        if os.path.exists(self.settings.read_attributes_input()):
-            self.load_project(self.settings.read_attributes_input(),
-                              self.tr(f"Loaded las used project file: {self.file_json.text()}"))  # пробуем загрузить
-        else:  # файла нет, тогда ограничиваем функционал
-            self.toggle_tool_buttons(False)
+
+        self.image_table = QtWidgets.QTableView()
+        self.bottom_dock = QtWidgets.QDockWidget("")  # контейнер для информации о логе
+        self.bottom_dock.setWidget(self.image_table)  # устанавливаем в контейнер QLabel
+        self.bottom_dock.setWindowTitle("Images Filters View")
+        self.addDockWidget(QtCore.Qt.DockWidgetArea.TopDockWidgetArea, self.top_dock)
+        setup_dock_widgets(self, ["top_dock"], config.UI_BASE_ATTRS)
+
 
 
 
@@ -159,6 +158,14 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         # print("init, cur_file:", self.current_file)
         # print("init, sama_labels:", self.sama_data.get_labels())
 
+        # смотрим, есть ли в реестре файл, который запускали прошлый раз?
+        if os.path.exists(self.settings.read_attributes_input()):
+            # пробуем загрузить
+            self.load_project(self.settings.read_attributes_input(),
+                              self.tr(f"Loaded last used project file: {self.settings.read_attributes_input()}"))
+        else:  # файла нет, тогда ограничиваем функционал
+            self.toggle_tool_buttons(False)
+
     def forward_signal(self, message):  # перенаправление сигналов
         self.signal_message.emit(message)
 
@@ -166,10 +173,8 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.save_and_reload(self.current_file, self.tr(f"Project was saved and reload: {self.current_file}"))
 
     def save_and_reload(self, file, message):
-        self.log_clear()
         self.sama_data.save(file)  # сохранение данных и перезагрузка данных
         self.load_project(file, message)
-        self.change_log_icon("green")
 
     def toggle_log(self):
         if self.btn_log_and_status.isChecked():
@@ -191,7 +196,9 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     def log_change_data(self, message):
         self.change_log_icon("red")
-        self.log.setPlainText(self.log.toPlainText() + "\n" + message)
+        current_time = datetime.now().time().strftime("%H:%M:%S")
+        message = current_time + ": " + message
+        self.log.setPlainText(self.log.toPlainText() + message + "\n")
 
     def attr_actions_disable(self, message):  # сброс всех форм при загрузке, а также отключение инструментов
         self.current_file = None
@@ -217,6 +224,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.sama_data = None  # очищаем
         self.sama_data = DatasetSAMAHandler()
         self.sama_data.load(filename)
+        self.log_clear()
         if not self.sama_data.is_correct_file:
             self.attr_actions_disable(
                 self.tr("Selected file isn't correct, or haven't data"))
