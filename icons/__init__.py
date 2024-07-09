@@ -26,6 +26,8 @@
 # glyph_save2: PIXARTIST
 # glyph_sat_image: PixelVerse
 # glyph_sat_photo: icon_small
+# glyph_cirlce_green: customicondesign_1
+# glyph_cirlce_red: customicondesign_1
 
 # glyph_add_image: Pixel perfect
 # glyph_crop: me & Pixel perfect

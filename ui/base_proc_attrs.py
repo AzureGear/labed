@@ -4,7 +4,7 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 from utils import AppSettings, UI_COLORS, helper, config
 from utils.sama_project_handler import DatasetSAMAHandler
 from ui import new_button, AzButtonLineEdit, coloring_icon, new_text, az_file_dialog, save_via_qtextstream, new_act, \
-    AzInputDialog, az_custom_dialog
+    AzInputDialog, az_custom_dialog, new_icon, setup_dock_widgets
 import os
 
 the_color = UI_COLORS.get("processing_color")
@@ -33,6 +33,18 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         # Настройка ui
         wid = QtWidgets.QWidget()
         self.setCentralWidget(wid)
+
+        # Лог
+        self.log = QtWidgets.QTextEdit(self)  # лог, для вывода сообщений.
+        self.log.setReadOnly(True)
+        self.top_dock = QtWidgets.QDockWidget("")  # контейнер для информации о логе
+        self.top_dock.setWidget(self.log)  # устанавливаем в контейнер QLabel
+        self.addDockWidget(QtCore.Qt.DockWidgetArea.TopDockWidgetArea, self.top_dock)
+        setup_dock_widgets(self, ["top_dock"], config.UI_BASE_ATTRS)
+        self.top_dock.setWindowTitle("Log")
+
+        self.btn_log_and_status = new_button(self, "tb", icon="glyph_circle_grey", color=None, icon_size=16,
+                                             slot=self.toggle_log, checkable=True, tooltip=self.tr("Toggle log"))
         self.label_project = QtWidgets.QLabel("Path to file project *.json:")
         self.file_json = AzButtonLineEdit("glyph_folder", the_color, caption=self.tr("Load dataset SAMA project"),
                                           read_only=True, dir_only=False, filter=self.tr("Projects files (*.json)"),
@@ -53,6 +65,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                                    self.dataset_info_lrm_val, self.dataset_info_devi_lrm_val]
 
         hlay = QtWidgets.QHBoxLayout()
+        hlay.addWidget(self.btn_log_and_status)
         hlay.addWidget(self.label_project)  # метка для пути проекта
         hlay.addWidget(self.file_json)  # текущий проект
         hlay2 = QtWidgets.QHBoxLayout()
@@ -83,7 +96,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                                         color=the_color, icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE,
                                         tooltip="Set GSD data from map files in folder to current project")
         self.btn_save = new_button(self, "tb", icon="glyph_save2", tooltip=self.tr("Save changes to the project"),
-                                   slot=self.save_data, color=the_color, icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE)
+                                   slot=self.save, color=the_color, icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE)
         self.common_buttons = [self.btn_copy, self.btn_save_palette, self.btn_apply_palette, self.btn_export,
                                self.btn_apply_lrm, self.btn_save]
         hlay3 = QtWidgets.QHBoxLayout()
@@ -99,8 +112,6 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             self.tr("Label name"), self.tr("Number of labels"), self.tr("Frequency of appearance on the image"),
             self.tr("Percentage of total labels"), self.tr("Average area, pixels"), self.tr('SD of area, pixels'),
             self.tr("Balance"), self.tr("Color"), self.tr("Action")]
-        # (имя класса, количество объектов, частота встречаемости на изображении, проценты от общего, средний размер, сбалансированность
-        # класса, палитра, действия)
 
         # данные из проекта SAMA будут загружаться в DatasetSAMAHandler
         self.sama_data = DatasetSAMAHandler()  # делаем изначально пустым
@@ -129,33 +140,58 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
         # смотрим, есть ли в реестре файл, который запускали прошлый раз?
         if os.path.exists(self.settings.read_attributes_input()):
-            self.load_project(self.settings.read_attributes_input())  # пробуем его загрузить
+            self.load_project(self.settings.read_attributes_input(),
+                              self.tr(f"Loaded las used project file: {self.file_json.text()}"))  # пробуем загрузить
         else:  # файла нет, тогда ограничиваем функционал
             self.toggle_tool_buttons(False)
+
+
 
         # итоговая настройка ui
         vlayout = QtWidgets.QVBoxLayout(self)  # главный Layout, наследуемый класс
         vlayout.addLayout(hlay_finish)  # добавляем ему расположение с кнопками и QLabel
         vlayout.addWidget(self.table_widget)
-        # vlayout.addWidget(self.text_logger = QTextEdit()) TODO: attrs_logger
         wid.setLayout(vlayout)
 
         # Signals
         self.table_widget.signal_message.connect(self.forward_signal)
-        # self.table_widget.signal_reload.connect(self.reload_project) TODO: reload
-        #print(self.sama_data.data["images"].keys())
-
+        self.table_widget.signal_data_changed.connect(self.log_change_data)
+        # print("init, cur_file:", self.current_file)
+        # print("init, sama_labels:", self.sama_data.get_labels())
 
     def forward_signal(self, message):  # перенаправление сигналов
         self.signal_message.emit(message)
 
-    def save_data(self):  # сохранение данных
-        self.sama_data.save(self.current_file)
-        self.reload_project(True)
+    def save(self):
+        self.save_and_reload(self.current_file, self.tr(f"Project was saved and reload: {self.current_file}"))
 
-    def reload_project(self, b):  # перезагрузка файла
-        if b:
-            self.load_project(self.current_file)
+    def save_and_reload(self, file, message):
+        self.log_clear()
+        self.sama_data.save(file)  # сохранение данных и перезагрузка данных
+        self.load_project(file, message)
+        self.change_log_icon("green")
+
+    def toggle_log(self):
+        if self.btn_log_and_status.isChecked():
+            self.top_dock.setHidden(False)
+        else:
+            self.top_dock.setHidden(True)
+
+    def log_clear(self):
+        self.log.clear()
+
+    def change_log_icon(self, color):
+        if color == "red":
+            icon = "glyph_circle_red"
+        elif color == "green":
+            icon = "glyph_circle_green"
+        else:
+            icon = "glyph_circle_grey"
+        self.btn_log_and_status.setIcon(new_icon(icon))
+
+    def log_change_data(self, message):
+        self.change_log_icon("red")
+        self.log.setPlainText(self.log.toPlainText() + "\n" + message)
 
     def attr_actions_disable(self, message):  # сброс всех форм при загрузке, а также отключение инструментов
         self.current_file = None
@@ -175,14 +211,18 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     def attr_load_projects_data(self):
         if len(self.file_json.text()) < 5:  # недостойно внимания
             return
-        self.load_project(self.file_json.text())
+        self.load_project(self.file_json.text(), self.tr(f"Loaded project file: {self.file_json.text()}"))
 
-    def load_project(self, filename):  # загрузка проекта
+    def load_project(self, filename, message):  # загрузка проекта
+        self.sama_data = None  # очищаем
+        self.sama_data = DatasetSAMAHandler()
         self.sama_data.load(filename)
         if not self.sama_data.is_correct_file:
             self.attr_actions_disable(
-                self.tr("Выбранный файл не является корректным либо не содержит необходимых данных"))
+                self.tr("Selected file isn't correct, or haven't data"))
+            # Выбранный файл не является корректным либо не содержит необходимых данных
             self.file_json.clear()
+            self.change_log_icon("grey")
             return
 
         # Все загружено и всё корректно, поэтому записываем его в реестр и начинаем процедуру загрузки
@@ -193,7 +233,9 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.toggle_tool_buttons(True)
         self.load_dataset_info()  # загружаем общее инфо о датасете
         self.table_widget.load_table_data(self.sama_data)  # обновляем данные для таблицы
-        self.signal_message.emit(self.tr(f"Loaded project file: {filename}"))
+        self.log_change_data(message)
+        self.change_log_icon("green")
+        self.signal_message.emit(message)
         QtWidgets.QApplication.restoreOverrideCursor()
 
     def load_dataset_info(self):  # общая информация о датасете
@@ -235,13 +277,12 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         # ...копируем и загружаем
         import shutil
         shutil.copyfile(self.current_file, file)
-        self.load_project(file)
+        self.load_project(file, self.tr(f"Project was copied and loaded to: {file}"))
 
     def attrs_save_palette(self):  # сохранение палитры
         """Извлечь и сохранить палитру из проекта SAMA"""
-        json = helper.load(self.file_json.text())
-        colors = json["labels_color"]
         data = dict()
+        colors = self.sama_data.data["labels_color"]
         data["labels_color"] = colors
         file = az_file_dialog(self, self.tr("Save project SAMA *.json palette"), self.settings.read_last_dir(),
                               dir_only=False, file_to_save=True, filter="Palette (*.palette)",
@@ -257,20 +298,18 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         # загружаем файл с палитрой
         sel_file = az_file_dialog(self, self.tr("Apply palette file to current project"), self.settings.read_last_dir(),
                                   dir_only=False, filter="Palette (*.palette)", initial_filter="palette (*.palette)")
-        if not helper.check_files(sel_file[0]):
+        if not helper.check_files(sel_file):
             return
         palette = helper.load(sel_file[0])
         colors = palette["labels_color"]  # выгружаем цвета палитры
-        json = helper.load(self.current_file)
-        input_colors = json["labels_color"]
+        input_colors = self.sama_data.data["labels_color"]
 
         # обходим ключи
-        for color in input_colors:
-            if color in colors:  # такой цвет есть в нашей палитре
+        for color in input_colors:  # палитра текущего проекта SAMA
+            if color in colors:  # цвет для метки в текущем проекте есть в загруженной палитре
                 input_colors[color] = colors[color]
-        json["labels_color"] = input_colors
-        helper.save(self.current_file, json, "w+")
-        self.load_project(self.current_file)  # перезагружаем файл, чтобы поменялась палитра
+        # применяем и перезагружаем файл, чтобы поменялась палитра
+        self.save_and_reload(self.current_file, self.tr(f"Palette was apply, project was reload: {self.current_file}"))
 
     def attrs_apply_lrm_from_folder(self):
         """Поиск в выбранном каталоге файлов *.map с записанными значениями ЛРМ и установка соответствующим данным
@@ -279,8 +318,10 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                                  self.settings.read_last_dir(), dir_only=True)
         if not helper.check_file(sel_dir):
             return
+
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)
         lrms = {}  # словарь ("имя изображения": ЛРМ(float))
+
         files = [f for f in os.listdir(sel_dir) if f.endswith("map")]  # собираем имена файлов
         for file in files:
             res = helper.get_file_line(os.path.join(sel_dir, file), 54)  # в файлах MAP за ЛРМ отвечает 54 строка
@@ -288,13 +329,12 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                 lrm = float(res.split(',')[1])
                 image_name = os.path.join(os.path.splitext(file)[0]) + ".jpg"
                 lrms[image_name] = lrm
-        # print(lrms)
-        good_files = []
-        bad_files = []
+
         good_files, bad_files = self.sama_data.set_lrm_for_all_images(lrms, no_image_then_continue=True)
         # print(f"good: {good_files}")
         # print(f"badb: {bad_files}")
         QtWidgets.QApplication.restoreOverrideCursor()
+        self.log_change_data(self.tr(f"Set GSD for {len(good_files)} images"))
         self.signal_message.emit(self.tr(f"Set GSD for {len(good_files)} images"))
 
     def attrs_export(self):
@@ -302,8 +342,11 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         file = az_file_dialog(self, self.tr("Export table data to text file"), self.settings.read_last_dir(),
                               dir_only=False, remember_dir=False, file_to_save=True, filter="txt (*.txt)",
                               initial_filter="txt (*.txt)")
+        if not helper.check_file(file):
+            return
         if len(file) > 0:  # сохраняем в файл, при этом пропускаем определенные столбцы
-            if save_via_qtextstream(self.table_widget, file, [6]):
+            # TODO: сделать экспорт данных об разрешении
+            if save_via_qtextstream(self.table_widget, file, [7, 8]):
                 self.signal_message.emit(self.tr(f"Table data export to: {file}"))
 
     def tr(self, text):
@@ -336,7 +379,7 @@ class AzTableAttributes(QtWidgets.QTableWidget):
     """
     signal_message = QtCore.pyqtSignal(str)  # сигнал для вывода сообщения
 
-    signal_reload = QtCore.pyqtSignal(bool)  # сигнал для перезагрузки данных
+    signal_data_changed = QtCore.pyqtSignal(str)  # сигнал об изменении в данных
 
     def __init__(self, headers=None, special_cols=None, data=None, parent=None,
                  translate_headers=False, current_file=None):
@@ -352,21 +395,14 @@ class AzTableAttributes(QtWidgets.QTableWidget):
         self.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)  # отключаем редактирование
         self.setSortingEnabled(True)  # включаем сортировку
         self.setAlternatingRowColors(True)  # включаем чередование цветов
-        # self.setMouseTracking(True)
-        self.horizontalHeader().setFixedHeight(56)
-        self.horizontalHeader().setDefaultAlignment(QtCore.Qt.AlignCenter | QtCore.Qt.Alignment(QtCore.Qt.TextWordWrap))
-        # self.cellClicked[int, int].connect(lambda row, col: self.cell_entered(row, col))
-        self.my_data = data
-        self.clear_table()
-        if data is not None:
-            self.load_table_data(data)
+        self.horizontalHeader().setDefaultAlignment(
+            QtCore.Qt.AlignmentFlag.AlignCenter | QtCore.Qt.Alignment(QtCore.Qt.TextFlag.TextWordWrap))
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self.setColumnWidth(0, int(self.width() * 0.23))  # устанавливаем у первого столбца ширину в 23% от общей ширины
 
     def clear_table(self):  # простая очистка таблицы
-        # pass
         self.setRowCount(0)
 
     def set_special_cols(self):  # установка особых типов столбцов: action - меню; color - цвет;
@@ -394,11 +430,9 @@ class AzTableAttributes(QtWidgets.QTableWidget):
 
     def show_context_menu(self):
         """Дополнительное меню действий с именами меток/классами"""
-        self.my_data.get_labels
         button = self.sender()  # определяем от кого пришёл сигнал
         index = self.indexAt(button.pos())  # вот и индекс (проклятье, часа четыре потратил на эти 3 строчки!)
         row = index.row()
-        # print("Button clicked in row:", row)
 
         menu = QtWidgets.QMenu()
         rename_act = new_act(self, self.tr(f"Rename"), "glyph_signature", the_color,
@@ -422,6 +456,7 @@ class AzTableAttributes(QtWidgets.QTableWidget):
         self.clear_table()
         if isinstance(data, DatasetSAMAHandler):  # установка данных SAMA, если они переданы
             self.my_data = data
+            self.horizontalHeader().setFixedHeight(56)  # для SAMA высота 56
             self.load_sama_data()
         else:
             # заглушка на другие типы данных
@@ -437,10 +472,8 @@ class AzTableAttributes(QtWidgets.QTableWidget):
             self.set_special_cols()
             self.col_color = next((k for k, v in self.special_cols.items() if v == "color"), None)  # номер столбца
 
-        # data_for_stat = copy.copy(project_data)
-
         stat = self.my_data.calc_stat()  # рассчитываем статистику
-
+        self.setSortingEnabled(False)  # обязательно отключить сортировку, иначе случится дичь
         for row, name in enumerate(labels):
             if self.col_color:  # заполнение кнопки цветом
                 color_tuple = self.my_data.get_label_color(name)
@@ -454,6 +487,7 @@ class AzTableAttributes(QtWidgets.QTableWidget):
             self.add_item_number(row, 3, stat[name]['percent'], 2)  # проценты от общего
             self.add_item_number(row, 4, stat[name]['size']['mean'], 1)  # средний размер
             self.add_item_number(row, 5, stat[name]['size']['std'], 1)  # СКО размера
+        self.setSortingEnabled(True)
 
     def add_item_text(self, row, col, text,
                       align=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter):
@@ -501,6 +535,8 @@ class AzTableAttributes(QtWidgets.QTableWidget):
         self.my_data.set_label_color(name, [color.red(), color.green(), color.blue()])  # устанавливаем цвет и в данных
         self.signal_message.emit(
             self.tr(f"Label '{name}' color was changed to 'rgb({color.red()}, {color.green()}, {color.blue()})'"))
+        self.signal_data_changed.emit(self.tr(f"Label color was changed to 'rgb({color.red()}, {color.green()}, "
+                                              f"{color.blue()})'"))
 
     def label_rename(self, row):
         """ Перечень действий: переименовать класс"""
@@ -527,6 +563,7 @@ class AzTableAttributes(QtWidgets.QTableWidget):
         self.my_data.change_name(current_name, result[0])
         self.item(row, 0).setText(result[0])
         self.signal_message.emit(self.tr(f"Objects with label '{current_name}' was renamed to '{result[0]}'"))
+        self.signal_data_changed.emit(self.tr(f"Objects with label '{current_name}' was renamed to '{result[0]}'"))
 
     def label_delete(self, row):
         """ Перечень действий: удалить метку"""
@@ -543,9 +580,10 @@ class AzTableAttributes(QtWidgets.QTableWidget):
         self.my_data.delete_data_by_class_name(name)  # удаляем данные
         self.removeRow(row)
         self.signal_message.emit(self.tr(f"Objects with label '{name}' was deleted"))
+        self.signal_data_changed.emit(self.tr(f"Objects with label '{name}' was deleted"))
 
     def label_merge(self, row):
-        """ Перечень действий: слить с другой меткой"""
+        """Перечень действий: слить с другой меткой"""
         if self.my_data is None:
             return
         name = self.item(row, 0).text()  # имя текущей метки
@@ -568,6 +606,7 @@ class AzTableAttributes(QtWidgets.QTableWidget):
         self.my_data.change_data_class_from_to(name, result[0])
         self.removeRow(row)
         self.signal_message.emit(self.tr(f"Merged object with labels '{name}' to '{result[0]}'"))
+        self.signal_data_changed.emit(self.tr(f"Merged object with labels '{name}' to '{result[0]}'"))
 
     def tr(self, text):
         return QtCore.QCoreApplication.translate("AzTableAttributes", text)

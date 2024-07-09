@@ -35,7 +35,7 @@ UI_ENABLE = {
     "experiment": {"mnist": True, "nor": True},
 }
 
-# настройки Интерфейса со структурой:
+# настройки интерфейса Widget'ов с поддержкой DockWidgets со структурой:
 # dock_widget : { "widget_name":
 # 0 - show, 1 - closable, 2 - movable, 3 - floatable, 4 - no_caption, 5 - no_actions }
 #
@@ -44,6 +44,11 @@ UI_BASE_VIEW = {
     "top_dock": [False, False, False, False, True, True],
     "files_dock": [True, True, True, False, False, False]
 }
+# bace_proc_attrs.py
+UI_BASE_ATTRS = {
+    "top_dock": [False, False, True, False, False, True]
+}
+
 # az_slice_manual_crop.py
 UI_AZ_SLICE_MANUAL = {
     "top_dock": [True, False, False, False, True, True],

@@ -405,8 +405,9 @@ def new_button(parent, obj="pb", text=None, icon=None, color=None, slot=None, ch
         b.setText(text)
     if icon is not None:
         if color is None:
-            color = default_color
-        b.setIcon(coloring_icon(icon, color))
+            b.setIcon(new_icon(icon))
+        else:
+            b.setIcon(coloring_icon(icon, color))
     if slot is not None:
         b.clicked.connect(slot)
     if icon_size is not None:
@@ -425,6 +426,33 @@ def labelValidator():
 
 
 # ----------------------------------------------------------------------------------------------------------------------
+
+def setup_dock_widgets(parent, docks, settings):
+    """
+    Настройка интерфейса Widget'ов с поддержкой DockWidgets со структурой DockWidget
+    Принимает аргументы:
+    parent - родитель
+    settings - словарь параметров из config.py "widget_name": [ bool, bool, ... ]
+        0 - show, 1 - closable, 2 - movable, 3 - floatable, 4 - no_caption, 5 - no_actions
+    docks -перечень DockWidgets
+    """
+    features = QtWidgets.QDockWidget.DockWidgetFeatures()  # features для док-виджетов
+    for dock in docks:
+        dock_settings = settings.get(dock)  # храним их описание в config.py
+        if not dock_settings[0]:  # 0 - show
+            getattr(parent, dock).setVisible(False)  # устанавливаем атрибуты напрямую
+        if dock_settings[1]:  # 1 - closable
+            features = features | QtWidgets.QDockWidget.DockWidgetClosable
+        if dock_settings[2]:  # 2 - movable
+            features = features | QtWidgets.QDockWidget.DockWidgetMovable
+        if dock_settings[3]:  # 3 - floatable
+            features = features | QtWidgets.QDockWidget.DockWidgetFloatable
+        if dock_settings[4]:  # 4 - no_caption
+            getattr(parent, dock).setTitleBarWidget(QtWidgets.QWidget())
+        if dock_settings[5]:  # 5 - no_actions - "close"
+            getattr(parent, dock).toggleViewAction().setVisible(False)
+        getattr(parent, dock).setFeatures(features)  # применяем настроенные атрибуты [1-3]
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 def az_custom_dialog(caption, message, yes=True, no=True, back=False, custom_button=False, custom_text="",
