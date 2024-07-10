@@ -7,7 +7,7 @@ the_color = config.UI_COLORS.get("line_color")
 the_color_crop = config.UI_COLORS.get("crop_color")
 
 
-# Реализация Романа Хабарова
+# Часть класса - реализация Романа Хабарова
 # ----------------------------------------------------------------------------------------------------------------------
 class ViewState(Enum):
     """
@@ -24,6 +24,7 @@ class ViewState(Enum):
     point_add = 9  # добавляем центр-точку ручного кадрирования (РК)
     point_move = 10  # перемещаем центр-точку РК
     point_delete = 11  # удаляем центр-точку РК
+    point_universal = 12  # универсальный инструмент РК: левой переместить, правой добавить, shift+click - удалить
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -130,6 +131,10 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
         lp = self.pixmap_item.mapFromScene(sp)  # конвертация в координаты снимка
 
         modifierName = ''
+        modifier_key = QtWidgets.QApplication.keyboardModifiers()  # Модификаторы клавиш
+        if (modifier_key & QtCore.Qt.KeyboardModifier.ShiftModifier) == QtCore.Qt.KeyboardModifier.ShiftModifier:
+            modifierName += 'Shift'
+
         # определяем модификаторы нажатия мыши
         if event.buttons() == QtCore.Qt.MouseButton.RightButton:
             modifierName += " Right Click"
@@ -147,6 +152,8 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
                 self.hand_start_point = event.pos()
                 self.viewport().setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ClosedHandCursor))
             return
+
+        print(modifierName)
 
         # режим перемещения "ручкой"
         if self.view_state == ViewState.hand_move:
@@ -171,24 +178,31 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
             super(AzImageViewer, self).mousePressEvent(event)  # инициируем событие для класса QGraphicsView
             self.click_point = lp  # запоминаем точку старта
             return
+
+        elif self.view_state == ViewState.point_universal:
+            if 'Shift' in modifierName and "Left Click" in modifierName:
+                self.delete_one_point(lp)
+                return
+
+            if 'Right Click' in modifierName:
+                print("you are right")
+                self.add_mc_point(sp, self.scan_size)
+                if self.points_mc:
+                    self.signal_list_mc_changed.emit(True)  # сигнализируем об изменении перечня точек РК
+                return
+
+            if 'Left Click' in modifierName:
+                print("you are left")
+                super(AzImageViewer, self).mousePressEvent(event)  # инициируем событие для класса QGraphicsView
+                self.click_point = lp  # запоминаем точку старта
+                return
+
         # лист переменных
         # режим удаления точек
         elif self.view_state == ViewState.point_delete:
             if 'Right Click' in modifierName:
                 return
-            items = self.scene().items(lp)  # выбираем по клику объекты
-            if items:  # нас есть объекты
-                for item in items:
-                    if isinstance(item, AzPointWithRect):  # нас интересуют только объекты с точкой
-                        for point in self.points_mc:
-                            if item == point:  # искомый объект найден
-                                self.scene().removeItem(item)  # удаляем объект со сцены
-                                self.points_mc.remove(point)  # удаляем объект из массива
-                                if self.points_mc:  # сигнализируем об изменении
-                                    self.signal_list_mc_changed.emit(True)
-                                else:  # если список совсем пустой - шлем сигнал
-                                    self.signal_list_mc_changed.emit(False)  # False - лист пуст
-                                return  # хватит и одного удаления
+            self.delete_one_point(lp)
 
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
         sp = self.mapToScene(event.pos())  # точка по клику, переведенная в координаты сцены
@@ -215,20 +229,46 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
                 self.set_view_state(self.view_state_before_mid_click)
             return
 
+        # режим перемещения точек универсальный
+        elif self.view_state == ViewState.point_universal:
+            super(AzImageViewer, self).mouseReleaseEvent(event)
+            self.move_point_finish(self.click_point, lp)
+
         # режим перемещения точек
         elif self.view_state == ViewState.point_move:
             super(AzImageViewer, self).mouseReleaseEvent(event)
-            dx = lp.x() - self.click_point.x()
-            dy = lp.y() - self.click_point.y()
-            # print(f"dx = {delta_x}; dy = {delta_y}")
-            items = self.scene().selectedItems()
+            self.move_point_finish(self.click_point, lp)
+
+    def delete_one_point(self, map_point):
+        """Удаление одной точки"""
+        items = self.scene().items(map_point)  # выбираем по клику объекты
+        if items:  # нас есть объекты
             for item in items:
-                if isinstance(item, AzPointWithRect):  # объект класса точка с прямоугольником
-                    item.apply_offset(dx, dy)  # применяем смещение точки выделенного объекта
-                    if self.points_mc:
-                        self.signal_list_mc_changed.emit(True)  # сигнализируем об изменении перечня точек РК
-                break
+                if isinstance(item, AzPointWithRect):  # нас интересуют только объекты с точкой
+                    for point in self.points_mc:
+                        if item == point:  # искомый объект найден
+                            self.scene().removeItem(item)  # удаляем объект со сцены
+                            self.points_mc.remove(point)  # удаляем объект из массива
+                            if self.points_mc:  # сигнализируем об изменении
+                                self.signal_list_mc_changed.emit(True)
+                            else:  # если список совсем пустой - шлем сигнал
+                                self.signal_list_mc_changed.emit(False)  # False - лист пуст
+                            return  # хватит и одного удаления
+
+    def move_point_finish(self, click_point, map_point):
+        if click_point is None or map_point is None:
             return
+        dx = map_point.x() - click_point.x()
+        dy = map_point.y() - click_point.y()
+        # print(f"dx = {delta_x}; dy = {delta_y}")
+        items = self.scene().selectedItems()
+        for item in items:
+            if isinstance(item, AzPointWithRect):  # объект класса точка с прямоугольником
+                item.apply_offset(dx, dy)  # применяем смещение точки выделенного объекта
+                if self.points_mc:
+                    self.signal_list_mc_changed.emit(True)  # сигнализируем об изменении перечня точек РК
+            break
+        return
 
     def set_view_state(self, state=ViewState.normal):
         self.view_state = state
@@ -244,6 +284,8 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
             self.viewport().setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
         elif state == ViewState.point_delete:
             self.viewport().setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.PointingHandCursor))
+        elif state == ViewState.point_universal:
+            self.viewport().setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
         else:
             print(self.view_state)  # какой-то неизвестный ViewState
 

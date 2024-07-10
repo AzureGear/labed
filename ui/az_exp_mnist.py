@@ -3,18 +3,17 @@ from PyQt5.QtCore import pyqtProperty
 from utils import AppSettings, helper, config
 import matplotlib.pyplot as plt
 import numpy as np
+from datetime import datetime
 
 the_color = config.UI_COLORS.get("experiments_color")
 
-
-# TODO: сделать класс наследуемый от LCD цифр с кружочком вокруг них, который показывает процентное отношение распоз.
-# Тип полностью закрытый кружок = 100%, на четверть = 25%.
 
 class PageMNIST(QtWidgets.QWidget):
     """
     Виджет типа страницы QTabWidget для работы с MNIST
     """
-    signal_message = QtCore.pyqtSignal(str)  # сигнал для вывода сообщения
+    signal_message = QtCore.pyqtSignal(str)  # сигнал передачи сообщения родительскому виджету
+    signal_info = QtCore.pyqtSignal(str)  # сигнал для вывода сообщения в self.info
 
     def __init__(self, parent=None):
         super(PageMNIST, self).__init__(parent)
@@ -32,6 +31,9 @@ class PageMNIST(QtWidgets.QWidget):
         self.preview.setPixmap(self.print_grid(self.preview.pixmap()))
         self.preview.setFixedSize(143, 143)
 
+        self.info = QtWidgets.QTextEdit(self)  # виджет отображения данных
+        self.info.setReadOnly(True)
+
         # Устанавливаем разметку для виджетов на вкладке
         self.gb_draw = QtWidgets.QGroupBox("Draw")
         self.gb_preview = QtWidgets.QGroupBox("Preview")
@@ -45,7 +47,6 @@ class PageMNIST(QtWidgets.QWidget):
         h_layout = QtWidgets.QHBoxLayout()
         h_layout.addWidget(self.gb_draw)
         h_layout.addWidget(self.gb_preview)
-        h_layout.addStretch(1)
 
         # настройка цифр
         h_layout2 = QtWidgets.QHBoxLayout()  # компоновщик для "Цифр" и их вероятностей
@@ -54,14 +55,14 @@ class PageMNIST(QtWidgets.QWidget):
         for i in range(10):  # автоматом делаем все 10 цифр
             digit_v = QtWidgets.QVBoxLayout(self)
             digit_v.setSpacing(0)
-            digit_v.setContentsMargins(2, 0, 2, 0)
+            digit_v.setContentsMargins(0, 0, 0, 0)
             digit_lbl = QtWidgets.QLabel(f"{(i * 10 + 10):.0f}%")
             digit_lbl.setFixedHeight(14)
             digit_lbl.setAlignment(QtCore.Qt.AlignBottom | QtCore.Qt.AlignmentFlag.AlignHCenter)
             digit_lbl.setIndent(0)
 
             the_digit = RoundProgressbar(self, QtGui.QColor(the_color), thickness=2, value=10 * i + 10,
-                                         maximum=100, digit=i, digit_size=12)
+                                         maximum=100, digit=i, digit_size=11)
             the_digit.setFixedSize(config.UI_AZ_MNIST_DIGITS_SIZE, config.UI_AZ_MNIST_DIGITS_SIZE)
             self.digits[i] = the_digit
             self.digits_chance[i] = digit_lbl
@@ -80,36 +81,73 @@ class PageMNIST(QtWidgets.QWidget):
 
         self.tempPB = QtWidgets.QPushButton("Temp")
 
-
         grid_layout = QtWidgets.QGridLayout()
         self.platform_label = QtWidgets.QLabel(self.tr("Platform"))
 
-        self.epoch_label = QtWidgets.QLabel(self.tr("Platform"))
+        self.epoch_label = QtWidgets.QLabel(self.tr("Epoch"))
 
-        self.activ_func_label = QtWidgets.QLabel(self.tr("Platform"))
+        self.activ_func_label = QtWidgets.QLabel(self.tr("Activation function"))
 
-        self.number_of_layers_label = QtWidgets.QLabel(self.tr("Platform"))
+        self.number_of_layers_label = QtWidgets.QLabel(self.tr("Layers number"))
 
-        self.using_dataset_label = QtWidgets.QLabel(self.tr("Platform"))
-
+        self.using_dataset_label = QtWidgets.QLabel(self.tr("Percentage of usage"))
 
         # Итоговая сборка
-        layout.addLayout(h_layout)
+        v_layout = QtWidgets.QVBoxLayout()
+        v_layout.addLayout(h_layout)  # компонуем рисовальщика, предпросмотр
+        v_layout.addLayout(h_layout2)  # и результат расчёта
+        h_layout3 = QtWidgets.QHBoxLayout()
+        h_layout3.addLayout(v_layout)
+        h_layout3.addWidget(self.info)
+        layout.addLayout(h_layout3)
         layout.addWidget(self.tempPB)
-        layout.addLayout(h_layout2)
         layout.addStretch(1)
 
         # Изменение цвета шрифта в зависимости от темы
         self.update_font_color()
         # Соединения
         self.draw28x28.signal_draw.connect(self.preview_show)
-        self.tempPB.clicked.connect(self.run_neural_network)  # TODO: delete
+        self.tempPB.clicked.connect(self.on_clicked)  # TODO: delete
+        self.signal_info.connect(self.add_message_info)
+
+        # поток QThread
+        self.mnist_worker = MNISTWorker()  # экземпляр потока
+        self.mnist_worker.started.connect(self.mnist_on_started)  # начало работы
+        self.mnist_worker.finished.connect(self.mnist_on_finished)  # завершение работы
+        # сигнал mnist_worker'a о текущих действиях
+        self.mnist_worker.signal_message.connect(self.mnist_on_change, QtCore.Qt.ConnectionType.QueuedConnection)
+
+    @QtCore.pyqtSlot()
+    def on_clicked(self):
+        self.tempPB.setDisabled(True)  # Делаем кнопку неактивной
+        self.mnist_worker.start()  # Запускаем поток
+
+    @QtCore.pyqtSlot()
+    def mnist_on_started(self):  # Вызывается при запуске потока
+        self.signal_info.emit("Вызван метод on_started ()")
+
+    @QtCore.pyqtSlot()
+    def mnist_on_finished(self):  # Вызывается при завершении потока
+        self.signal_info.emit("Вызван метод on_finished()")
+        self.tempPB.setDisabled(False)  # Делаем кнопку активной
+
+    @QtCore.pyqtSlot(str)
+    def mnist_on_change(self, s):
+        self.signal_info.emit(s)
+
+    @QtCore.pyqtSlot(str)
+    def add_message_info(self, message):  # передача информации в лог
+        current_time = datetime.now().time().strftime("%H:%M:%S")
+        message = current_time + ": " + message
+        self.info.setPlainText(self.info.toPlainText() + message + "\n")
 
     def update_font_color(self):
         if self.palette().color(QtGui.QPalette.Window).lightness() > 128:
-            print("light")
+            pass
+            # print("light")
         else:
-            print("dark")
+            pass
+            # print("dark")
 
     def preview_show(self, pixmap):  # пикселизация нарисованного объекта
         the28x28 = pixmap.scaled(28, 28, QtCore.Qt.KeepAspectRatio, QtCore.Qt.TransformationMode.SmoothTransformation)
@@ -143,84 +181,6 @@ class PageMNIST(QtWidgets.QWidget):
         # self.gb_draw.setToolTip(self.tr('Left click to draw, right click to clear'))
         # self.gb_draw.setTitle(self.tr('Draw'))
         # self.gb_preview.setTitle(self.tr('Preview'))
-
-    def run_neural_network(self):
-
-        # import matplotlib.pyplot as plt
-        images, labels = load_dataset(self.settings.read_dataset_mnist())
-        if images is None:
-            self.signal_message.emit(self.tr("MNIST file not found, check for source data."))
-            return
-        weights_input_to_hidden = np.random.uniform(-0.5, 0.5, (20, 784))
-        weights_hidden_to_output = np.random.uniform(-0.5, 0.5, (10, 20))
-        bias_input_to_hidden = np.zeros((20, 1))
-        bias_hidden_to_output = np.zeros((10, 1))
-
-        epochs = 3
-        e_loss = 0
-        e_correct = 0
-        learning_rate = 0.01
-
-        for epoch in range(epochs):
-            print(f"Epoch #{epoch}")
-
-            for image, label in zip(images, labels):
-                image = np.reshape(image, (-1, 1))
-                label = np.reshape(label, (-1, 1))
-
-                # Forward propagation (to hidden layer)
-                hidden_raw = bias_input_to_hidden + weights_input_to_hidden @ image
-                hidden = 1 / (1 + np.exp(-hidden_raw))  # sigmoid
-
-                # Forward propagation (to output layer)
-                output_raw = bias_hidden_to_output + weights_hidden_to_output @ hidden
-                output = 1 / (1 + np.exp(-output_raw))
-
-                # Loss / Error calculation
-                e_loss += 1 / len(output) * np.sum((output - label) ** 2, axis=0)
-                e_correct += int(np.argmax(output) == np.argmax(label))
-
-                # Backpropagation (output layer)
-                delta_output = output - label
-                weights_hidden_to_output += -learning_rate * delta_output @ np.transpose(hidden)
-                bias_hidden_to_output += -learning_rate * delta_output
-
-                # Backpropagation (hidden layer)
-                delta_hidden = np.transpose(weights_hidden_to_output) @ delta_output * (hidden * (1 - hidden))
-                weights_input_to_hidden += -learning_rate * delta_hidden @ np.transpose(image)
-                bias_input_to_hidden += -learning_rate * delta_hidden
-
-            # DONE
-
-            # print some debug info between epochs
-            print(f"Loss: {round((e_loss[0] / images.shape[0]) * 100, 3)}%")
-            print(f"Accuracy: {round((e_correct / images.shape[0]) * 100, 3)}%")
-            e_loss = 0
-            e_correct = 0
-
-        # CHECK CUSTOM
-        test_image = plt.imread("custom.jpg", format="jpeg")
-
-        # Grayscale + Unit RGB + inverse colors
-        gray = lambda rgb: np.dot(rgb[..., :3], [0.299, 0.587, 0.114])
-        test_image = 1 - (gray(test_image).astype("float32") / 255)
-
-        # Reshape
-        test_image = np.reshape(test_image, (test_image.shape[0] * test_image.shape[1]))
-
-        # Predict
-        image = np.reshape(test_image, (-1, 1))
-
-        # Forward propagation (to hidden layer)
-        hidden_raw = bias_input_to_hidden + weights_input_to_hidden @ image
-        hidden = 1 / (1 + np.exp(-hidden_raw))  # sigmoid
-        # Forward propagation (to output layer)
-        output_raw = bias_hidden_to_output + weights_hidden_to_output @ hidden
-        output = 1 / (1 + np.exp(-output_raw))
-
-        # plt.imshow(test_image.reshape(28, 28), cmap="Greys")
-        # plt.title(f"NN suggests the CUSTOM number is: {output.argmax()}")
-        # plt.show()
 
 
 class AzCanvas(QtWidgets.QLabel):
@@ -424,18 +384,90 @@ class RoundProgressbar(QtWidgets.QWidget):
 
 
 class MNISTWorker(QtCore.QThread):
+    signal_message = QtCore.pyqtSignal(str)
 
-    def __init__(self, project_data, export_dir, format='yolo_seg', export_map=None, dataset_name='dataset',
-                 variant_idx=0, splits=None, split_method='names', sim=0,
-                 is_filter_null=False, new_image_size=None):
-        """
-        variant_idx = 0 Train/Val/Test
-        1 - Train/Val
-        2 - Only Train
-        3 - Only Val
-        4 - Only Test
-        """
+    def __init__(self, parent=None):
+        super(MNISTWorker, self).__init__()
+        #QtCore.QThread.__init__(self, parent)
+        self.settings = AppSettings()
 
+    def run(self):
+        self.signal_message.emit("Приступаю к загрузке")
+        images, labels = load_dataset(self.settings.read_dataset_mnist())
+        if images is None:
+            self.signal_message.emit(self.tr("MNIST file not found, check for source data."))
+            return
+        weights_input_to_hidden = np.random.uniform(-0.5, 0.5, (20, 784))
+        weights_hidden_to_output = np.random.uniform(-0.5, 0.5, (10, 20))
+        bias_input_to_hidden = np.zeros((20, 1))
+        bias_hidden_to_output = np.zeros((10, 1))
+
+        epochs = 3
+        e_loss = 0
+        e_correct = 0
+        learning_rate = 0.01
+
+        for epoch in range(epochs):
+            self.signal_message.emit(f"Epoch #{epoch}")
+
+            for image, label in zip(images, labels):
+                image = np.reshape(image, (-1, 1))
+                label = np.reshape(label, (-1, 1))
+
+                # Forward propagation (to hidden layer)
+                hidden_raw = bias_input_to_hidden + weights_input_to_hidden @ image
+                hidden = 1 / (1 + np.exp(-hidden_raw))  # sigmoid
+
+                # Forward propagation (to output layer)
+                output_raw = bias_hidden_to_output + weights_hidden_to_output @ hidden
+                output = 1 / (1 + np.exp(-output_raw))
+
+                # Loss / Error calculation
+                e_loss += 1 / len(output) * np.sum((output - label) ** 2, axis=0)
+                e_correct += int(np.argmax(output) == np.argmax(label))
+
+                # Backpropagation (output layer)
+                delta_output = output - label
+                weights_hidden_to_output += -learning_rate * delta_output @ np.transpose(hidden)
+                bias_hidden_to_output += -learning_rate * delta_output
+
+                # Backpropagation (hidden layer)
+                delta_hidden = np.transpose(weights_hidden_to_output) @ delta_output * (hidden * (1 - hidden))
+                weights_input_to_hidden += -learning_rate * delta_hidden @ np.transpose(image)
+                bias_input_to_hidden += -learning_rate * delta_hidden
+
+            # DONE
+
+            # print some debug info between epochs
+            self.signal_message.emit(f"Loss: {round((e_loss[0] / images.shape[0]) * 100, 3)}%")
+            self.signal_message.emit(f"Accuracy: {round((e_correct / images.shape[0]) * 100, 3)}%")
+            e_loss = 0
+            e_correct = 0
+
+        return
+        # CHECK CUSTOM
+        test_image = plt.imread("custom.jpg", format="jpeg")
+
+        # Grayscale + Unit RGB + inverse colors
+        gray = lambda rgb: np.dot(rgb[..., :3], [0.299, 0.587, 0.114])
+        test_image = 1 - (gray(test_image).astype("float32") / 255)
+
+        # Reshape
+        test_image = np.reshape(test_image, (test_image.shape[0] * test_image.shape[1]))
+
+        # Predict
+        image = np.reshape(test_image, (-1, 1))
+
+        # Forward propagation (to hidden layer)
+        hidden_raw = bias_input_to_hidden + weights_input_to_hidden @ image
+        hidden = 1 / (1 + np.exp(-hidden_raw))  # sigmoid
+        # Forward propagation (to output layer)
+        output_raw = bias_hidden_to_output + weights_hidden_to_output @ hidden
+        output = 1 / (1 + np.exp(-output_raw))
+
+        # plt.imshow(test_image.reshape(28, 28), cmap="Greys")
+        # plt.title(f"NN suggests the CUSTOM number is: {output.argmax()}")
+        # plt.show()
 
 
 def load_dataset(path):
@@ -457,7 +489,6 @@ def load_dataset(path):
         y_train = np.eye(10)[y_train]
 
         return x_train, y_train
-
 
 
 def pixelate_rgb(img, window):

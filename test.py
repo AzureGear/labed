@@ -1,324 +1,147 @@
 # ----------------------------------------------------------------------------------------------------------------------
-# from PyQt5.QtCore import Qt, pyqtSlot, pyqtProperty
-# from PyQt5.QtGui import QPainter, QColor, QPen, QBrush
-# from PyQt5.QtWidgets import QApplication, QWidget, QSlider, QPushButton, QCheckBox, QSpinBox, QColorDialog, \
-#     QHBoxLayout, QVBoxLayout
-#
-#
-# class RoundProgressbar(QWidget):
-#     def __init__(
-#             self,
-#             parent=None,
-#             color: QColor = QColor(170, 0, 255),
-#             size: int = 100,
-#             thickness: int = 10,
-#             value: int = 24,
-#             maximum: int = 100,
-#             round_edge: bool = False,
-#             bg_circle_color: QColor = QColor(0, 0, 0, 0),
-#             fill_bg_circle: bool = False
-#     ):
-#         if parent is not None:
-#             super().__init__(parent=parent)
-#         elif parent is None:
-#             super().__init__()
-#         self._circular_size = size
-#         self._thickness = thickness
-#         self.resize(self._circular_size + (self._thickness * 2), self._circular_size + (self._thickness * 2))
-#         self._color = color
-#         self._maximum = maximum
-#         self._value = value
-#         self._alen = (self._value / self._maximum) * 360
-#         self._a = -(self._alen - 90)
-#         self._round_edge = round_edge
-#         self._bg_circle_color = bg_circle_color
-#         self._fill_bg_circle = fill_bg_circle
-#
-#     def paintEvent(self, paint_event):
-#         painter = QPainter()
-#         painter.begin(self)
-#         painter.setRenderHint(QPainter.Antialiasing)
-#         painter.setPen(QPen(self._bg_circle_color, self._thickness - 1, Qt.SolidLine))
-#         if self._fill_bg_circle:
-#             painter.setBrush(QBrush(self._bg_circle_color, Qt.SolidPattern))
-#         elif not self._fill_bg_circle:
-#             painter.setBrush(Qt.NoBrush)
-#         painter.drawEllipse(self._thickness, self._thickness, self._circular_size, self._circular_size)
-#         if self._round_edge:
-#             painter.setPen(QPen(self._color, self._thickness, Qt.SolidLine, Qt.RoundCap))
-#         elif not self._round_edge:
-#             painter.setPen(QPen(self._color, self._thickness, Qt.SolidLine, Qt.FlatCap))
-#         painter.setBrush(Qt.NoBrush)
-#         painter.drawArc(
-#             self._thickness,
-#             self._thickness,
-#             self._circular_size,
-#             self._circular_size,
-#             self._a * 16,
-#             self._alen * 16
-#         )
-#         painter.end()
-#
-#     def resizeEvent(self, event):
-#         super().resizeEvent(event)
-#         self._circular_size = (self.width() - (self._thickness * 2)) if self.width() < self.height() else (
-#                 self.height() - (self._thickness * 2))
-#
-#     def get_value(self):
-#         return self._value
-#
-#     @pyqtSlot(int)
-#     def set_value(self, value: int):
-#         self._value = value
-#         self._alen = (self._value / self._maximum) * 360
-#         self._a = -(self._alen - 90)
-#         self.update()
-#
-#     value = pyqtProperty(int, get_value, set_value)
-#
-#     def get_maximum(self):
-#         return self._maximum
-#
-#     @pyqtSlot(int)
-#     def set_maximum(self, value: int):
-#         self._maximum = value
-#         self._alen = (self._value / self._maximum) * 360
-#         self._a = -(self._alen - 90)
-#         self.update()
-#
-#     maximum = pyqtProperty(int, get_maximum, set_maximum)
-#
-#     def get_thickness(self):
-#         return self._thickness
-#
-#     @pyqtSlot(int)
-#     def set_thickness(self, value: int):
-#         self._thickness = value
-#         self._circular_size = (self.width() - (self._thickness * 2)) if self.width() < self.height() else (
-#                 self.height() - (self._thickness * 2))
-#         self.update()
-#
-#     thickness = pyqtProperty(int, get_thickness, set_thickness)
-#
-#     def get_color(self):
-#         return self._color
-#
-#     @pyqtSlot(QColor)
-#     def set_color(self, color: QColor):
-#         self._color = color
-#         self.update()
-#
-#     color = pyqtProperty(QColor, get_color, set_color)
-#
-#     def get_bg_circle_color(self):
-#         return self._bg_circle_color
-#
-#     @pyqtSlot(QColor)
-#     def set_bg_circle_color(self, color: QColor):
-#         self._bg_circle_color = color
-#         self.update()
-#
-#     background_circle_color = pyqtProperty(QColor, get_bg_circle_color, set_bg_circle_color)
-#
-#     def get_round_edge(self):
-#         return self._round_edge
-#
-#     @pyqtSlot(bool)
-#     def set_round_edge(self, value: bool):
-#         self._round_edge = value
-#         self.update()
-#
-#     round_edge = pyqtProperty(bool, get_round_edge, set_round_edge)
-#
-#     def get_fill_bg_circle(self):
-#         return self._fill_bg_circle
-#
-#     @pyqtSlot(bool)
-#     def set_fill_bg_circle(self, value: bool):
-#         self._fill_bg_circle = value
-#         self.update()
-#
-#     fill_background_circle = pyqtProperty(bool, get_fill_bg_circle, set_fill_bg_circle)
-#
-#
-# class Form(QWidget):
-#     def __init__(self):
-#         super().__init__()
-#         # VVVV
-#         self.resize(300, 300)
-#         self.progressbar = RoundProgressbar()
-#         self.vertical_box = QVBoxLayout(self)
-#         self.vertical_box.addWidget(self.progressbar)
-#         self.show()
-#
-#         # /\ /\
-#
-#     #     self.init_ui()
-#     #
-#     # def init_ui(self):
-#     #     # self.resize(600, 400)
-#     #     self.setWindowTitle("Round Progress Bar")
-#     #     self.progressbar = RoundProgressbar()
-#     #     # self.progressbar.resize(120, 120)
-#     #     # self.slider = QSlider(Qt.Horizontal)
-#     #     # self.slider.setMinimum(0)
-#     #     # self.slider.setMaximum(100)
-#     #     # self.slider.setValue(self.progressbar.get_value())
-#     #     # self.slider.setToolTip("This slider sets the progress bar value")
-#     #     # self.slider.valueChanged.connect(lambda: self.progressbar.set_value(self.slider.value()))
-#     #     # self.thickness_spinbox = QSpinBox()
-#     #     # self.thickness_spinbox.setValue(self.progressbar.thickness)
-#     #     # self.thickness_spinbox.setToolTip("This number defines the progress bar thickness")
-#     #     # self.thickness_spinbox.valueChanged.connect(
-#     #     #     lambda: self.progressbar.set_thickness(self.thickness_spinbox.value()))
-#     #     # self.round_edge_checkbox = QCheckBox("Round edge")
-#     #     # self.round_edge_checkbox.setToolTip("Leaving this option checked, will make the progress bar edges round")
-#     #     # self.round_edge_checkbox.clicked.connect(lambda: self.progressbar.set_round_edge(
-#     #     #     True) if self.round_edge_checkbox.isChecked() else self.progressbar.set_round_edge(False))
-#     #     # self.change_color_button = QPushButton("Change color")
-#     #     # self.change_color_button.setToolTip("Select a color for the progress bar")
-#     #     # self.change_color_button.clicked.connect(lambda: self.open_dialog(self.progressbar, 0))
-#     #     # self.change_bg_circle_color_button = QPushButton("Change background circle color")
-#     #     # self.change_bg_circle_color_button.setToolTip("Select a color for the progress bar background")
-#     #     # self.change_bg_circle_color_button.clicked.connect(lambda: self.open_dialog(self.progressbar, 1))
-#     #     # self.fill_bg_circle_checkbox = QCheckBox("Fill background circle center")
-#     #     # self.fill_bg_circle_checkbox.setToolTip(
-#     #     #     "Leaving this option checked, will fill the background of the progress bar"
-#     #     # )
-#     #     # self.fill_bg_circle_checkbox.clicked.connect(lambda: self.progressbar.set_fill_bg_circle(
-#     #     #     True) if self.fill_bg_circle_checkbox.isChecked() else self.progressbar.set_fill_bg_circle(False))
-#     #     self.vertical_box = QVBoxLayout(self)
-#     #     self.vertical_box.addWidget(self.progressbar)
-#     #     # self.vertical_box.addWidget(self.slider)
-#     #     # self.vertical_box.addWidget(self.thickness_spinbox)
-#     #     # self.vertical_box.addWidget(self.round_edge_checkbox)
-#     #     # self.vertical_box.addWidget(self.change_color_button)
-#     #     # self.vertical_box.addWidget(self.change_bg_circle_color_button)
-#     #     # self.vertical_box.addWidget(self.fill_bg_circle_checkbox)
-#     #     # self.main_horizontal_box = QHBoxLayout()
-#     #     # self.main_horizontal_box.addLayout(self.vertical_box)
-#     #     # self.setLayout(self.main_horizontal_box)
-#     #     self.show()
-#
-#     def open_dialog(self, widget, color_index):
-#         color = QColorDialog.getColor(
-#             initial=widget._color if color_index == 0 else widget._bg_circle_color,
-#             options=QColorDialog.ShowAlphaChannel
-#         )
-#         if color.isValid():
-#             if color_index == 0:
-#                 widget.set_color(color)
-#             elif color_index == 1:
-#                 widget.set_bg_circle_color(color)
-#
-#
-# import sys
-#
-# app = QApplication(sys.argv)
-# form = Form()
-# sys.exit(app.exec_())
+
 
 # ----------------------------------------------------------------------------------------------------------------------
-from PyQt5 import QtWidgets, QtGui, QtCore
 import sys
+from PyQt5 import QtWidgets
+from PyQt5.QtWidgets import QApplication, QMainWindow, QAbstractItemView
+from PyQt5.uic import loadUi
+from PyQt5.QtCore import QAbstractTableModel, Qt, QModelIndex
 
-class MyApp(QtWidgets.QWidget):
+class CustomTableModel(QAbstractTableModel):
+    def __init__(self, data, parent=None):
+        QAbstractTableModel.__init__(self, parent)
+        self._data = data
+
+    def rowCount(self, parent=QModelIndex()):
+        return len(self._data)
+
+    def columnCount(self, parent=QModelIndex()):
+        if self._data:
+            return len(self._data[0])
+        else:
+            return 0
+
+    def data(self, index, role=Qt.DisplayRole):
+        if index.isValid() and role == Qt.DisplayRole:
+            return self._data[index.row()][index.column()]
+        return None
+
+class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.tableView = QtWidgets.QTableView()
+        data = [
+            ["Item 1", "Description 1", "Category 1"],
+            ["Item 2", "Description 2", "Category 2"],
+            ["Item 3", "Description 3", "Category 3"],
+            ["Item 4", "Description 4", "Category 4"],
+            ["Item 5", "Description 5", "Category 5"],
+            ["Item 6", "Description 6", "Category 6"],
+            ["Item 7", "Description 7", "Category 7"],
+            ["Item 8", "Description 8", "Category 8"],
+        ]
 
-        self.initUI()
+        table_model = CustomTableModel(data)
+        self.tableView.setModel(table_model)
 
-    def initUI(self):
-        self.layout = QtWidgets.QVBoxLayout(self)
-        self.layout.setContentsMargins(10, 10, 10, 10)
-        self.layout.setSpacing(10)
-        self.layout.setStyleSheet("border: 2px solid black;")
+        # Set selection behavior and selection mode
+        self.tableView.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.tableView.setSelectionMode(QAbstractItemView.SingleSelection)
 
-        for i in range(3):
-            button = QtWidgets.QPushButton(f"Button {i+1}", self)
-            self.layout.addWidget(button)
+        self.setCentralWidget(self.tableView)
 
 if __name__ == "__main__":
-    app = QtWidgets.QApplication(sys.argv)
-
-    ex = MyApp()
-    ex.show()
-
+    app = QApplication(sys.argv)
+    main_window = MainWindow()
+    main_window.show()
     sys.exit(app.exec_())
+# ----------------------------------------------------------------------------------------------------------------------
+# from PyQt5 import QtWidgets, QtGui, QtCore
+# import sys
+#
+# class MyApp(QtWidgets.QWidget):
+#     def __init__(self):
+#         super().__init__()
+#
+#         self.initUI()
+#
+#     def initUI(self):
+#         self.layout = QtWidgets.QVBoxLayout(self)
+#         self.layout.setContentsMargins(10, 10, 10, 10)
+#         self.layout.setSpacing(10)
+#         self.layout.setStyleSheet("border: 2px solid black;")
+#
+#         for i in range(3):
+#             button = QtWidgets.QPushButton(f"Button {i+1}", self)
+#             self.layout.addWidget(button)
+#
+# if __name__ == "__main__":
+#     app = QtWidgets.QApplication(sys.argv)
+#
+#     ex = MyApp()
+#     ex.show()
+#
+#     sys.exit(app.exec_())
 
 # ----------------------------------------------------------------------------------------------------------------------
+# from PyQt5 import QtCore, QtWidgets
+#
+#
+# class MyThread(QtCore.QThread):
+#     mysignal = QtCore.pyqtSignal(str)
+#
+#     def __init__(self, parent=None):
+#         QtCore.QThread.__init__(self, parent)
+#
+#     def run(self):
+#         for i in range(1, 21):
+#             self.sleep(3)  # "Засыпаем" на 3 секунды
+#             # Передача данных из потока через сигнал
+#             self.mysignal.emit("i = %s" % i)
+#
+#
+# class MyWindow(QtWidgets.QWidget):
+#     def __init__(self, parent=None):
+#         QtWidgets.QWidget.__init__(self, parent)
+#         self.label = QtWidgets.QLabel("Нажмите кнопку для запуска потока")
+#         self.label.setAlignment(QtCore.Qt.AlignHCenter)
+#         self.button = QtWidgets.QPushButton("Запустить процесс")
+#         self.vbox = QtWidgets.QVBoxLayout()
+#         self.vbox.addWidget(self.label)
+#         self.vbox.addWidget(self.button)
+#         self.setLayout(self.vbox)
+#         self.mythread = MyThread()  # Создаем экземпляр класса
+#         self.button.clicked.connect(self.on_clicked)
+#         self.mythread.started.connect(self.on_started)
+#         self.mythread.finished.connect(self.on_finished)
+#         self.mythread.mysignal.connect(self.on_change, QtCore.Qt.QueuedConnection)
+#
+#     def on_clicked(self):
+#         self.button.setDisabled(True)  # Делаем кнопку неактивной
+#         self.mythread.start()  # Запускаем поток
+#
+#     def on_started(self):  # Вызывается при запуске потока
+#         self.label.setText("Вызван метод on_started ()")
+#
+#     def on_finished(self):  # Вызывается при завершении потока
+#         self.label.setText("Вызван метод on_finished()")
+#         self.button.setDisabled(False)  # Делаем кнопку активной
+#
+#     def on_change(self, s):
+#         self.label.setText(s)
+#
+#
+# if __name__ == "__main__":
+#     import sys
+#
+#     app = QtWidgets.QApplication(sys.argv)
+#     window = MyWindow()
+#     window.setWindowTitle("Использование класса QThread")
+#     window.resize(300, 70)
+#     window.show()
+#     sys.exit(app.exec_())
 
-# ----------------------------------------------------------------------------------------------------------------------
-
-# ----------------------------------------------------------------------------------------------------------------------
-#
-#
-# class AzInputDialog(QtWidgets.QWidget):
-#     def __init__(self, parent, num_rows, labels, window_title, has_ok=True, has_cancel=True, ok_text="OK",
-#                  cancel_text="Cancel"):
-#
-#         super().__init__(parent)
-#
-#         self.data = None  # результат
-#         self.line_edits = []
-#         self.num_rows = num_rows
-#
-#
-#         self.setWindowTitle(window_title)
-#         self.setWindowFlag(QtCore.Qt.Tool)
-#
-#
-#         form_layout = QtWidgets.QFormLayout()
-#         for i in range(num_rows):
-#             label = QtWidgets.QLabel(labels[i])
-#             line_edit = QtWidgets.QLineEdit()
-#             form_layout.addRow(label, line_edit)
-#             self.line_edits.append(line_edit)
-#
-#
-#         self.ok_button = QtWidgets.QPushButton(ok_text, self)
-#         self.cancel_button = QtWidgets.QPushButton(cancel_text, self)
-#         # соединяем сигналы
-#         if has_ok:
-#             self.ok_button.clicked.connect(self.finish)
-#         if has_cancel:
-#             self.cancel_button.clicked.connect(self.close)
-#
-#         # ...и компоновка
-#         h_layout = QtWidgets.QHBoxLayout()
-#         # h_layout.addStretch(1)
-#         if has_ok:
-#             h_layout.addWidget(self.ok_button)
-#         if has_cancel:
-#             h_layout.addWidget(self.cancel_button)
-#         # layout.addWidget(button_box)
-#         layout = QtWidgets.QVBoxLayout()
-#         layout.addLayout(form_layout)
-#         layout.addLayout(h_layout)
-#         self.setLayout(layout)
-#
-#     def finish(self):  # переопределяем запуск диалога
-#         self.data = [line_edit.text() for line_edit in self.line_edits]
-#         self.close()
-
-# def showEvent(self, event):
-#     # Устанавливаем фокус на первое поле ввода
-#     if self.num_rows > 0:
-#         self.line_edits[0].setFocus()
-#     #super().showEvent(event)
-# ----------------------------------------------------------------------------------------------------------------------
-
-# def tab_geometry_setup(self):  # настройка страницы "Геометрия"
-#     self.ui_tab_geometry = self.tab_basic_setup()
-#
-#
-# def tab_basic_setup(self, complex=False):  # базовая настройка каждой страницы QTabWidget
-#     if complex:
-#         widget = QtWidgets.QMainWindow()
-#     else:
-#         widget = QtWidgets.QWidget()
-#         widget.layout = QtWidgets.QVBoxLayout(widget)  # не забываем указать ссылку на объект
-#     return widget
 # ----------------------------------------------------------------------------------------------------------------------
 # import sys
 # from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout
@@ -673,111 +496,6 @@ if __name__ == "__main__":
 
 # ----------------------------------------------------------------------------------------------------------------------
 
-# import sys
-# from PyQt5.QtWidgets import QApplication, QMainWindow
-# from PyQt5.QtGui import QPainter, QPainterPath
-# from PyQt5.QtCore import QSize
-# from PyQt5 import QtCore, QtGui, QtWidgets
-# from random import randint
-#
-# ded = [
-#     [(140, 140), (570, 525)],
-#     [(20, 20), (350, 525), (100, 300), (20, 20)],
-#     [(50, 50), (280, 175), (150, 240)],
-#     [(80, 80), (210, 225), (300, 300), (340, 40)],
-#     [(510, 110), (340, 275), (490, 390), (510, 110)]]
-#
-#
-# class GraphicsView(QtWidgets.QGraphicsView):
-#     def __init__(self, parent=None):
-#         super(GraphicsView, self).__init__(parent)
-#         self.setScene(QtWidgets.QGraphicsScene(self))
-#         self.resize(1000, 600)
-#
-#         self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
-#         self.setResizeAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
-#         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-#         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-#         self.setBackgroundBrush(QtGui.QBrush(QtGui.QColor(30, 30, 30)))
-#         self.setFrameShape(QtWidgets.QFrame.NoFrame)
-#
-#     def wheelEvent(self, event):
-#         """ Увеличение или уменьшение масштаба. """
-#         zoomInFactor = 1.25
-#         zoomOutFactor = 1 / zoomInFactor
-#
-#         # Save the scene pos
-#         oldPos = self.mapToScene(event.pos())
-#
-#         # Zoom
-#         if event.angleDelta().y() > 0:
-#             zoomFactor = zoomInFactor
-#         else:
-#             zoomFactor = zoomOutFactor
-#         self.scale(zoomFactor, zoomFactor)
-#
-#         # Get the new position
-#         newPos = self.mapToScene(event.pos())
-#
-#         # Move scene to old position
-#         delta = newPos - oldPos
-#         self.translate(delta.x(), delta.y())
-#
-#
-# class MainWindow(QMainWindow):
-#     def __init__(self):
-#         super().__init__()
-#         self.initUI()
-#
-#         self.w = GraphicsView(self)
-#         image = QtGui.QPixmap("test.jpg")
-#         self.pic = QtWidgets.QGraphicsPixmapItem()
-#         self.pic.setPixmap(image)
-#         self.w.scene().addItem(self.pic)
-#         self.drawLine()
-#         # self.pixmap_item.setPixmap(pixmap)
-#
-#     def initUI(self):
-#         self.setMinimumSize(QSize(200, 200))
-#         self.resize(1000, 600)
-#
-#     #    def paintEvent(self, e):
-#     #        qp = QPainter()
-#     #        qp.begin(self)
-#     #        qp.setRenderHint(QPainter.Antialiasing)
-#     #        self.drawLine(qp)
-#     #        qp.end()
-#
-#     def drawLine(self, qp=None):  # + =None
-#         path = QPainterPath()
-#
-#         def draw_trajectory(line):
-#             for i, (x, y) in enumerate(line):
-#                 if i == 0:
-#                     path.moveTo(x, y)
-#                 else:
-#                     path.lineTo(x, y)
-#
-#         for line in ded:
-#             draw_trajectory(line)
-#
-#             #            qp.drawPath(path)
-#
-#             self.w.scene().addPath(  # +++
-#                 path,
-#                 QtGui.QPen(QtGui.QColor(230, 230, 230)),
-#                 QtGui.QBrush(QtGui.QColor(*[randint(0, 255) for _ in range(4)]))
-#             )
-#
-#
-# if __name__ == '__main__':
-#     app = QApplication(sys.argv)
-#     w = MainWindow()
-#     w.show()
-#     sys.exit(app.exec_())
-
-# ----------------------------------------------------------------------------------------------------------------------
-
 # # Автоматическое изменение размера картинки автомасштабирование
 # from PyQt5.Qt import *
 #
@@ -842,6 +560,7 @@ if __name__ == "__main__":
 #     sys.exit(app.exec_())
 
 # ----------------------------------------------------------------------------------------------------------------------
+
 # # Разница между сигналами в pySide и PyQt5
 # # my_custom_signal = pyqtSignal()  # PyQt5
 # my_custom_signal = Signal()  # PySide2
@@ -894,24 +613,7 @@ if __name__ == "__main__":
 # layout.addWidget(graphicView)
 #
 # ----------------------------------------------------------------------------------------------------------------------
-#
-# def show_image(self, to_right: bool = True):
-#     filename = None
-#     if len(self.image_list) <= 0:
-#         return
-#     if self.current_file is None:  # ни разу после загрузки датасета не выбирался файл
-#         filename = self.image_list[0]  # значит ставим первый
-#     else:
-#         index = self.image_list.index(self.current_file)
-#         if not to_right:
-#             if index - 1 >= 0:
-#                 filename = self.image_list[index - 1]
-#         else:
-#             if index + 1 < len(self.image_list):
-#                 filename = self.image_list[index + 1]
-#         self.files_list.setCurrentRow()
-# ------------------------------------
-#
+
 # import sys
 # from PyQt5.Qt import *
 #
@@ -976,49 +678,14 @@ if __name__ == "__main__":
 #     demo.show()
 #     sys.exit(app.exec_())
 
-# ================================================================================================
+# ----------------------------------------------------------------------------------------------------------------------
+
 # try:
 #  обычный код
 # except KeyboardInterrupt:
 #  код при завершении програмы через ctrl + c
 
-# class AzAction(QtWidgets.QAction):  # действие с переменой цвета иконки, когда она активна
-#     def __init__(self, text, icon, icon_checked, parent=None):
-#         super().__init__(newIcon(icon), text, parent)
-#         self.icon_default = newIcon(icon)
-#         self.icon_activate = newIcon(icon_checked)
-#         self.setCheckable(True)
-#         self.toggled.connect(self.tog1)
-#
-#     def toggle(self):
-#         pass
-#
-#     def tog1(self):
-#         if self.isChecked():
-#             self.setIcon(self.icon_activate)
-#         else:
-#             self.setIcon(self.icon_default)
-
-# /*QTabWidget::tab-bar {
-#     left: 13px;
-# }
-#
-# QTabBar::tab {
-#   background: rgb(230, 230, 230);
-#   border: 1px solid lightgray;
-# }
-#
-# QTabBar::tab:selected {
-#   font: bold;
-#   background: rgb(245, 245, 245);
-#   margin-bottom: -4px;
-# }
-#
-# QTabWidget::pane {
-#    border: none;
-# }*/
-
-
+# ----------------------------------------------------------------------------------------------------------------------
 # if __name__ == '__main__':
 #     import sys
 #
@@ -1034,15 +701,16 @@ if __name__ == "__main__":
 #     toolBox.show()
 #     sys.exit(app.exec())
 
-#####################################################
-# Полезное!
+# ----------------------------------------------------------------------------------------------------------------------
+
+
 # tab_widget.setStyleSheet('background: rgb(%d, %d, %d); margin: 1px; font-size: 14px;'
 #                                  % (randint(244, 255), randint(244, 255), randint(244, 255)))
 # style = current_folder + "/tabwidget.qss"
 # with open(style, "r") as fh:
 #     self.setStyleSheet(fh.read())
 
-#####################################################
+# ----------------------------------------------------------------------------------------------------------------------
 
 # from functools import partial
 # def add(x, y):
@@ -1052,100 +720,15 @@ if __name__ == "__main__":
 #     function = partial(add, i)  # делаем функцию (1+y), (2+y) и т.д. до 10
 #     add_partials.append(function)  # добавляем модифицированную функцию к листу add_partials
 #     print('Sum of {} and 2 is {}'.format(i, add_partials[i - 1](2))) # вызываем функцию для при y = 2
-############################################################
+
+# ----------------------------------------------------------------------------------------------------------------------
+
 # colors = ('red', 'green', 'black', 'blue')
 # for i, color in enumerate(colors):
 #     self.tab_widget.addTab(QWidget(), 'Tab #{}'.format(i + 1))
 #     self.tab_widget.tabBar().setTabTextColor(i, QColor(color))
 
-#####################################################
-#
-# #!/usr/bin/python
-# # -*- coding: utf-8 -*-
-#
-# # Imports
-# # ------------------------------------------------------------------------------
-# import sys
-# from qdarktheme.qtpy.QtCore import QDir, Qt, Slot, QTranslator
-# from qdarktheme.qtpy.QtGui import QAction, QActionGroup, QCursor
-# from qdarktheme.qtpy.QtWidgets import QApplication, QGridLayout, QToolBar, QToolButton, QWidget, QMainWindow, \
-#     QStackedWidget, QListWidget, \
-#     QStatusBar, QMenuBar, QSizePolicy, QMessageBox, QLabel, QMenu
-# from utils import config
-# from PyQt5 import QtWidgets
-# from utils.settings_handler import AppSettings
-# import qdarktheme
-# from functools import partial
-#
-# class Person():
-#     def __init__(self, name="", age=None):
-#         self.name = name
-#         self.age = age
-#
-#     def getName(self):
-#         return self.name
-#
-# # Main Widget
-# # ------------------------------------------------------------------------------
-# class ExampleWidget(QWidget):
-#
-#     def __init__(self,):
-#         super(ExampleWidget, self).__init__()
-#
-#         self.initUI()
-#
-#
-#     def initUI(self):
-#         # formatting
-#         self.setWindowTitle("Example")
-#
-#         # context menu
-#         self.main_menu = QMenu()
-#
-#         self.sub_menu = QMenu("Great")
-#         self.main_menu.addMenu(self.sub_menu)
-#
-#
-#         names = ["Joe","Kevin","Amy","Doug","Jenny"]
-#
-#         # sub-menu
-#         for index, name in enumerate(names):
-#             fancyName = "%s - %s" % (index, name)
-#             action = self.sub_menu.addAction( fancyName )
-#             action.setData(Person(name=name))
-#             action.triggered.connect(partial(self.menu_action, action))
-#
-#         # widgets
-#         self.factionsList = QListWidget()
-#
-#         # signal
-#         self.factionsList.setContextMenuPolicy(Qt.CustomContextMenu)
-#         self.factionsList.customContextMenuRequested.connect(self.on_context_menu_factions)
-#
-#         # layout
-#         self.mainLayout = QGridLayout(self)
-#         self.mainLayout.addWidget(self.factionsList, 1, 0)
-#         self.show()
-#
-#     def menu_action(self, item):
-#         itmData = item.data()
-#         print(itmData.getName())
-#
-#
-#     def on_context_menu_factions(self, pos):
-#         self.main_menu.exec_(QCursor.pos() )
-#
-#
-# # Main
-# # ------------------------------------------------------------------------------
-# if __name__ == "__main__":
-#
-#     app = QApplication(sys.argv)
-#     ex = ExampleWidget()
-#     res = app.exec_()
-#     sys.exit(res)
-
-####################################################################
+# ----------------------------------------------------------------------------------------------------------------------
 
 # import sys
 # from PyQt5 import QtCore, QtGui, QtWidgets
@@ -1198,7 +781,47 @@ if __name__ == "__main__":
 #     demo = Demo()
 #     demo.show()
 #     sys.exit(app.exec_())
+
 # ----------------------------------------------------------------------------------------------------------------------
 # Отображение границы виджета
 # self.label_info.setFrameStyle(QtWidgets.QFrame.StyledPanel | QtWidgets.QFrame.Plain)
 # self.label_file_path.setFrameStyle(QtWidgets.QFrame.StyledPanel | QtWidgets.QFrame.Plain)
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# class _TableModel(QtCore.QAbstractTableModel):  # Реализация qdarktheme
+#     def __init__(self) -> None:
+#         super().__init__()
+#         self._data = [[i * 10 + j for j in range(4)] for i in range(5)]
+#
+#     def data(self, index: QtCore.QModelIndex, role: int):
+#         if role == QtCore.Qt.ItemDataRole.DisplayRole:
+#             return self._data[index.row()][index.column()]
+#         if role == QtCore.Qt.ItemDataRole.CheckStateRole and index.column() == 1:
+#             return QtCore.Qt.CheckState.Checked if index.row() % 2 == 0 else QtCore.Qt.CheckState.Unchecked
+#         if role == QtCore.Qt.ItemDataRole.EditRole and index.column() == 2:
+#             return self._data[index.row()][index.column()]  # pragma: no cover
+#         return None
+#
+#     def rowCount(self, index) -> int:  # noqa: N802
+#         return len(self._data)
+#
+#     def columnCount(self, index) -> int:  # noqa: N802
+#         return len(self._data[0])
+#
+#     def flags(self, index: QtCore.QModelIndex) -> QtCore.Qt.ItemFlag:
+#         flag = super().flags(index)
+#         if index.column() == 1:
+#             flag |= QtCore.Qt.ItemFlag.ItemIsUserCheckable
+#         elif index.column() in (2, 3):
+#             flag |= QtCore.Qt.ItemFlag.ItemIsEditable
+#         return flag  # type: ignore
+#
+#     def headerData(  # noqa: N802
+#             self, section: int, orientation: QtCore.Qt.Orientation, role: int = ...):
+#         if role != QtCore.Qt.ItemDataRole.DisplayRole:
+#             return None
+#         if orientation == QtCore.Qt.Orientation.Horizontal:
+#             return ["Normal", "Checkbox", "Spinbox", "LineEdit"][section]
+#         return section * 100
+# ----------------------------------------------------------------------------------------------------------------------

@@ -168,45 +168,6 @@ class AzAction(QtWidgets.QAction):
         else:
             self.setIcon(self.icon_default)
 
-
-# ----------------------------------------------------------------------------------------------------------------------
-class _TableModel(QtCore.QAbstractTableModel):  # Реализация qdarktheme
-    def __init__(self) -> None:
-        super().__init__()
-        self._data = [[i * 10 + j for j in range(4)] for i in range(5)]
-
-    def data(self, index: QtCore.QModelIndex, role: int):
-        if role == QtCore.Qt.ItemDataRole.DisplayRole:
-            return self._data[index.row()][index.column()]
-        if role == QtCore.Qt.ItemDataRole.CheckStateRole and index.column() == 1:
-            return QtCore.Qt.CheckState.Checked if index.row() % 2 == 0 else QtCore.Qt.CheckState.Unchecked
-        if role == QtCore.Qt.ItemDataRole.EditRole and index.column() == 2:
-            return self._data[index.row()][index.column()]  # pragma: no cover
-        return None
-
-    def rowCount(self, index) -> int:  # noqa: N802
-        return len(self._data)
-
-    def columnCount(self, index) -> int:  # noqa: N802
-        return len(self._data[0])
-
-    def flags(self, index: QtCore.QModelIndex) -> QtCore.Qt.ItemFlag:
-        flag = super().flags(index)
-        if index.column() == 1:
-            flag |= QtCore.Qt.ItemFlag.ItemIsUserCheckable
-        elif index.column() in (2, 3):
-            flag |= QtCore.Qt.ItemFlag.ItemIsEditable
-        return flag  # type: ignore
-
-    def headerData(  # noqa: N802
-            self, section: int, orientation: QtCore.Qt.Orientation, role: int = ...):
-        if role != QtCore.Qt.ItemDataRole.DisplayRole:
-            return None
-        if orientation == QtCore.Qt.Orientation.Horizontal:
-            return ["Normal", "Checkbox", "Spinbox", "LineEdit"][section]
-        return section * 100
-
-
 # ----------------------------------------------------------------------------------------------------------------------
 class AzTableModel(QtCore.QAbstractTableModel):
     """
@@ -232,7 +193,7 @@ class AzTableModel(QtCore.QAbstractTableModel):
 
     def setData(self, index, value, role):
         if role == QtCore.Qt.EditRole:
-            if value > 95:
+            if value > 95: # если есть возможность редактирования
                 value = 95
             elif value < 0:
                 value = 0
@@ -264,9 +225,10 @@ class AzTableModel(QtCore.QAbstractTableModel):
 
     def flags(self, index: QtCore.QModelIndex):
         flag = super().flags(index)
-        if index.column() == int(self.edit_col):
-            flag |= QtCore.Qt.ItemFlag.ItemIsEditable
-            # | QtCore.Qt.ItemFlag.ItemIsSelectable | QtCore.Qt.ItemFlag.ItemIsEnabled #
+        if self.edit_col is not None:
+            if index.column() == int(self.edit_col):
+                flag |= QtCore.Qt.ItemFlag.ItemIsEditable
+                # | QtCore.Qt.ItemFlag.ItemIsSelectable | QtCore.Qt.ItemFlag.ItemIsEnabled #
         return flag  # type: ignore
 
     # def flags(self, index: QtCore.QModelIndex):

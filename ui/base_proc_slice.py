@@ -180,8 +180,8 @@ class TabSliceUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     def slice_exec_run(self):  # процедура разрезания
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)  # ставим курсор ожидание
         try:
-            new_name = os.path.join(self.crop_options["output_name"],
-                                    "sliced_%s.json" % datetime.now().strftime("%Y-%m-%d--%H-%M-%S"))
+            date_time = datetime.now().strftime("%Y-%m-%d--%H-%M-%S")
+            new_name = os.path.join(str(self.crop_options["output_name"]), "sliced_%s.json" % date_time)
             # объект класса для автоматического кадрирования
             cut_images = dn_crop.DNImgCut(os.path.dirname(self.slice_input_file_path.text()),
                                           os.path.basename(self.slice_input_file_path.text()))

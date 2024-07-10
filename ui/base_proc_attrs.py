@@ -4,12 +4,14 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 from utils import AppSettings, UI_COLORS, helper, config
 from utils.sama_project_handler import DatasetSAMAHandler
 from ui import new_button, AzButtonLineEdit, coloring_icon, new_text, az_file_dialog, save_via_qtextstream, new_act, \
-    AzInputDialog, az_custom_dialog, new_icon, setup_dock_widgets
+    AzInputDialog, az_custom_dialog, new_icon, setup_dock_widgets, AzTableModel
 import os
 from datetime import datetime
 
 the_color = UI_COLORS.get("processing_color")
 
+
+# TODO: добавить инструмент назначения Разметчика
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -32,10 +34,45 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.current_file = None  # текущий файл
 
         # Настройка ui
-        wid = QtWidgets.QWidget()
-        self.setCentralWidget(wid)
+        self.setup_log()
+        self.setup_central_widget()
+        self.setup_image_table()
 
-        # Лог
+        # настраиваем все виджеты
+        setup_dock_widgets(self, ["top_dock", "bottom_dock"], config.UI_BASE_ATTRS)
+
+        # Signals
+        self.table_widget.signal_message.connect(self.forward_signal)
+        self.table_widget.signal_data_changed.connect(self.log_change_data)
+        # print("init, cur_file:", self.current_file)
+        # print("init, sama_labels:", self.sama_data.get_labels())
+
+        # смотрим, есть ли в реестре файл, который запускали прошлый раз?
+        if os.path.exists(self.settings.read_attributes_input()):
+            # пробуем загрузить
+            self.load_project(self.settings.read_attributes_input(),
+                              self.tr(f"Loaded last used project file: {self.settings.read_attributes_input()}"))
+        else:  # файла нет, тогда ограничиваем функционал
+            self.toggle_tool_buttons(False)
+
+    @QtCore.pyqtSlot(str)
+    def forward_signal(self, message):  # перенаправление сигналов
+        self.signal_message.emit(message)
+
+    @QtCore.pyqtSlot(str)
+    def default_dir_changed(self, path):
+        # заглушка на смену каталога для выходных данных по умолчанию
+        pass
+
+    def save(self):
+        self.save_and_reload(self.current_file, self.tr(f"Project was saved and reload: {self.current_file}"))
+
+    def save_and_reload(self, file, message):
+        self.sama_data.save(file)  # сохранение данных и перезагрузка данных
+        self.load_project(file, message)
+
+    def setup_log(self):
+        """ Настройка интерфейса для лога """
         self.log = QtWidgets.QTextEdit(self)  # лог, для вывода сообщений.
         self.log.setReadOnly(True)
         self.top_dock = QtWidgets.QDockWidget("")  # контейнер для информации о логе
@@ -43,7 +80,64 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.top_dock.setWindowTitle("Log")
         self.addDockWidget(QtCore.Qt.DockWidgetArea.TopDockWidgetArea, self.top_dock)
 
+    def setup_image_table(self):
+        """Настройка интерфейса для таблицы просмотра данных"""
+        self.image_headers = [self.tr("images"), self.tr("Object"), self.tr("Shape")]
+        #
+        # self.image_table = QtWidgets.QTableView()  # используется таблица QTableView, поскольку значений >1000
+        # # self.image_table.setAlternatingRowColors(True)  # устанавливаем чередование цветов строк таблицы
+        # self.image_table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
+        # self.image_table.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.MultiSelection)
+        #
+        # h_layout = QtWidgets.QHBoxLayout()
+        # self.ti_sel_class_label = QtWidgets.QLabel(self.tr("Selected label:"))
+        # self.ti_sel_class_cbx = QtWidgets.QComboBox()
+        # self.it_sel_obj_label = QtWidgets.QLabel(self.tr("Selected object:"))
+        # self.cbx_sel_obj = QtWidgets.QComboBox()
+        # h_widgets = [self.ti_sel_class_label, self.ti_sel_class_cbx, self.it_sel_obj_label, self.cbx_sel_obj]
+        # for widget in h_widgets:
+        #     h_layout.addWidget(widget)
+        #
+        # v_layout = QtWidgets.QVBoxLayout()
+        # v_layout.addLayout(h_layout)
+        # v_layout.addWidget(self.image_table)
+        #
+        # wid = QtWidgets.QWidget()
+        # wid.setLayout(v_layout)
+        #
+        # self.bottom_dock = QtWidgets.QDockWidget(self.tr("Dataset sorter table"))
+        # self.bottom_dock.setWidget(wid)
+        # # self.bottom_dock.setWindowTitle()
+        # self.addDockWidget(QtCore.Qt.DockWidgetArea.BottomDockWidgetArea, self.bottom_dock)
+################################
+        self.image_table = QtWidgets.QTableView()
+        data = [
+            ["Item 1", "Description 1", "Category 1"],
+            ["Item 2", "Description 2", "Category 2"],
+            ["Item 3", "Description 3", "Category 3"],
+            ["Item 4", "Description 4", "Category 4"],
+            ["Item 5", "Description 5", "Category 5"],
+            ["Item 6", "Description 6", "Category 6"],
+            ["Item 7", "Description 7", "Category 7"],
+            ["Item 8", "Description 8", "Category 8"],
+        ]
 
+        # table_model = CustomTableModel(data)
+        # self.image_table.setModel(table_model)
+
+        # Set selection behavior and selection mode
+        self.image_table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.image_table.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+
+        self.bottom_dock = QtWidgets.QDockWidget(self.tr("Dataset sorter table"))
+        self.bottom_dock.setWidget(self.image_table)
+        self.addDockWidget(QtCore.Qt.DockWidgetArea.BottomDockWidgetArea, self.bottom_dock)
+
+
+    def setup_central_widget(self):
+        """Настройка интерфейса для таблицы статистики и перечня инструментов (центральный виджет)"""
+        wid = QtWidgets.QWidget()
+        self.setCentralWidget(wid)
         self.btn_log_and_status = new_button(self, "tb", icon="glyph_circle_grey", color=None, icon_size=16,
                                              slot=self.toggle_log, checkable=True, tooltip=self.tr("Toggle log"))
         self.label_project = QtWidgets.QLabel("Path to file project *.json:")
@@ -135,52 +229,11 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             else:
                 header.setSectionResizeMode(column, QtWidgets.QHeaderView.Stretch)  # ResizeToContents
 
-
-        self.image_table = QtWidgets.QTableView()
-        self.bottom_dock = QtWidgets.QDockWidget("")  # контейнер для информации о логе
-        self.bottom_dock.setWidget(self.image_table)  # устанавливаем в контейнер QLabel
-        self.bottom_dock.setWindowTitle("Images Filters View")
-        self.addDockWidget(QtCore.Qt.DockWidgetArea.TopDockWidgetArea, self.top_dock)
-        setup_dock_widgets(self, ["top_dock"], config.UI_BASE_ATTRS)
-
-
-
-
-        # итоговая настройка ui
-        vlayout = QtWidgets.QVBoxLayout(self)  # главный Layout, наследуемый класс
-        vlayout.addLayout(hlay_finish)  # добавляем ему расположение с кнопками и QLabel
-        vlayout.addWidget(self.table_widget)
-        wid.setLayout(vlayout)
-
-        # Signals
-        self.table_widget.signal_message.connect(self.forward_signal)
-        self.table_widget.signal_data_changed.connect(self.log_change_data)
-        # print("init, cur_file:", self.current_file)
-        # print("init, sama_labels:", self.sama_data.get_labels())
-
-        # смотрим, есть ли в реестре файл, который запускали прошлый раз?
-        if os.path.exists(self.settings.read_attributes_input()):
-            # пробуем загрузить
-            self.load_project(self.settings.read_attributes_input(),
-                              self.tr(f"Loaded last used project file: {self.settings.read_attributes_input()}"))
-        else:  # файла нет, тогда ограничиваем функционал
-            self.toggle_tool_buttons(False)
-
-    @QtCore.pyqtSlot(str)
-    def forward_signal(self, message):  # перенаправление сигналов
-        self.signal_message.emit(message)
-
-    @QtCore.pyqtSlot(str)
-    def default_dir_changed(self, path):
-        # заглушка на смену каталога для выходных данных по умолчанию
-        pass
-
-    def save(self):
-        self.save_and_reload(self.current_file, self.tr(f"Project was saved and reload: {self.current_file}"))
-
-    def save_and_reload(self, file, message):
-        self.sama_data.save(file)  # сохранение данных и перезагрузка данных
-        self.load_project(file, message)
+        # итоговая настройка ui центрального виджета
+        central_layout = QtWidgets.QVBoxLayout(self)  # главный Layout, наследуемый класс
+        central_layout.addLayout(hlay_finish)  # добавляем ему расположение с кнопками и QLabel
+        central_layout.addWidget(self.table_widget)
+        wid.setLayout(central_layout)
 
     def toggle_log(self):
         if self.btn_log_and_status.isChecked():
@@ -247,6 +300,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.toggle_tool_buttons(True)
         self.load_dataset_info()  # загружаем общее инфо о датасете
         self.table_widget.load_table_data(self.sama_data)  # обновляем данные для таблицы
+        self.load_image_data_model()  # загружаем таблицу изображений данные для таблицы
         self.log_change_data(message)
         self.change_log_icon("green")
         self.signal_message.emit(message)
@@ -363,6 +417,29 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             if save_via_qtextstream(self.table_widget, file, [7, 8]):
                 self.signal_message.emit(self.tr(f"Table data export to: {file}"))
 
+    def load_image_data_model(self):
+        self.image_table.setSortingEnabled(False)
+
+        data = [
+            ["Item 1", "Description 1", "Category 1"],
+            ["Item 2", "Description 2", "Category 2"],
+            ["Item 3", "Description 3", "Category 3"],
+            ["Item 4", "Description 4", "Category 4"],
+            ["Item 5", "Description 5", "Category 5"],
+            ["Item 6", "Description 6", "Category 6"],
+            ["Item 7", "Description 7", "Category 7"],
+            ["Item 8", "Description 8", "Category 8"],
+        ]
+
+        "image_name", "object", "item"
+
+        self.model = CustomTableModel(data)
+        self.image_table.setModel(self.model)
+        # self.image_table.setModel(AzTableModel(data, self.image_headers))
+        self.image_table.resizeColumnsToContents()
+        self.image_table.setSortingEnabled(True)
+
+
     def tr(self, text):
         return QtCore.QCoreApplication.translate("TabAttributesUI", text)
 
@@ -378,6 +455,32 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.btn_export.setToolTip(self.tr("Export current project info"))
         self.btn_save_palette.setToolTip(self.tr("Save palette from current project"))
         self.btn_apply_palette.setToolTip(self.tr("Apply palette for current project"))
+
+
+
+import sys
+from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.uic import loadUi
+from PyQt5.QtCore import QAbstractTableModel, Qt, QModelIndex
+
+class CustomTableModel(QAbstractTableModel):
+    def __init__(self, data, parent=None):
+        QAbstractTableModel.__init__(self, parent)
+        self._data = data
+
+    def rowCount(self, parent=QModelIndex()):
+        return len(self._data)
+
+    def columnCount(self, parent=QModelIndex()):
+        if self._data:
+            return len(self._data[0])
+        else:
+            return 0
+
+    def data(self, index, role=Qt.DisplayRole):
+        if index.isValid() and role == Qt.DisplayRole:
+            return self._data[index.row()][index.column()]
+        return None
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -541,8 +644,13 @@ class AzTableAttributes(QtWidgets.QTableWidget):
         if button is None:
             self.signal_message.emit(self.tr("Something goes wrong. Can't assign a button"))
             return
-        color = QtWidgets.QColorDialog.getColor(button.palette().color(button.backgroundRole()), self,
-                                                self.tr("Select label color"))  # стандартный диалог цвета
+        color_dialog = QtWidgets.QColorDialog(self)  # создаём и настраиваем диалог цвета
+        color_dialog.setWindowTitle(self.tr("Select label color"))
+        color_dialog.setCurrentColor(button.palette().color(button.backgroundRole()))  # начальный цвет
+        result = color_dialog.exec_()  # запускаем
+        if result != QtWidgets.QDialog.Accepted:
+            return
+        color = color_dialog.selectedColor()
         if color.isValid():
             button.setStyleSheet(
                 f"QToolButton {{ background-color: rgb({color.red()}, {color.green()}, {color.blue()}); }}")

@@ -49,7 +49,8 @@ UI_BASE_VIEW = {
 }
 # bace_proc_attrs.py
 UI_BASE_ATTRS = {
-    "top_dock": [False, False, True, False, False, True]
+    "top_dock": [False, False, True, False, False, True],
+    "bottom_dock": [True, True, True, False, False, True]
 }
 
 # az_slice_manual_crop.py

@@ -45,6 +45,7 @@
 # glyph_point_add: Pixel perfect
 # glyph_point_move: me & Pixel perfect
 # glyph_point_remove: Pixel perfect
+# glyph_point_universal: me & Pixel perfect
 
 # glyph_upload: KP Arts
 # glyph_add: KP Arts

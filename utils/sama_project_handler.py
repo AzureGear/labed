@@ -447,7 +447,7 @@ class DatasetSAMAHandler:
                 print(f"Checking files: image {filename} doesn't exist")
         self.data['images'] = images
 
-    def calc_stat(self):  # Реализация Романа Хабарова
+    def calc_stat(self):  # Реализация Романа Хабарова + кое-что из моего
         labels = self.data['labels']
         stats = {lbl: {'count': 0, 'percent': 0, 'frequency': 0, 'size': {'mean': 0, 'second': 0, 'std': 0}} for lbl in
                  labels}
@@ -495,6 +495,23 @@ class DatasetSAMAHandler:
 
         return stats
 
+    def get_model_data(self):
+        if self.data is None:
+            return
+        data = []
+        data_objects = []
+        data_shapes = []
+        for im_name, image in self.data["images"].items():  # image = {shapes:[], lrm:float, status:str}
+            for shape in image["shapes"]:
+                shape_new = {}
+                shape_new["cls_num"] = num_to_num[shape["cls_num"]]
+                shape_new["points"] = shape["points"]
+                shape_new["id"] = shape["id"]
+                new_shapes.append(shape_new)
+
+            image["shapes"] = new_shapes
+            self.data["images"][im_name] = image
+        pass
 
 if __name__ == '__main__':
     proj_path = "D:/data_sets/nuclear_power_stations/project.json"

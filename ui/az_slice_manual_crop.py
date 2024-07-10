@@ -8,9 +8,9 @@ import os
 # ----------------------------------------------------------------------------------------------------------------------
 # Структура файла хранения проекта точек Визуального ручного кадрирования (AzManualSlice):
 # "filename" = "D:/data_sets/uranium enrichment/test_cut/crude_uranium_enrichment.json"
-# "scan_size" = "1280"
+# "scan_size" = 1280
 #  "images" = { "125n_FRA_2019-09.jpg" : [ ], ... }
-# 		                                   └-  "points" : { [x1, y1], [x2, y2], ... , [xN, yN] }
+# 		                                  └-  "points" : { [x1, y1], [x2, y2], ... , [xN, yN] }
 # ----------------------------------------------------------------------------------------------------------------------
 
 the_color = UI_COLORS.get("processing_color")
@@ -163,6 +163,7 @@ class AzManualSlice(QtWidgets.QMainWindow):
             new_act(self, "Add", "glyph_point_add", the_color, self.point_add, True),  # добавить метку
             new_act(self, "Move", "glyph_point_move", the_color, self.point_move, True),  # передвинуть метку
             new_act(self, "Delete", "glyph_point_remove", the_color, self.point_delete, True),  # удалить метку
+            new_act(self, "Universal", "glyph_point_universal", the_color, self.point_universal, True),  # универсальный
             new_act(self, "Change crop size", "glyph_resize", the_color, self.change_crop_size),
             # сменить размер кадрирования
             new_act(self, "Slice", "glyph_slice", the_color, self.manual_slice_exec))  # разрезать снимки
@@ -188,6 +189,10 @@ class AzManualSlice(QtWidgets.QMainWindow):
 
     def point_delete(self):  # удалить точку
         self.set_action_from_state(ViewState.point_delete, "Delete")
+
+    def point_universal(self):
+        """Универсальный инструмент: правой кнопкой добавить, левой - переместить, shift+click - удалить"""
+        self.set_action_from_state(ViewState.point_universal, "Universal")
 
     def create_blank_file(self):  # создать новый пустой проект РК
         data = dict()
@@ -363,8 +368,8 @@ class AzManualSlice(QtWidgets.QMainWindow):
         self.slice_manual_size = QtWidgets.QLabel(str(self.current_scan_size))
         self.slice_toolbar.setFloatable(False)
         self.slice_toolbar.toggleViewAction().setVisible(False)  # чтобы панель случайно не отключали
-        separator_placement = [3, 8]  # места после которых добавляется сепаратор
-        unique_sep = [9]  # место для добавления особенного виджета
+        separator_placement = [3, 9]  # места после которых добавляется сепаратор
+        unique_sep = [10]  # место для добавления особенного виджета
         for i, action in enumerate(self.slice_actions):  # формируем панель инструментов
             self.slice_toolbar.addAction(action)
             if i in separator_placement:
@@ -373,7 +378,7 @@ class AzManualSlice(QtWidgets.QMainWindow):
                 self.slice_toolbar.addWidget(self.slice_manual_size)
                 self.slice_toolbar.addSeparator()
         group_acts = QtWidgets.QActionGroup(self)
-        for i in range(5, 9):  # группировка, чтобы активно было только одной действие
+        for i in range(5, 10):  # группировка, чтобы активно было только одной действие
             group_acts.addAction(self.slice_actions[i])
 
     def slice_toggle_toolbar(self, int_code):
@@ -393,7 +398,7 @@ class AzManualSlice(QtWidgets.QMainWindow):
             logic = True
         elif int_code == 3:  # выключить инструменты действий
             logic = True
-            diff_acts = [4, 5, 6, 7, 8]  # выключаем actions под этими номерами
+            diff_acts = [4, 5, 6, 7, 8, 9]  # выключаем actions под этими номерами
 
         for i, action in enumerate(self.slice_actions):
             if len(diff_acts) > 0:
@@ -452,8 +457,9 @@ class AzManualSlice(QtWidgets.QMainWindow):
         self.slice_actions[6].setText(self.tr('Add'))
         self.slice_actions[7].setText(self.tr('Move'))
         self.slice_actions[8].setText(self.tr('Delete'))
-        self.slice_actions[9].setText(self.tr('Change crop size'))
-        self.slice_actions[10].setText(self.tr('Slice'))
+        self.slice_actions[9].setText(self.tr('Universal'))
+        self.slice_actions[10].setText(self.tr('Change crop size'))
+        self.slice_actions[11].setText(self.tr('Slice'))
 
 
 if __name__ == '__main__':
