@@ -179,17 +179,15 @@ class AzTableModel(QtCore.QAbstractTableModel):
         super(AzTableModel, self).__init__()
         self._data = data
         self._header_data = header_data
-        if edit_column:
-            self.edit_col = edit_column
+        self.edit_col = edit_column
         if self._data is None:
             self._header_data = [["no data available"]]
 
-    def data(self, index, role):
+    def data(self, index, role=QtCore.Qt.ItemDataRole.DisplayRole):
         if index.isValid():
-            if role == QtCore.Qt.DisplayRole or role == QtCore.Qt.EditRole:
+            if role == QtCore.Qt.ItemDataRole.DisplayRole or role == QtCore.Qt.ItemDataRole.EditRole:
                 return self._data[index.row()][index.column()]
-        # if role == QtCore.Qt.ItemDataRole.DisplayRole:
-        #     return self._data[index.row()][index.column()]
+
 
     def setData(self, index, value, role):
         if role == QtCore.Qt.EditRole:
@@ -209,35 +207,40 @@ class AzTableModel(QtCore.QAbstractTableModel):
             return self._header_data[section]
         return section + 1
 
-    def rowCount(self, index):
+    def rowCount(self, parent=QtCore.QModelIndex()):
         # Количество строк = всего элементов списка списков [[x1, y1], [x2, y2] ... >>[xN, yN]<< ]
         if self._data:
             return len(self._data)
         else:
             return 0
 
-    def columnCount(self, index):
+    def columnCount(self, parent=QtCore.QModelIndex()):
         # Количество столбцов = элементов внутреннего списка [[x1, >>y1<<], [x2, y2] ... [xN, yN]]
         if self._data:
             return len(self._data[0])
         else:
             return 0
 
+    # def flags(self, index: QtCore.QModelIndex):
+    #     # варианты возвращаемого флага:
+    #     # ItemIsEditable | ItemIsEnabled | ItemIsSelectable
+    #     flag = super().flags(index)
+    #     if self.edit_col is not None:
+    #         if index.column() == int(self.edit_col):
+    #             flag |= QtCore.Qt.ItemFlag.ItemIsEditable
+    #     else:
+    #         flag |= QtCore.Qt.ItemFlag.ItemIsSelectable
+    #     return flag  # type: ignore
+
     def flags(self, index: QtCore.QModelIndex):
+        # Set ItemIsSelectable flag by default
         flag = super().flags(index)
+        flag |= QtCore.Qt.ItemFlag.ItemIsSelectable | QtCore.Qt.ItemFlag.ItemIsEnabled
         if self.edit_col is not None:
             if index.column() == int(self.edit_col):
                 flag |= QtCore.Qt.ItemFlag.ItemIsEditable
-                # | QtCore.Qt.ItemFlag.ItemIsSelectable | QtCore.Qt.ItemFlag.ItemIsEnabled #
-        return flag  # type: ignore
+        return flag
 
-    # def flags(self, index: QtCore.QModelIndex):
-    #     flag = super().flags(index)
-    #     if self._flags:
-    #         for i, _flag in enumerate(self._flags()):
-    #             if index.column() == i:
-    #                 flag |= _flag
-    #     return flag
 
 
 # ----------------------------------------------------------------------------------------------------------------------

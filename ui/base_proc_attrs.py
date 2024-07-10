@@ -82,57 +82,34 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     def setup_image_table(self):
         """Настройка интерфейса для таблицы просмотра данных"""
-        self.image_headers = [self.tr("images"), self.tr("Object"), self.tr("Shape")]
-        #
-        # self.image_table = QtWidgets.QTableView()  # используется таблица QTableView, поскольку значений >1000
-        # # self.image_table.setAlternatingRowColors(True)  # устанавливаем чередование цветов строк таблицы
-        # self.image_table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
-        # self.image_table.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.MultiSelection)
-        #
-        # h_layout = QtWidgets.QHBoxLayout()
-        # self.ti_sel_class_label = QtWidgets.QLabel(self.tr("Selected label:"))
-        # self.ti_sel_class_cbx = QtWidgets.QComboBox()
-        # self.it_sel_obj_label = QtWidgets.QLabel(self.tr("Selected object:"))
-        # self.cbx_sel_obj = QtWidgets.QComboBox()
-        # h_widgets = [self.ti_sel_class_label, self.ti_sel_class_cbx, self.it_sel_obj_label, self.cbx_sel_obj]
-        # for widget in h_widgets:
-        #     h_layout.addWidget(widget)
-        #
-        # v_layout = QtWidgets.QVBoxLayout()
-        # v_layout.addLayout(h_layout)
-        # v_layout.addWidget(self.image_table)
-        #
-        # wid = QtWidgets.QWidget()
-        # wid.setLayout(v_layout)
-        #
-        # self.bottom_dock = QtWidgets.QDockWidget(self.tr("Dataset sorter table"))
-        # self.bottom_dock.setWidget(wid)
-        # # self.bottom_dock.setWindowTitle()
-        # self.addDockWidget(QtCore.Qt.DockWidgetArea.BottomDockWidgetArea, self.bottom_dock)
-################################
-        self.image_table = QtWidgets.QTableView()
-        data = [
-            ["Item 1", "Description 1", "Category 1"],
-            ["Item 2", "Description 2", "Category 2"],
-            ["Item 3", "Description 3", "Category 3"],
-            ["Item 4", "Description 4", "Category 4"],
-            ["Item 5", "Description 5", "Category 5"],
-            ["Item 6", "Description 6", "Category 6"],
-            ["Item 7", "Description 7", "Category 7"],
-            ["Item 8", "Description 8", "Category 8"],
-        ]
+        self.image_headers = [self.tr("images"), self.tr("Label"), self.tr("Number")]
 
-        # table_model = CustomTableModel(data)
-        # self.image_table.setModel(table_model)
+        self.image_table = QtWidgets.QTableView()  # используется таблица QTableView, поскольку значений >1000
+        self.image_table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
+        self.image_table.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.MultiSelection)
 
-        # Set selection behavior and selection mode
-        self.image_table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
-        self.image_table.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+        h_layout = QtWidgets.QHBoxLayout()
+        self.ti_sel_class_label = QtWidgets.QLabel(self.tr("Selected label:"))
+        self.ti_sel_class_cbx = QtWidgets.QComboBox()
+        print(type(self.sama_data.get_labels()))
+        self.ti_sel_class_cbx.addItems()
+        self.it_sel_obj_label = QtWidgets.QLabel(self.tr("Selected object:"))
+        self.cbx_sel_obj = QtWidgets.QComboBox()
+        h_widgets = [self.ti_sel_class_label, self.ti_sel_class_cbx, self.it_sel_obj_label, self.cbx_sel_obj]
+        for widget in h_widgets:
+            h_layout.addWidget(widget)
 
-        self.bottom_dock = QtWidgets.QDockWidget(self.tr("Dataset sorter table"))
-        self.bottom_dock.setWidget(self.image_table)
+        v_layout = QtWidgets.QVBoxLayout()
+        v_layout.addLayout(h_layout)
+        v_layout.addWidget(self.image_table)
+
+        wid = QtWidgets.QWidget()
+        wid.setLayout(v_layout)
+
+        self.bottom_dock = QtWidgets.QDockWidget()
+        self.bottom_dock.setWidget(wid)
+        self.bottom_dock.setWindowTitle(self.tr("Dataset sorter table"))
         self.addDockWidget(QtCore.Qt.DockWidgetArea.BottomDockWidgetArea, self.bottom_dock)
-
 
     def setup_central_widget(self):
         """Настройка интерфейса для таблицы статистики и перечня инструментов (центральный виджет)"""
@@ -419,26 +396,14 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     def load_image_data_model(self):
         self.image_table.setSortingEnabled(False)
+        data = [["Item 1", "Description 1", "Category 1"], ["Item 2", "Description 2", "Category 2"]]
+        # "image_name", "object", "item"
 
-        data = [
-            ["Item 1", "Description 1", "Category 1"],
-            ["Item 2", "Description 2", "Category 2"],
-            ["Item 3", "Description 3", "Category 3"],
-            ["Item 4", "Description 4", "Category 4"],
-            ["Item 5", "Description 5", "Category 5"],
-            ["Item 6", "Description 6", "Category 6"],
-            ["Item 7", "Description 7", "Category 7"],
-            ["Item 8", "Description 8", "Category 8"],
-        ]
-
-        "image_name", "object", "item"
-
-        self.model = CustomTableModel(data)
+        new_data = self.sama_data.get_model_data()
+        self.model = AzTableModel(new_data, self.image_headers, edit_column=None)
         self.image_table.setModel(self.model)
-        # self.image_table.setModel(AzTableModel(data, self.image_headers))
         self.image_table.resizeColumnsToContents()
         self.image_table.setSortingEnabled(True)
-
 
     def tr(self, text):
         return QtCore.QCoreApplication.translate("TabAttributesUI", text)
@@ -455,32 +420,6 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.btn_export.setToolTip(self.tr("Export current project info"))
         self.btn_save_palette.setToolTip(self.tr("Save palette from current project"))
         self.btn_apply_palette.setToolTip(self.tr("Apply palette for current project"))
-
-
-
-import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow
-from PyQt5.uic import loadUi
-from PyQt5.QtCore import QAbstractTableModel, Qt, QModelIndex
-
-class CustomTableModel(QAbstractTableModel):
-    def __init__(self, data, parent=None):
-        QAbstractTableModel.__init__(self, parent)
-        self._data = data
-
-    def rowCount(self, parent=QModelIndex()):
-        return len(self._data)
-
-    def columnCount(self, parent=QModelIndex()):
-        if self._data:
-            return len(self._data[0])
-        else:
-            return 0
-
-    def data(self, index, role=Qt.DisplayRole):
-        if index.isValid() and role == Qt.DisplayRole:
-            return self._data[index.row()][index.column()]
-        return None
 
 
 # ----------------------------------------------------------------------------------------------------------------------

@@ -495,23 +495,22 @@ class DatasetSAMAHandler:
 
         return stats
 
-    def get_model_data(self):
+    def get_model_data(self, count=-1):
+        """Извлечение строк для заполнения таблицы модели"""
         if self.data is None:
             return
         data = []
-        data_objects = []
-        data_shapes = []
+        row_count = 0
         for im_name, image in self.data["images"].items():  # image = {shapes:[], lrm:float, status:str}
             for shape in image["shapes"]:
-                shape_new = {}
-                shape_new["cls_num"] = num_to_num[shape["cls_num"]]
-                shape_new["points"] = shape["points"]
-                shape_new["id"] = shape["id"]
-                new_shapes.append(shape_new)
+                row = [im_name, self.get_label_name(shape["cls_num"]), str(shape["id"])]
+                if count > 0:
+                    if count <= row_count:
+                        break
+                data.append(row)
+                row_count += 1
+        return data
 
-            image["shapes"] = new_shapes
-            self.data["images"][im_name] = image
-        pass
 
 if __name__ == '__main__':
     proj_path = "D:/data_sets/nuclear_power_stations/project.json"

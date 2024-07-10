@@ -2,60 +2,60 @@
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-import sys
-from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QApplication, QMainWindow, QAbstractItemView
-from PyQt5.uic import loadUi
-from PyQt5.QtCore import QAbstractTableModel, Qt, QModelIndex
-
-class CustomTableModel(QAbstractTableModel):
-    def __init__(self, data, parent=None):
-        QAbstractTableModel.__init__(self, parent)
-        self._data = data
-
-    def rowCount(self, parent=QModelIndex()):
-        return len(self._data)
-
-    def columnCount(self, parent=QModelIndex()):
-        if self._data:
-            return len(self._data[0])
-        else:
-            return 0
-
-    def data(self, index, role=Qt.DisplayRole):
-        if index.isValid() and role == Qt.DisplayRole:
-            return self._data[index.row()][index.column()]
-        return None
-
-class MainWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.tableView = QtWidgets.QTableView()
-        data = [
-            ["Item 1", "Description 1", "Category 1"],
-            ["Item 2", "Description 2", "Category 2"],
-            ["Item 3", "Description 3", "Category 3"],
-            ["Item 4", "Description 4", "Category 4"],
-            ["Item 5", "Description 5", "Category 5"],
-            ["Item 6", "Description 6", "Category 6"],
-            ["Item 7", "Description 7", "Category 7"],
-            ["Item 8", "Description 8", "Category 8"],
-        ]
-
-        table_model = CustomTableModel(data)
-        self.tableView.setModel(table_model)
-
-        # Set selection behavior and selection mode
-        self.tableView.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.tableView.setSelectionMode(QAbstractItemView.SingleSelection)
-
-        self.setCentralWidget(self.tableView)
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    main_window = MainWindow()
-    main_window.show()
-    sys.exit(app.exec_())
+# import sys
+# from PyQt5 import QtWidgets
+# from PyQt5.QtWidgets import QApplication, QMainWindow, QAbstractItemView
+# from PyQt5.uic import loadUi
+# from PyQt5.QtCore import QAbstractTableModel, Qt, QModelIndex
+#
+# class CustomTableModel(QAbstractTableModel):
+#     def __init__(self, data, parent=None):
+#         QAbstractTableModel.__init__(self, parent)
+#         self._data = data
+#
+#     def rowCount(self, parent=QModelIndex()):
+#         return len(self._data)
+#
+#     def columnCount(self, parent=QModelIndex()):
+#         if self._data:
+#             return len(self._data[0])
+#         else:
+#             return 0
+#
+#     def data(self, index, role=Qt.DisplayRole):
+#         if index.isValid() and role == Qt.DisplayRole:
+#             return self._data[index.row()][index.column()]
+#         return None
+#
+# class MainWindow(QMainWindow):
+#     def __init__(self):
+#         super().__init__()
+#         self.tableView = QtWidgets.QTableView()
+#         data = [
+#             ["Item 1", "Description 1", "Category 1"],
+#             ["Item 2", "Description 2", "Category 2"],
+#             ["Item 3", "Description 3", "Category 3"],
+#             ["Item 4", "Description 4", "Category 4"],
+#             ["Item 5", "Description 5", "Category 5"],
+#             ["Item 6", "Description 6", "Category 6"],
+#             ["Item 7", "Description 7", "Category 7"],
+#             ["Item 8", "Description 8", "Category 8"],
+#         ]
+#
+#         table_model = CustomTableModel(data)
+#         self.tableView.setModel(table_model)
+#
+#         # Set selection behavior and selection mode
+#         self.tableView.setSelectionBehavior(QAbstractItemView.SelectRows)
+#         self.tableView.setSelectionMode(QAbstractItemView.SingleSelection)
+#
+#         self.setCentralWidget(self.tableView)
+#
+# if __name__ == "__main__":
+#     app = QApplication(sys.argv)
+#     main_window = MainWindow()
+#     main_window.show()
+#     sys.exit(app.exec_())
 # ----------------------------------------------------------------------------------------------------------------------
 # from PyQt5 import QtWidgets, QtGui, QtCore
 # import sys
