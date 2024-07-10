@@ -61,7 +61,8 @@ UI_AZ_SLICE_MANUAL = {
 
 UI_AZ_MNIST_DIGITS_SIZE = 24
 
-UI_AZ_PROC_ATTR_ICON_SIZE = 26  # размер иконок вкладки Обработка-Атрибуты
+UI_AZ_PROC_ATTR_ICON_SIZE = 26  # размер иконок вкладки Обработка-Атрибуты на главной таблице
+UI_AZ_PROC_ATTR_IM_ICON_SIZE = 20  # размер иконок виджета таблицы фильтрата
 
 # настройка приближения/отдаления для отображения изображений
 MINIMUM_ZOOM = -2

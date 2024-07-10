@@ -28,6 +28,9 @@
 # glyph_sat_photo: icon_small
 # glyph_cirlce_green: customicondesign_1
 # glyph_cirlce_red: customicondesign_1
+# glyph_filter_labels: Lizel Arina
+# glyph_objects: Mihimihi
+# glyph_categorization: orvipixel
 
 # glyph_add_image: Pixel perfect
 # glyph_crop: me & Pixel perfect
@@ -77,3 +80,4 @@
 # glyph_check_all: Freepik
 # glyph_resize: Freepik
 # glyph_pen_code: Freepik
+# glyph_clear_filter: Freepik

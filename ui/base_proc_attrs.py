@@ -1,7 +1,7 @@
 import copy
 
 from PyQt5 import QtWidgets, QtGui, QtCore
-from utils import AppSettings, UI_COLORS, helper, config
+from utils import AppSettings, UI_COLORS, helper, config, natural_order
 from utils.sama_project_handler import DatasetSAMAHandler
 from ui import new_button, AzButtonLineEdit, coloring_icon, new_text, az_file_dialog, save_via_qtextstream, new_act, \
     AzInputDialog, az_custom_dialog, new_icon, setup_dock_widgets, AzTableModel
@@ -42,8 +42,12 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         setup_dock_widgets(self, ["top_dock", "bottom_dock"], config.UI_BASE_ATTRS)
 
         # Signals
-        self.table_widget.signal_message.connect(self.forward_signal)
-        self.table_widget.signal_data_changed.connect(self.log_change_data)
+        self.table_widget.signal_message.connect(self.forward_signal)  # перенаправление сигнала в строку состояния
+        self.table_widget.signal_data_changed.connect(self.log_change_data)  # запись информации в лог для пользователя
+
+        # изменение фильтра объект
+        self.ti_cbx_sel_class.currentIndexChanged.connect(self.table_image_filter_changed)
+        self.ti_cbx_sel_obj.currentIndexChanged.connect(self.table_image_filter_changed)
         # print("init, cur_file:", self.current_file)
         # print("init, sama_labels:", self.sama_data.get_labels())
 
@@ -81,30 +85,58 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.addDockWidget(QtCore.Qt.DockWidgetArea.TopDockWidgetArea, self.top_dock)
 
     def setup_image_table(self):
-        """Настройка интерфейса для таблицы просмотра данных"""
-        self.image_headers = [self.tr("images"), self.tr("Label"), self.tr("Number")]
+        """Настройка интерфейса для таблицы просмотра изображений/объектов/меток, далее по тексту таблица фильтрата"""
+        self.image_headers = [self.tr("Objects"), self.tr("Images"), self.tr("Label"), self.tr("Number")]
 
         self.image_table = QtWidgets.QTableView()  # используется таблица QTableView, поскольку значений >1000
         self.image_table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
         self.image_table.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.MultiSelection)
+        self.image_table.resizeColumnsToContents()
+        # общие инструменты для работы фильтратом
+        # clear filters: glyph_clear_filter
+        # clear selection: glyph_clear_selection
+        # категоризация
 
         h_layout = QtWidgets.QHBoxLayout()
-        self.ti_sel_class_label = QtWidgets.QLabel(self.tr("Selected label:"))
-        self.ti_sel_class_cbx = QtWidgets.QComboBox()
-        print(type(self.sama_data.get_labels()))
-        self.ti_sel_class_cbx.addItems()
-        self.it_sel_obj_label = QtWidgets.QLabel(self.tr("Selected object:"))
-        self.cbx_sel_obj = QtWidgets.QComboBox()
-        h_widgets = [self.ti_sel_class_label, self.ti_sel_class_cbx, self.it_sel_obj_label, self.cbx_sel_obj]
-        for widget in h_widgets:
-            h_layout.addWidget(widget)
+        self.ti_sel_class_label = new_button(self, "lb", self.tr(" Selected label:"), "glyph_filter_labels", the_color)
+        self.ti_cbx_sel_class = QtWidgets.QComboBox()
+        self.ti_sel_obj_label = new_button(self, "lb", self.tr(" Selected object:"), "glyph_objects", the_color)
+        self.ti_cbx_sel_obj = QtWidgets.QComboBox()
+        self.ti_pb_sel_clear_selection = new_button(self, "pb", self.tr("Reset\nselection"), "glyph_clear_selection",
+                                                    the_color, self.image_table_clear_selection)
+        self.ti_pb_sel_clear_filters = new_button(self, "pb", self.tr("Clear\nfilters"), "glyph_clear_filter", the_color,
+                                                  self.image_table_clear_filters)
+        self.ti_tb_sort_mode = new_button(self, "tb", self.tr(" Toggle sort\n train/val"), "glyph_categorization",
+                                          the_color, self.image_table_toggle_sort_mode, True, tooltip=self.tr("Enable sort mode for train/val"))
+        self.ti_tb_sort_mode.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        h_widgets = [self.ti_sel_class_label, self.ti_cbx_sel_class, self.ti_sel_obj_label, self.ti_cbx_sel_obj,
+                     self.ti_pb_sel_clear_selection, self.ti_pb_sel_clear_filters, self.ti_tb_sort_mode]
 
-        v_layout = QtWidgets.QVBoxLayout()
+        for widget in h_widgets:  # добавляем виджеты и меняем размер иконки
+            if isinstance(widget, QtWidgets.QPushButton) or isinstance(widget, QtWidgets.QToolButton):
+                widget.setIconSize(
+                    QtCore.QSize(config.UI_AZ_PROC_ATTR_IM_ICON_SIZE, config.UI_AZ_PROC_ATTR_IM_ICON_SIZE))
+            h_layout.addWidget(widget)
+        h_layout.addStretch(1)
+
+        v_layout = QtWidgets.QVBoxLayout()  # компоновщик фильтра и таблицы фильтрата
         v_layout.addLayout(h_layout)
         v_layout.addWidget(self.image_table)
 
+        # сортировщик
+        self.table_train = QtWidgets.QTableView()
+        self.table_val = QtWidgets.QTableView()
+        h_layout2 = QtWidgets.QHBoxLayout()
+        h_layout2.addWidget(self.table_train)
+        h_layout2.addWidget(self.table_val)
+        v_layout2 = QtWidgets.QVBoxLayout()
+        v_layout2.addWidget(QtWidgets.QPushButton("Hello"))
+
+        h_layout3 = QtWidgets.QHBoxLayout()  # общий компоновщик
+        h_layout3.addLayout(v_layout)
+        h_layout3.addLayout(v_layout2)
         wid = QtWidgets.QWidget()
-        wid.setLayout(v_layout)
+        wid.setLayout(h_layout3)
 
         self.bottom_dock = QtWidgets.QDockWidget()
         self.bottom_dock.setWidget(wid)
@@ -115,7 +147,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         """Настройка интерфейса для таблицы статистики и перечня инструментов (центральный виджет)"""
         wid = QtWidgets.QWidget()
         self.setCentralWidget(wid)
-        self.btn_log_and_status = new_button(self, "tb", icon="glyph_circle_grey", color=None, icon_size=16,
+        self.btn_log_and_status = new_button(self, "tb", icon="circle_grey", color=None, icon_size=16,
                                              slot=self.toggle_log, checkable=True, tooltip=self.tr("Toggle log"))
         self.label_project = QtWidgets.QLabel("Path to file project *.json:")
         self.file_json = AzButtonLineEdit("glyph_folder", the_color, caption=self.tr("Load dataset SAMA project"),
@@ -212,6 +244,21 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         central_layout.addWidget(self.table_widget)
         wid.setLayout(central_layout)
 
+    def image_table_clear_selection(self):
+        # сброс выделения с таблицы фильтрата image_table
+        self.image_table.clearSelection()
+
+    def image_table_clear_filters(self):
+        # сброс фильтров
+        if self.ti_cbx_sel_obj.count() > 0:
+            self.ti_cbx_sel_obj.setCurrentIndex(0)
+        if self.ti_cbx_sel_class.count() > 0:
+            self.ti_cbx_sel_class.setCurrentIndex(0)
+
+    def image_table_toggle_sort_mode(self):
+        # режим сортировки для Train\Val
+        pass
+
     def toggle_log(self):
         if self.btn_log_and_status.isChecked():
             self.top_dock.setHidden(False)
@@ -223,11 +270,11 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     def change_log_icon(self, color):
         if color == "red":
-            icon = "glyph_circle_red"
+            icon = "circle_red"
         elif color == "green":
-            icon = "glyph_circle_green"
+            icon = "circle_green"
         else:
-            icon = "glyph_circle_grey"
+            icon = "circle_grey"
         self.btn_log_and_status.setIcon(new_icon(icon))
 
     def log_change_data(self, message):
@@ -395,14 +442,43 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                 self.signal_message.emit(self.tr(f"Table data export to: {file}"))
 
     def load_image_data_model(self):
+        # TODO: сортировку TableView
         self.image_table.setSortingEnabled(False)
-        data = [["Item 1", "Description 1", "Category 1"], ["Item 2", "Description 2", "Category 2"]]
-        # "image_name", "object", "item"
-
-        new_data = self.sama_data.get_model_data()
-        self.model = AzTableModel(new_data, self.image_headers, edit_column=None)
-        self.image_table.setModel(self.model)
+        old_data = [["Item 1", "Description 1", "Category 1"], ["Item 2", "Description 2", "Category 2"]]
+        #  "object", "image_name", "label, "item"
+        data = self.sama_data.get_model_data()
+        self.fill_image_data_filters()
+        model_sorting = AzTableModel(data, self.image_headers)
+        self.image_table.setModel(model_sorting)
         self.image_table.resizeColumnsToContents()
+        self.image_table.resizeRowsToContents()
+        self.image_table.setSortingEnabled(True)
+
+    def fill_image_data_filters(self):
+        self.ti_cbx_sel_class.clear()  # сначала ...
+        self.ti_cbx_sel_obj.clear()  # ...чистим
+
+        items = sorted(self.sama_data.get_labels(), key=natural_order)
+        self.ti_cbx_sel_class.addItem("--- All labels ---")
+        if helper.check_list(items):
+            self.ti_cbx_sel_class.addItems(items)
+
+        items = sorted(self.sama_data.get_group_objects(), key=natural_order)
+        self.ti_cbx_sel_obj.addItem("--- All objects ---")
+        if helper.check_list(items):
+            self.ti_cbx_sel_obj.addItems(items)
+
+
+    def table_image_filter_changed(self):
+        # изменение фильтров
+        self.image_table.setSortingEnabled(False)
+        data = self.sama_data.get_model_data(self.ti_cbx_sel_obj.currentText(), self.ti_cbx_sel_class.currentText())
+        print(data)
+        model_sorting = AzTableModel(data, self.image_headers)
+        self.image_table.setModel(model_sorting)
+        # self.image_table.setModel(self.model_sorting)
+        self.image_table.resizeColumnsToContents()
+        self.image_table.resizeRowsToContents()
         self.image_table.setSortingEnabled(True)
 
     def tr(self, text):

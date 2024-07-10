@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import ujson
+import re
 
 
 def create_blank_image(self):
@@ -495,21 +496,64 @@ class DatasetSAMAHandler:
 
         return stats
 
-    def get_model_data(self, count=-1):
+    def get_model_data(self, object_name=None, label_name=None, count=-1, pattern=r"^([^_]+)_([^_]+)"):
         """Извлечение строк для заполнения таблицы модели"""
         if self.data is None:
             return
+        if object_name == "--- All objects ---":
+            object_name = None  # устанавливаем пустыми, будем собирать все объекты
+        if label_name == "--- All labels ---":
+            label_name = None  # устанавливаем пустыми, будем собирать все метки
+
         data = []
         row_count = 0
-        for im_name, image in self.data["images"].items():  # image = {shapes:[], lrm:float, status:str}
+        for im_name, image in self.data["images"].items():
             for shape in image["shapes"]:
-                row = [im_name, self.get_label_name(shape["cls_num"]), str(shape["id"])]
-                if count > 0:
-                    if count <= row_count:
+                if count > 0:  # если стоит счетчик
+                    if count < row_count:
                         break
-                data.append(row)
-                row_count += 1
+                obj = ""  # изначально печально
+                label = self.get_label_name(shape["cls_num"])
+                match = re.search(pattern, im_name)  # ищем имя объекта
+
+                if obj is not None:  # собираем сокращение "объекта", у нас общий сбор
+                    obj = match.group(0)
+
+                if object_name is None and label_name is None:  # получение всего перечня
+                    row = [obj, im_name, label, str(shape["id"])]
+                    data.append(row)
+                    row_count += 1
+                elif object_name is None and label_name is not None:  # фильтр по метке
+                    if label == label_name:
+                        row = [obj, im_name, label, str(shape["id"])]
+                        data.append(row)
+                        row_count += 1
+                elif object_name is not None and label_name is None:  # фильтр по классу
+                    if obj == object_name:
+                        row = [obj, im_name, label, str(shape["id"])]
+                        data.append(row)
+                        row_count += 1
+                elif object_name is not None and label_name is not None:  # фильтр и по метке и по классу
+                    if obj == object_name and label == label_name:
+                        row = [obj, im_name, label, str(shape["id"])]
+                        data.append(row)
+                        row_count += 1
         return data
+
+    def get_group_objects(self, pattern=r"^([^_]+)_([^_]+)"):
+        """
+        Извлечение перечня объектов. Под объектами понимаются разновременные изображения одного и того же объекта,
+        например в для изображения '138_DEU_2021-06_003.jpg' таким объектом будет '138_DEU'. Если использовать
+        регулярные выражения, то шаблоном поиска будет r"^([^_]+)_([^_]+)", т.е. любой последовательность символов,
+        с начала строки (^) и состоящей из 2 групп, разделенных символом "_".
+        """
+        objects = []
+        for image in self.data["images"].keys():
+            match = re.search(pattern, image)
+            if match is not None:
+                if match.group(0) not in objects:
+                    objects.append(match.group(0))
+        return objects
 
 
 if __name__ == '__main__':

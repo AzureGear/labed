@@ -168,8 +168,10 @@ class AzAction(QtWidgets.QAction):
         else:
             self.setIcon(self.icon_default)
 
+
 # ----------------------------------------------------------------------------------------------------------------------
 class AzTableModel(QtCore.QAbstractTableModel):
+
     """
     Модель для отображения табличных данных, принимает лист листов [[x1, y1], [x2, y2]... ]
     Все методы "перегруженные" для минимального функционала.
@@ -183,15 +185,29 @@ class AzTableModel(QtCore.QAbstractTableModel):
         if self._data is None:
             self._header_data = [["no data available"]]
 
+    # def sort(self, column, order):
+    #     import operator
+    #     self.layoutAboutToBeChanged.emit()
+    #     self.data = sorted(self.data, key=operator.itemgetter(column), reverse=(order == QtCore.Qt.SortOrder.DescendingOrder))
+    #     self.layoutChanged.emit()
+
+    # def sort(self, Ncol, order):
+    #     import operator
+    #     """Сортировка по столбцу"""
+    #     self.layoutAboutToBeChanged.emit()
+    #     self.data = sorted(self.data, key=operator.itemgetter(Ncol))
+    #     if order == QtCore.Qt.SortOrder.DescendingOrder:
+    #         self.data.reverse()
+    #     self.layoutChanged.emit()
+
     def data(self, index, role=QtCore.Qt.ItemDataRole.DisplayRole):
         if index.isValid():
             if role == QtCore.Qt.ItemDataRole.DisplayRole or role == QtCore.Qt.ItemDataRole.EditRole:
                 return self._data[index.row()][index.column()]
 
-
     def setData(self, index, value, role):
-        if role == QtCore.Qt.EditRole:
-            if value > 95: # если есть возможность редактирования
+        if role == QtCore.Qt.ItemDataRole.EditRole:
+            if value > 95:  # если есть возможность редактирования
                 value = 95
             elif value < 0:
                 value = 0
@@ -240,7 +256,6 @@ class AzTableModel(QtCore.QAbstractTableModel):
             if index.column() == int(self.edit_col):
                 flag |= QtCore.Qt.ItemFlag.ItemIsEditable
         return flag
-
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -351,7 +366,7 @@ def new_button(parent, obj="pb", text=None, icon=None, color=None, slot=None, ch
                icon_size=None, tooltip=None):
     """
     Создание и настройка кнопки PyQt5 (основа реализована из LabelMe)
-    obj (тип кнопки): pb (QPushButton), tb (QToolButton);
+    obj (тип кнопки): pb (QPushButton), tb (QToolButton); lb (QPushButton) но выглядящая как label
     text - надпись; icon - имя иконки из каталога "icons" без расширения; color - цвет; icon_size - размер иконок
     checkable - возможность активации/деактивации; checked - активна/неактивная, если выбрано "checkable"
     tooltip - выплывающая подсказка
@@ -364,6 +379,16 @@ def new_button(parent, obj="pb", text=None, icon=None, color=None, slot=None, ch
             b.setChecked(checked)
     elif obj == "pb":
         b = QtWidgets.QPushButton(parent)
+    elif obj == "lb":
+        b = QtWidgets.QPushButton(parent)
+        b.setStyleSheet('''
+            QPushButton {
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: transparent;
+            }
+            ''')
     else:
         return None
     if text is not None:
