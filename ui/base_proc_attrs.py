@@ -444,8 +444,8 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     def load_image_data_model(self):
         # TODO: сортировку TableView
         self.image_table.setSortingEnabled(False)
-        old_data = [["Item 1", "Description 1", "Category 1"], ["Item 2", "Description 2", "Category 2"]]
-        #  "object", "image_name", "label, "item"
+
+        # Данные - массив [["object1", "image_name1", "label1, "item1"][...]]
         data = self.sama_data.get_model_data()
         self.fill_image_data_filters()
         model_sorting = AzTableModel(data, self.image_headers)
@@ -458,6 +458,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.ti_cbx_sel_class.clear()  # сначала ...
         self.ti_cbx_sel_obj.clear()  # ...чистим
 
+        # заполняем отсортированными параметрами
         items = sorted(self.sama_data.get_labels(), key=natural_order)
         self.ti_cbx_sel_class.addItem("--- All labels ---")
         if helper.check_list(items):
@@ -473,7 +474,6 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         # изменение фильтров
         self.image_table.setSortingEnabled(False)
         data = self.sama_data.get_model_data(self.ti_cbx_sel_obj.currentText(), self.ti_cbx_sel_class.currentText())
-        print(data)
         model_sorting = AzTableModel(data, self.image_headers)
         self.image_table.setModel(model_sorting)
         # self.image_table.setModel(self.model_sorting)
@@ -620,6 +620,7 @@ class AzTableAttributes(QtWidgets.QTableWidget):
             self.add_item_number(row, 4, stat[name]['size']['mean'], 1)  # средний размер
             self.add_item_number(row, 5, stat[name]['size']['std'], 1)  # СКО размера
         self.setSortingEnabled(True)
+        self.resizeRowsToContents()
 
     def add_item_text(self, row, col, text,
                       align=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter):
