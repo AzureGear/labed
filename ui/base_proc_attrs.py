@@ -1,17 +1,25 @@
 import copy
 
 from PyQt5 import QtWidgets, QtGui, QtCore
+from PyQt5.QtCore import pyqtProperty
 from utils import AppSettings, UI_COLORS, helper, config, natural_order
 from utils.sama_project_handler import DatasetSAMAHandler
 from ui import new_button, AzButtonLineEdit, coloring_icon, new_text, az_file_dialog, save_via_qtextstream, new_act, \
-    AzInputDialog, az_custom_dialog, new_icon, setup_dock_widgets, AzTableModel
+    AzInputDialog, az_custom_dialog, new_icon, setup_dock_widgets, AzTableModel, set_widgets_and_layouts_margins, \
+    set_widgets_enabled
 import os
 from datetime import datetime
 
+ROW_H = 16
 the_color = UI_COLORS.get("processing_color")
+color_train = UI_COLORS.get("automation_color")
+color_val = UI_COLORS.get("settings_color")
 
 
 # TODO: добавить инструмент назначения Разметчика
+# TODO: добавить описание проекта, добавить его в сам проект SAMA_handler
+# TODO: Сделать фрейм общей статистики отдельно справа, сделать кнопку сбросить данные.
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -31,7 +39,9 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         if color_inactive:
             self.icon_inactive = coloring_icon("glyph_attributes", color_inactive)
 
-        self.current_file = None  # текущий файл
+        self.current_file = None  # текущий файл проекта SAMA
+        self.sort_file = None  # текущий файл сортировки
+        self.sort_mode = False  # режим сортировки
 
         # Настройка ui
         self.setup_log()
@@ -85,59 +95,154 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.addDockWidget(QtCore.Qt.DockWidgetArea.TopDockWidgetArea, self.top_dock)
 
     def setup_image_table(self):
-        """Настройка интерфейса для таблицы просмотра изображений/объектов/меток, далее по тексту таблица фильтрата"""
-        self.image_headers = [self.tr("Objects"), self.tr("Images"), self.tr("Label"), self.tr("Number")]
+        """
+        Настройка интерфейса для таблицы просмотра изображений/объектов/меток, далее по тексту таблица фильтрата,
+        для инструментов сортировки данных на train/val
+        """
+        self.image_headers = [self.tr("Group"), self.tr("Images"), self.tr("Label"), self.tr("Number")]
 
         self.image_table = QtWidgets.QTableView()  # используется таблица QTableView, поскольку значений >1000
         self.image_table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
         self.image_table.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.MultiSelection)
         self.image_table.resizeColumnsToContents()
-        # общие инструменты для работы фильтратом
-        # clear filters: glyph_clear_filter
-        # clear selection: glyph_clear_selection
-        # категоризация
 
         h_layout = QtWidgets.QHBoxLayout()
-        self.ti_sel_class_label = new_button(self, "lb", self.tr(" Selected label:"), "glyph_filter_labels", the_color)
+        self.ti_sel_class_label = new_button(self, "lb", self.tr(" Selected\n label:"), "glyph_filter_labels",
+                                             the_color)
         self.ti_cbx_sel_class = QtWidgets.QComboBox()
-        self.ti_sel_obj_label = new_button(self, "lb", self.tr(" Selected object:"), "glyph_objects", the_color)
+        self.ti_sel_obj_label = new_button(self, "lb", self.tr(" Selected\n group:"), "glyph_objects", the_color)
         self.ti_cbx_sel_obj = QtWidgets.QComboBox()
-        self.ti_pb_sel_clear_selection = new_button(self, "pb", self.tr("Reset\nselection"), "glyph_clear_selection",
-                                                    the_color, self.image_table_clear_selection)
-        self.ti_pb_sel_clear_filters = new_button(self, "pb", self.tr("Clear\nfilters"), "glyph_clear_filter", the_color,
-                                                  self.image_table_clear_filters)
-        self.ti_tb_sort_mode = new_button(self, "tb", self.tr(" Toggle sort\n train/val"), "glyph_categorization",
-                                          the_color, self.image_table_toggle_sort_mode, True, tooltip=self.tr("Enable sort mode for train/val"))
-        self.ti_tb_sort_mode.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self.ti_cbx_sel_obj.setMaximumWidth(120)
+        self.ti_pb_sel_clear_selection = new_button(self, "tb", self.tr("Reset selection"), "glyph_clear_selection",
+                                                    the_color, self.image_table_clear_selection,
+                                                    tooltip=self.tr("Reset selection"))
+        self.ti_pb_sel_clear_filters = new_button(self, "tb", self.tr("Clear filters"), "glyph_clear_filter",
+                                                  the_color, self.image_table_clear_filters,
+                                                  tooltip=self.tr("Clear filters"))
         h_widgets = [self.ti_sel_class_label, self.ti_cbx_sel_class, self.ti_sel_obj_label, self.ti_cbx_sel_obj,
-                     self.ti_pb_sel_clear_selection, self.ti_pb_sel_clear_filters, self.ti_tb_sort_mode]
+                     self.ti_pb_sel_clear_selection, self.ti_pb_sel_clear_filters]
 
         for widget in h_widgets:  # добавляем виджеты и меняем размер иконки
             if isinstance(widget, QtWidgets.QPushButton) or isinstance(widget, QtWidgets.QToolButton):
                 widget.setIconSize(
                     QtCore.QSize(config.UI_AZ_PROC_ATTR_IM_ICON_SIZE, config.UI_AZ_PROC_ATTR_IM_ICON_SIZE))
             h_layout.addWidget(widget)
-        h_layout.addStretch(1)
 
         v_layout = QtWidgets.QVBoxLayout()  # компоновщик фильтра и таблицы фильтрата
         v_layout.addLayout(h_layout)
         v_layout.addWidget(self.image_table)
 
-        # сортировщик
+        # сортировщик Train/Val/Test
         self.table_train = QtWidgets.QTableView()
         self.table_val = QtWidgets.QTableView()
+        tables_train_val = [self.table_train, self.table_val]
+        data = [["adasd"], ["asdasdll"], ["ldglsdgls"]]
+
+        for table in tables_train_val:  # настраиваем таблицы для Train/Val
+            model = AzTableModel(data, [self.tr("Images")])
+            table.setModel(model)
+            table.setRowHeight(0, 20)  # TODO: for row in range(model.rowCount()):
+            table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
+            table.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.MultiSelection)
+            header = table.horizontalHeader()
+            header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Stretch)
+
+        h_layout_instr = QtWidgets.QHBoxLayout()  # компоновщик инструментов
+        self.ti_tb_sort_mode = new_button(self, "tb", self.tr(" Toggle sort\n train/val"), "glyph_categorization",
+                                          the_color, self.image_table_toggle_sort_mode, True, True,
+                                          config.UI_AZ_PROC_ATTR_IM_ICON_SIZE,
+                                          self.tr("Enable sort mode for train/val"))
+        self.ti_tb_sort_mode.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        h_layout_instr.addWidget(self.ti_tb_sort_mode)  # главный переключатель
+
+        # self.ti_tb_sort_open = new_button(self, "tb", icon="glyph_folder", color=the_color, slot=self.alla,
+        #                                   tooltip=self.tr("Open train-val project"))
+        self.ti_tb_sort_new = new_button(self, "tb", icon="glyph_add", color=the_color, slot=self.new_train_val_file,
+                                         tooltip=self.tr("New train-val project"))
+        self.ti_tb_sort_smart = new_button(self, "tb", icon="glyph_smart_process", color=the_color, slot=self.alla,
+                                           tooltip=self.tr("Smart dataset sort"))
+        self.ti_tb_sort_cook = new_button(self, "tb", icon="glyph_cook", color=the_color, slot=self.alla,
+                                          tooltip=self.tr("Cook dataset"))
+        self.ti_tb_sort_open = AzButtonLineEdit("glyph_folder", the_color, "Open file", True, dir_only=False,
+                                                filter="sort (*.sort)", initial_filter="sort (*.sort)",
+                                                slot=self.open_train_val_file)
+        v_line = QtWidgets.QFrame()  # добавляем линию-разделитель
+        v_line.setFrameShape(QtWidgets.QFrame.Shape.VLine)
+        self.ti_instruments = [self.ti_tb_sort_open, self.ti_tb_sort_new, v_line, self.ti_tb_sort_smart,
+                               self.ti_tb_sort_cook]
+
+        for tool in self.ti_instruments:
+            h_layout_instr.addWidget(tool)
+            if isinstance(tool, QtWidgets.QToolButton):
+                tool.setIconSize(QtCore.QSize(config.UI_AZ_PROC_ATTR_IM_ICON_SIZE, config.UI_AZ_PROC_ATTR_IM_ICON_SIZE))
+
+        # компоновка таблицы Train
+        lay_train = QtWidgets.QVBoxLayout()
+        h_lay_train = QtWidgets.QHBoxLayout()
+        self.ti_train_label = QtWidgets.QLabel(self.tr("Train table:"))
+        self.ti_tb_sort_add_to_train = new_button(self, "tb", icon="glyph_add2", color=color_train, slot=self.alla,
+                                                  tooltip=self.tr("Add to train"),
+                                                  icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
+        self.ti_tb_sort_remove_from_train = new_button(self, "tb", icon="glyph_delete2", color=color_train,
+                                                       slot=self.alla,
+                                                       tooltip=self.tr("Remove selected rows from train"),
+                                                       icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
+
+        spacer = QtWidgets.QWidget()
+        spacer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)  # горизонтальный спейсер
+        h_lay_train.addWidget(self.ti_train_label)
+        h_lay_train.addWidget(self.ti_tb_sort_add_to_train)
+        h_lay_train.addWidget(spacer)
+        h_lay_train.addWidget(self.ti_tb_sort_remove_from_train)
+        lay_train.addLayout(h_lay_train)
+        lay_train.addWidget(self.table_train)
+
+        # компоновка таблицы Validation
+        lay_val = QtWidgets.QVBoxLayout()
+        h_lay_val = QtWidgets.QHBoxLayout()
+        self.ti_train_val = QtWidgets.QLabel(self.tr("Validation table:"))
+        self.ti_tb_sort_add_to_val = new_button(self, "tb", icon="glyph_add2", color=color_val, slot=self.alla,
+                                                tooltip=self.tr("Add to val"),
+                                                icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
+        self.ti_tb_sort_remove_from_val = new_button(self, "tb", icon="glyph_delete2", color=color_val, slot=self.alla,
+                                                     tooltip=self.tr("Selected to val"),
+                                                     icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
+        h_lay_val.addWidget(self.ti_train_val)
+        h_lay_val.addWidget(self.ti_tb_sort_add_to_val)
+        h_lay_val.addWidget(spacer)
+        h_lay_val.addWidget(self.ti_tb_sort_remove_from_val)
+        lay_val.addLayout(h_lay_val)
+        lay_val.addWidget(self.table_val)
+
         h_layout2 = QtWidgets.QHBoxLayout()
-        h_layout2.addWidget(self.table_train)
-        h_layout2.addWidget(self.table_val)
+        h_layout2.addLayout(lay_train)
+        table_line = QtWidgets.QFrame()  # добавляем линию-разделитель
+        table_line.setFrameShape(QtWidgets.QFrame.Shape.VLine)
+        h_layout2.addWidget(table_line)
+        h_layout2.addLayout(lay_val)
+
+        self.table_statistic = QtWidgets.QTableView()
+        h_lay_stat = QtWidgets.QHBoxLayout()  # горизонтальный компоновщик с меткой для таблицы результатов разбиения
+        self.test_val_stats_label = QtWidgets.QLabel(self.tr("Statistic for train/val data:"))
+        h_lay_stat.addWidget(self.test_val_stats_label)
+        v_layout_stat = QtWidgets.QVBoxLayout()  # вертикальный компоновщик, который принимает еще таблицу
+        v_layout_stat.addLayout(h_lay_stat)
+        v_layout_stat.addWidget(self.table_statistic)
         v_layout2 = QtWidgets.QVBoxLayout()
-        v_layout2.addWidget(QtWidgets.QPushButton("Hello"))
+        v_layout2.addLayout(h_layout_instr)
+        line = QtWidgets.QFrame()  # добавляем линию-разделитель
+        line.setFrameShape(QtWidgets.QFrame.Shape.HLine)
+        v_layout2.addWidget(line)
+        v_layout2.addLayout(h_layout2)
+        v_layout2.addLayout(v_layout_stat)
 
         h_layout3 = QtWidgets.QHBoxLayout()  # общий компоновщик
-        h_layout3.addLayout(v_layout)
-        h_layout3.addLayout(v_layout2)
-        wid = QtWidgets.QWidget()
+        h_layout3.addLayout(v_layout)  # компоновщик инструментов фильтра и таблицы фильтрата
+        h_layout3.addLayout(v_layout2, 1)  # компоновщик таблиц Train/Val/Stats и их инструментов, делаем доминантным
+        wid = QtWidgets.QWidget()  # контейнер для общего компоновщика
         wid.setLayout(h_layout3)
-
+        set_widgets_and_layouts_margins(wid, 0, 0, 0, 0)
+        wid.setContentsMargins(5, 5, 5, 5)  # и только главный виджет будет иметь отступы
         self.bottom_dock = QtWidgets.QDockWidget()
         self.bottom_dock.setWidget(wid)
         self.bottom_dock.setWindowTitle(self.tr("Dataset sorter table"))
@@ -152,7 +257,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.label_project = QtWidgets.QLabel("Path to file project *.json:")
         self.file_json = AzButtonLineEdit("glyph_folder", the_color, caption=self.tr("Load dataset SAMA project"),
                                           read_only=True, dir_only=False, filter=self.tr("Projects files (*.json)"),
-                                          on_button_clicked_callback=self.attr_load_projects_data,
+                                          slot=self.attr_load_projects_data,
                                           initial_filter="json (*.json)")
 
         self.dataset_info_images_desc = new_text(self, "Count of images: ", alignment="r")
@@ -213,8 +318,8 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
         # заголовок для таблицы
         self.headers = [
-            self.tr("Label name"), self.tr("Number of labels"), self.tr("Frequency of appearance on the image"),
-            self.tr("Percentage of total labels"), self.tr("Average area, pixels"), self.tr('SD of area, pixels'),
+            self.tr("Label name"), self.tr("Number of labels"), self.tr("Frequency per 100 images"),
+            self.tr("% total labels"), self.tr("Average area, pixels"), self.tr('SD of area, pixels'),
             self.tr("Balance"), self.tr("Color"), self.tr("Action")]
 
         # данные из проекта SAMA будут загружаться в DatasetSAMAHandler
@@ -244,6 +349,29 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         central_layout.addWidget(self.table_widget)
         wid.setLayout(central_layout)
 
+    def toggle_sort_mode(self):
+        """Включение и выключение режима сортировщика"""
+        #self.sort_mode = self.ti_tb_sort_mode.isChecked()
+        print(self.sort_mode)
+
+    def new_train_val_file(self):
+        if not self.sama_data.is_correct_file:
+            return
+        file = az_file_dialog(self, self.tr("Create new sorting train/validation project *.sort file"),
+                              self.settings.read_last_dir(),
+                              dir_only=False, file_to_save=True, filter="Sort (*.sort)",
+                              initial_filter="sort (*.sort)")
+        if helper.check_list(file):
+            with open(file, 'w'): # записать несортированные, сортированные и т.д.
+                pass
+            self.load_file(file)
+
+    def open_train_val_file(self):
+        pass
+
+    def alla(self):
+        pass
+
     def image_table_clear_selection(self):
         # сброс выделения с таблицы фильтрата image_table
         self.image_table.clearSelection()
@@ -257,7 +385,11 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     def image_table_toggle_sort_mode(self):
         # режим сортировки для Train\Val
-        pass
+        # set_widgets_enabled(self.v_layout2, False)
+        # self.v_layout2.setEnabled(False)
+        self.sort_mode = self.ti_tb_sort_mode.isChecked()
+        self.ti_tb_sort_mode.setEnabled(True)
+        print(self.sort_mode)
 
     def toggle_log(self):
         if self.btn_log_and_status.isChecked():
@@ -324,6 +456,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.toggle_tool_buttons(True)
         self.load_dataset_info()  # загружаем общее инфо о датасете
         self.table_widget.load_table_data(self.sama_data)  # обновляем данные для таблицы
+        self.original_image_data = None  # очищаем данные с исходными значениями
         self.load_image_data_model()  # загружаем таблицу изображений данные для таблицы
         self.log_change_data(message)
         self.change_log_icon("green")
@@ -446,12 +579,17 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.image_table.setSortingEnabled(False)
 
         # Данные - массив [["object1", "image_name1", "label1, "item1"][...]]
-        data = self.sama_data.get_model_data()
+        if self.original_image_data is None:
+            data = self.sama_data.get_model_data()
+            self.original_image_data = data
         self.fill_image_data_filters()
         model_sorting = AzTableModel(data, self.image_headers)
         self.image_table.setModel(model_sorting)
-        self.image_table.resizeColumnsToContents()
-        self.image_table.resizeRowsToContents()
+        header = self.image_table.horizontalHeader()
+        for col in range(model_sorting.columnCount()):
+            header.setSectionResizeMode(col, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.Stretch)
+
         self.image_table.setSortingEnabled(True)
 
     def fill_image_data_filters(self):
@@ -460,26 +598,42 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
         # заполняем отсортированными параметрами
         items = sorted(self.sama_data.get_labels(), key=natural_order)
-        self.ti_cbx_sel_class.addItem("--- All labels ---")
+        self.ti_cbx_sel_class.addItem("< all labels >")
         if helper.check_list(items):
             self.ti_cbx_sel_class.addItems(items)
 
         items = sorted(self.sama_data.get_group_objects(), key=natural_order)
-        self.ti_cbx_sel_obj.addItem("--- All objects ---")
+        self.ti_cbx_sel_obj.addItem("< all >")
         if helper.check_list(items):
             self.ti_cbx_sel_obj.addItems(items)
-
 
     def table_image_filter_changed(self):
         # изменение фильтров
         self.image_table.setSortingEnabled(False)
-        data = self.sama_data.get_model_data(self.ti_cbx_sel_obj.currentText(), self.ti_cbx_sel_class.currentText())
+
+        # выбираем новые результаты в соответствии с доступными фильтрами
+        data = self.get_filtered_model_data(self.ti_cbx_sel_obj.currentText(), self.ti_cbx_sel_class.currentText())
+
         model_sorting = AzTableModel(data, self.image_headers)
         self.image_table.setModel(model_sorting)
-        # self.image_table.setModel(self.model_sorting)
-        self.image_table.resizeColumnsToContents()
-        self.image_table.resizeRowsToContents()
+        for row in range(model_sorting.rowCount()):  # выравниваем высоту
+            self.image_table.setRowHeight(row, ROW_H)
+
         self.image_table.setSortingEnabled(True)
+
+    def get_filtered_model_data(self, object_name=None, label_name=None, pattern=r"^([^_]+)_([^_]+)"):
+        """Фильтр строк исходных данных (self.original_image_data) таблицы фильтрата"""
+        if self.original_image_data is None:
+            return
+        if object_name == "< all >":
+            object_name = None  # устанавливаем пустыми, будем собирать все объекты
+        if label_name == "< all labels >":
+            label_name = None  # устанавливаем пустыми, будем собирать все метки
+
+        # фильтруем объекты по столбцам 0 и 2
+        filtered = [row for row in self.original_image_data if (object_name is None or row[0] == object_name) and
+                    (label_name is None or row[2] == label_name)]
+        return filtered
 
     def tr(self, text):
         return QtCore.QCoreApplication.translate("TabAttributesUI", text)
@@ -588,7 +742,7 @@ class AzTableAttributes(QtWidgets.QTableWidget):
         self.clear_table()
         if isinstance(data, DatasetSAMAHandler):  # установка данных SAMA, если они переданы
             self.my_data = data
-            self.horizontalHeader().setFixedHeight(56)  # для SAMA высота 56
+            self.horizontalHeader().setFixedHeight(36)  # для SAMA
             self.load_sama_data()
         else:
             # заглушка на другие типы данных
@@ -620,7 +774,8 @@ class AzTableAttributes(QtWidgets.QTableWidget):
             self.add_item_number(row, 4, stat[name]['size']['mean'], 1)  # средний размер
             self.add_item_number(row, 5, stat[name]['size']['std'], 1)  # СКО размера
         self.setSortingEnabled(True)
-        self.resizeRowsToContents()
+        for row in range(self.rowCount()):  # выравниваем высоту
+            self.setRowHeight(row, ROW_H)
 
     def add_item_text(self, row, col, text,
                       align=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter):

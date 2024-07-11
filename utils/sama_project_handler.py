@@ -500,9 +500,9 @@ class DatasetSAMAHandler:
         """Извлечение строк для заполнения таблицы модели"""
         if self.data is None:
             return
-        if object_name == "--- All objects ---":
+        if object_name == "< all >":
             object_name = None  # устанавливаем пустыми, будем собирать все объекты
-        if label_name == "--- All labels ---":
+        if label_name == "< all labels >":
             label_name = None  # устанавливаем пустыми, будем собирать все метки
 
         data = []

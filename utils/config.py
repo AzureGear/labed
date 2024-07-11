@@ -61,8 +61,8 @@ UI_AZ_SLICE_MANUAL = {
 
 UI_AZ_MNIST_DIGITS_SIZE = 24
 
-UI_AZ_PROC_ATTR_ICON_SIZE = 26  # размер иконок вкладки Обработка-Атрибуты на главной таблице
-UI_AZ_PROC_ATTR_IM_ICON_SIZE = 20  # размер иконок виджета таблицы фильтрата
+UI_AZ_PROC_ATTR_ICON_SIZE = 24  # размер иконок вкладки Обработка-Атрибуты на главной таблице
+UI_AZ_PROC_ATTR_IM_ICON_SIZE = 22  # размер иконок виджета таблицы фильтрата
 
 # настройка приближения/отдаления для отображения изображений
 MINIMUM_ZOOM = -2
@@ -72,11 +72,11 @@ MAXIMUM_ZOOM = 50
 MAX_CROP_SIZE = 8000
 MIN_CROP_SIZE = 16
 
-ALPHA = 215  # степень прозрачности заливки у меток по умолчанию (0 ... 255)
+ALPHA = 230  # степень прозрачности заливки у меток по умолчанию (0 ... 255)
 
 UI_OUTPUT_TYPES = ["SAMA.json"]  # типы выходных данных
 UI_INPUT_TYPES = ["LabelMe.json", "SAMA.json"]
 
-UI_READ_LINES = 3  # количество читаемых строк в проектах *.json для предпросмотр а
+UI_READ_LINES = 3  # количество читаемых строк в проектах *.json для предпросмотра
 
 # (dark) c:\venvs\lab-ed\Lib\site-packages>python -m qdarktheme.widget_gallery

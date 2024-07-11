@@ -19,13 +19,13 @@ class AzButtonLineEdit(QtWidgets.QLineEdit):
     """
 
     def __init__(self, icon_name, color="Black", caption=None, read_only=True, dir_only=False, save_dialog=False,
-                 filter=None, save_dir=True, initial_filter=None, on_button_clicked_callback=None, parent=None):
+                 filter=None, save_dir=True, initial_filter=None, slot=None, parent=None):
         super(AzButtonLineEdit, self).__init__(parent)
         self.settings = AppSettings()  # чтение настроек
         self.button = QtWidgets.QToolButton(self)  # создаём кнопку
         self.button.setIcon(coloring_icon(icon_name, color))  # устанавливаем иконку
         # принимаем и устанавливаем атрибуты:
-        self.on_button_clicked_callback = on_button_clicked_callback
+        self.slot = slot
         self.last_dir = self.settings.read_last_dir()  # вспоминаем прошлый открытый каталог
         self.dir_only = dir_only
         self.save_dialog = save_dialog
@@ -54,8 +54,8 @@ class AzButtonLineEdit(QtWidgets.QLineEdit):
                 if self.save_dir:
                     self.settings.write_last_dir(select_dir)
                 self.setText(select_dir)
-                if self.on_button_clicked_callback:
-                    self.on_button_clicked_callback()
+                if self.slot:
+                    self.slot()
         else:
             if self.save_dialog:  # выбрано диалог сохранения файла
                 filename, _ = QtWidgets.QFileDialog.getSaveFileName(self, self.caption, self.last_dir, self.filter,
@@ -69,8 +69,8 @@ class AzButtonLineEdit(QtWidgets.QLineEdit):
                 if self.save_dir:  # сохраняем последний используемый каталог
                     self.settings.write_last_dir(os.path.dirname(filename))
                 self.setText(filename)
-            if self.on_button_clicked_callback:
-                self.on_button_clicked_callback()
+            if self.slot:
+                self.slot()
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -171,14 +171,13 @@ class AzAction(QtWidgets.QAction):
 
 # ----------------------------------------------------------------------------------------------------------------------
 class AzTableModel(QtCore.QAbstractTableModel):
-
     """
     Модель для отображения табличных данных, принимает лист листов [[x1, y1], [x2, y2]... ]
     Все методы "перегруженные" для минимального функционала.
     """
 
     def __init__(self, data=None, header_data=None, edit_column=None, parent=None):
-        super(AzTableModel, self).__init__()
+        super(AzTableModel, self).__init__(parent)
         self._data = data
         self._header_data = header_data
         self.edit_col = edit_column
@@ -188,14 +187,15 @@ class AzTableModel(QtCore.QAbstractTableModel):
     # def sort(self, column, order):
     #     import operator
     #     self.layoutAboutToBeChanged.emit()
-    #     self.data = sorted(self.data, key=operator.itemgetter(column), reverse=(order == QtCore.Qt.SortOrder.DescendingOrder))
+    #     self.data = sorted(self.data, key=operator.itemgetter(column),
+    #                        reverse=(order == QtCore.Qt.SortOrder.DescendingOrder))
     #     self.layoutChanged.emit()
 
     # def sort(self, Ncol, order):
     #     import operator
     #     """Сортировка по столбцу"""
     #     self.layoutAboutToBeChanged.emit()
-    #     self.data = sorted(self.data, key=operator.itemgetter(Ncol))
+    #     self.data = sorted(self.data, key=operator.itemgetter(Ncol)) # да не работает эта херня! я тупой!
     #     if order == QtCore.Qt.SortOrder.DescendingOrder:
     #         self.data.reverse()
     #     self.layoutChanged.emit()
@@ -541,7 +541,38 @@ def save_via_qtextstream(table_data, path, exclude_columns: list = None):
         result = True
     return result
 
+
 # ----------------------------------------------------------------------------------------------------------------------
 
+def set_widgets_and_layouts_margins(widget, left, top, right, bottom):
+    """Установка всем виджетам и компоновщикам отступов. Работает рекурсивно"""
+    if isinstance(widget, QtWidgets.QWidget):  # наш тип виджет
+        layout = widget.layout()
+        if layout is not None:
+            layout.setContentsMargins(left, top, right, bottom)
+        for i in range(widget.layout().count()):
+            # запускаем рекурсию
+            set_widgets_and_layouts_margins(widget.layout().itemAt(i).widget(), left, top, right, bottom)
+    elif isinstance(widget, QtWidgets.QLayout):  # наш тип Layout
+        for i in range(widget.count()):
+            set_widgets_and_layouts_margins(widget.itemAt(i).widget(), left, top, right, bottom)  # запускаем рекурсию
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+def set_widgets_enabled(layout, flag):
+    """Отключение всех виджетов и компоновщиков. Работает рекурсивно"""
+    # TODO: не работает, разобраться
+    for i in range(layout.count()):
+        item = layout.itemAt(i)
+        if isinstance(item, QtWidgets.QWidget):
+            item.setEnabled(flag)
+        elif isinstance(item, QtWidgets.QLayout):
+            set_widgets_enabled(item, flag)
+        layout.setEnabled(flag)
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------

@@ -31,6 +31,10 @@
 # glyph_filter_labels: Lizel Arina
 # glyph_objects: Mihimihi
 # glyph_categorization: orvipixel
+# glyph_finish: Vector Stall
+# glyph_add2: Rizki Ahmad Fauzi
+
+
 
 # glyph_add_image: Pixel perfect
 # glyph_crop: me & Pixel perfect
@@ -81,3 +85,5 @@
 # glyph_resize: Freepik
 # glyph_pen_code: Freepik
 # glyph_clear_filter: Freepik
+# glyph_smart_process: Freepik
+# glyph_cook: Freepik

@@ -1,3 +1,45 @@
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------
+import sys
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel
+
+class MainWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        # Создаем QVBoxLayout
+        self.layout = QVBoxLayout()
+
+        # Добавляем несколько QHBoxLayout в QVBoxLayout
+        for i in range(3):
+            hbox_layout = QHBoxLayout()
+            for j in range(2):
+                if i == 1 and j == 0:
+                    # Добавляем QPushButton
+                    button = QPushButton("Button")
+                    hbox_layout.addWidget(button)
+                else:
+                    # Добавляем QLabel
+                    label = QLabel("Label {}-{}".format(i + 1, j + 1))
+                    hbox_layout.addWidget(label)
+            self.layout.addLayout(hbox_layout)
+
+        # Устанавливаем QVBoxLayout для виджета
+        self.setLayout(self.layout)
+
+        # Отключаем все элементы в QLayout
+        self.layout.setEnabled(True)
+
+app = QApplication(sys.argv)
+
+window = MainWindow()
+window.show()
+
+sys.exit(app.exec_())
+# ----------------------------------------------------------------------------------------------------------------------
+
 # ----------------------------------------------------------------------------------------------------------------------
 import re
 

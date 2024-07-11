@@ -33,7 +33,7 @@ class TabSliceUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.slice_input_file_path = AzButtonLineEdit("glyph_folder", the_color,
                                                       caption="Select project file to auto slicing",
                                                       read_only=True, dir_only=False, filter="Projects files (*.json)",
-                                                      on_button_clicked_callback=self.slice_load_projects_data,
+                                                      slot=self.slice_load_projects_data,
                                                       initial_filter="json (*.json)")
         self.slice_input_file_path.setText(self.settings.read_slicing_input())  # строка для исходного файла
         self.slice_input_file_path.textChanged.connect(
