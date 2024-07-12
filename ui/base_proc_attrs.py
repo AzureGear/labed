@@ -4,6 +4,7 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtCore import pyqtProperty
 from utils import AppSettings, UI_COLORS, helper, config, natural_order
 from utils.sama_project_handler import DatasetSAMAHandler
+from utils.az_dataset_sort_handler import DatasetSortHandler
 from ui import new_button, AzButtonLineEdit, coloring_icon, new_text, az_file_dialog, save_via_qtextstream, new_act, \
     AzInputDialog, az_custom_dialog, new_icon, setup_dock_widgets, AzTableModel, set_widgets_and_layouts_margins, \
     set_widgets_enabled
@@ -136,7 +137,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.table_train = QtWidgets.QTableView()
         self.table_val = QtWidgets.QTableView()
         tables_train_val = [self.table_train, self.table_val]
-        data = [["adasd"], ["asdasdll"], ["ldglsdgls"]]
+        data = [["test0"], ["test1"], ["test2"]]
 
         for table in tables_train_val:  # настраиваем таблицы для Train/Val
             model = AzTableModel(data, [self.tr("Images")])
@@ -157,19 +158,23 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
         # self.ti_tb_sort_open = new_button(self, "tb", icon="glyph_folder", color=the_color, slot=self.alla,
         #                                   tooltip=self.tr("Open train-val project"))
-        self.ti_tb_sort_new = new_button(self, "tb", icon="glyph_add", color=the_color, slot=self.new_train_val_file,
-                                         tooltip=self.tr("New train-val project"))
+        self.ti_tb_sort_new = new_button(self, "tb", icon="glyph_add", color=the_color, slot=self.new_sort_file,
+                                         tooltip=self.tr("New train-val sorting project"))
+        self.ti_tb_sort_save = new_button(self, "tb", icon="glyph_save", color=the_color, slot=self.save_sort_file,
+                                          tooltip=self.tr("Save train-val sorting project"))
         self.ti_tb_sort_smart = new_button(self, "tb", icon="glyph_smart_process", color=the_color, slot=self.alla,
                                            tooltip=self.tr("Smart dataset sort"))
         self.ti_tb_sort_cook = new_button(self, "tb", icon="glyph_cook", color=the_color, slot=self.alla,
                                           tooltip=self.tr("Cook dataset"))
         self.ti_tb_sort_open = AzButtonLineEdit("glyph_folder", the_color, "Open file", True, dir_only=False,
                                                 filter="sort (*.sort)", initial_filter="sort (*.sort)",
-                                                slot=self.open_train_val_file)
+                                                slot=self.open_sort_file)
         v_line = QtWidgets.QFrame()  # добавляем линию-разделитель
         v_line.setFrameShape(QtWidgets.QFrame.Shape.VLine)
-        self.ti_instruments = [self.ti_tb_sort_open, self.ti_tb_sort_new, v_line, self.ti_tb_sort_smart,
-                               self.ti_tb_sort_cook]
+        v_line2 = QtWidgets.QFrame()
+        v_line2.setFrameShape(QtWidgets.QFrame.Shape.VLine)
+        self.ti_instruments = [self.ti_tb_sort_open, self.ti_tb_sort_new, v_line, self.ti_tb_sort_save, v_line2,
+                               self.ti_tb_sort_smart, self.ti_tb_sort_cook]
 
         for tool in self.ti_instruments:
             h_layout_instr.addWidget(tool)
@@ -180,11 +185,11 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         lay_train = QtWidgets.QVBoxLayout()
         h_lay_train = QtWidgets.QHBoxLayout()
         self.ti_train_label = QtWidgets.QLabel(self.tr("Train table:"))
-        self.ti_tb_sort_add_to_train = new_button(self, "tb", icon="glyph_add2", color=color_train, slot=self.alla,
-                                                  tooltip=self.tr("Add to train"),
+        self.ti_tb_sort_add_to_train = new_button(self, "tb", "train", "glyph_add2", color=color_train,
+                                                  slot=self.add_to_sort_table, tooltip=self.tr("Add to train"),
                                                   icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
-        self.ti_tb_sort_remove_from_train = new_button(self, "tb", icon="glyph_delete2", color=color_train,
-                                                       slot=self.alla,
+        self.ti_tb_sort_remove_from_train = new_button(self, "tb", "train", "glyph_delete2", color=color_train,
+                                                       slot=self.remove_from_sort_table,
                                                        tooltip=self.tr("Remove selected rows from train"),
                                                        icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
 
@@ -201,11 +206,12 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         lay_val = QtWidgets.QVBoxLayout()
         h_lay_val = QtWidgets.QHBoxLayout()
         self.ti_train_val = QtWidgets.QLabel(self.tr("Validation table:"))
-        self.ti_tb_sort_add_to_val = new_button(self, "tb", icon="glyph_add2", color=color_val, slot=self.alla,
-                                                tooltip=self.tr("Add to val"),
+        self.ti_tb_sort_add_to_val = new_button(self, "tb", "val", "glyph_add2", color=color_val,
+                                                slot=self.add_to_sort_table, tooltip=self.tr("Add to val"),
                                                 icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
-        self.ti_tb_sort_remove_from_val = new_button(self, "tb", icon="glyph_delete2", color=color_val, slot=self.alla,
-                                                     tooltip=self.tr("Selected to val"),
+        self.ti_tb_sort_remove_from_val = new_button(self, "tb", "val", "glyph_delete2", color=color_val,
+                                                     slot=self.remove_from_sort_table,
+                                                     tooltip=self.tr("Remove selected rows from val"),
                                                      icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
         h_lay_val.addWidget(self.ti_train_val)
         h_lay_val.addWidget(self.ti_tb_sort_add_to_val)
@@ -340,8 +346,9 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             elif column == 8:
                 self.table_widget.setColumnWidth(column, 45)
                 header.setSectionResizeMode(column, QtWidgets.QHeaderView.Fixed)
-            else:
-                header.setSectionResizeMode(column, QtWidgets.QHeaderView.Stretch)  # ResizeToContents
+            # else:
+            #     header.setSectionResizeMode(column, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)  # ResizeToContents
+        header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Stretch)
 
         # итоговая настройка ui центрального виджета
         central_layout = QtWidgets.QVBoxLayout(self)  # главный Layout, наследуемый класс
@@ -349,12 +356,68 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         central_layout.addWidget(self.table_widget)
         wid.setLayout(central_layout)
 
+    def sort_data_fill(self):
+        """Заполнение таблиц данными сортировщика"""
+        self.set_sort_data_with_model(self.table_val, self.sort_data.get_images_names("val"))
+        self.set_sort_data_with_model(self.table_train, self.sort_data.get_images_names("train"))
+        # такое же будет и для таблицы Test
+
+    def set_sort_data_with_model(self, table_view, data):
+        """Создание модели и установка в table_view, выравнивание строк"""
+        model = AzTableModel(data, ["images"])
+        table_view.setModel(model)
+        for row in range(model.rowCount()):  # выравниваем высоту
+            self.table_view.setRowHeight(row, ROW_H)
+
+    def add_to_sort_table(self):
+        """Добавление в сортировочные таблицы строк из table_image"""
+        sender = self.sender().text()  # определяем от кого пришёл сигнал
+        if sender:
+            print(f"Сигнал на добавление от объекта: {sender}")
+            self.move_to_sort_data(sender, self.get_table(sender))
+
+    def remove_from_sort_table(self):
+        """Удаление строк из сортировочной таблицы и возвращение их в table_image"""
+        sender = self.sender().text()  # определяем от кого пришёл сигнал
+        if sender:
+            print(f"Сигнал на удаление от объекта: {sender}")
+            self.remove_from_sort_data(sender, self.get_table(sender))
+
+    def move_to_sort_data(self, table, data):
+        """Добавление в классе DatasetSortHandler"""
+        if not self.image_table.selectionModel().hasSelection():  # ничего не выбрано
+            return
+        # нас интересуют выделенные строки 2 столбца
+        indexes = self.image_table.selectionModel().selectedRows(column=1)
+        role = QtCore.Qt.ItemDataRole.DisplayRole  # работает и с Qt.DecorationRole
+        sel_rows = []
+        for index in indexes:
+            sel_rows.append(self.image_table.model().data(index, role))
+        unique = tuple(sel_rows)
+        print(unique)
+
+    def remove_from_sort_data(self, table, data):
+        """Удаление в классе DatasetSortHandler"""
+        # asdlalsd
+        print("TODO")
+
+    def get_table(self, name):  # определить таблицу
+        if name == "train":
+            return self.table_train
+        elif name == "val":
+            return self.table_val
+        else:
+            print("Тут что-то странное")
+
+    def alla(self):
+        self.sama_data.get_sort_data()
+
     def toggle_sort_mode(self):
         """Включение и выключение режима сортировщика"""
-        #self.sort_mode = self.ti_tb_sort_mode.isChecked()
+        # self.sort_mode = self.ti_tb_sort_mode.isChecked()
         print(self.sort_mode)
 
-    def new_train_val_file(self):
+    def new_sort_file(self):
         if not self.sama_data.is_correct_file:
             return
         file = az_file_dialog(self, self.tr("Create new sorting train/validation project *.sort file"),
@@ -362,15 +425,38 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                               dir_only=False, file_to_save=True, filter="Sort (*.sort)",
                               initial_filter="sort (*.sort)")
         if helper.check_list(file):
-            with open(file, 'w'): # записать несортированные, сортированные и т.д.
-                pass
-            self.load_file(file)
+            new_sort_file = DatasetSortHandler()  # создаём пустой объект
+            data = new_sort_file.create_new_sort_file(self.sama_data)  # создаем данные по текущим SAMA
+            helper.save(file, data)  # сохраняем объект
+            self.load_sort_project(file)  # загружаем проект, он сам всё настроит
+            self.signal_message.emit(self.tr(f"New sorting project file was created: {file}"))
 
-    def open_train_val_file(self):
-        pass
+    def open_sort_file(self):
+        """Открытие файла сортировка и попытка его загрузки"""
+        if len(self.ti_tb_sort_open.text()) < 5:
+            return
+        self.load_sort_project(self.ti_tb_sort_open.text())
 
-    def alla(self):
-        pass
+    def save_sort_file(self):
+        """Сохранение файла проекта сортировщика"""
+        if not helper.check_file(self.sort_file):
+            return
+        helper.save(self.sort_file, self.sort_data.data)
+        self.signal_message.emit(self.tr(f"Train-val sorting project saved: &{self.sort_file}"))
+
+    def load_sort_project(self, path):
+        """Загрузка проекта сортировки датасета"""
+        # TODO: проверку файла, сообщения для пользователя
+        sort_data = DatasetSortHandler()  # создаем объект сортировщика
+        sort_data.load_from_file(path)  # заполняем его данными
+        if sort_data.is_correct_file:  # если всё хорошо, то загружаем
+            self.sort_file = path
+            self.sort_data = sort_data
+            self.ti_tb_sort_open.setText(path)
+            self.sort_data_fill()  # заполняем таблицы
+            self.signal_message.emit(self.tr(f"Train-val sorting project load: {path}"))
+        else:
+            self.ti_tb_sort_open.clear()  # Очищаем поле с файлом, что выбрал пользователь, т.к. файл не корректен
 
     def image_table_clear_selection(self):
         # сброс выделения с таблицы фильтрата image_table
@@ -400,6 +486,12 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     def log_clear(self):
         self.log.clear()
 
+    def log_change_data(self, message):
+        self.change_log_icon("red")
+        current_time = datetime.now().time().strftime("%H:%M:%S")
+        message = current_time + ": " + message
+        self.log.setPlainText(self.log.toPlainText() + message + "\n")
+
     def change_log_icon(self, color):
         if color == "red":
             icon = "circle_red"
@@ -408,12 +500,6 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         else:
             icon = "circle_grey"
         self.btn_log_and_status.setIcon(new_icon(icon))
-
-    def log_change_data(self, message):
-        self.change_log_icon("red")
-        current_time = datetime.now().time().strftime("%H:%M:%S")
-        message = current_time + ": " + message
-        self.log.setPlainText(self.log.toPlainText() + message + "\n")
 
     def attr_actions_disable(self, message):  # сброс всех форм при загрузке, а также отключение инструментов
         self.current_file = None

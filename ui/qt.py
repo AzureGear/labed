@@ -35,6 +35,9 @@ class AzButtonLineEdit(QtWidgets.QLineEdit):
         self.initial_filter = initial_filter
         self.setReadOnly(read_only)
         self.setContentsMargins(0, 0, 31, 0)  # отступ справа на величину иконки
+        self.slot = slot
+
+        # Signals
         self.button.clicked.connect(self.on_button_clicked)  # соединяем сигнал щелчка
         self.button.setCursor(QtCore.Qt.PointingHandCursor)  # курсор при наведении на иконку
 
@@ -498,22 +501,25 @@ def az_file_dialog(parent=None, caption=None, last_dir=None, dir_only=False, fil
 
         if file_to_save:
             # сохранение файла
-            arr = QtWidgets.QFileDialog.getSaveFileName(parent, caption, last_dir, filter, initial_filter)
+            file, _ = QtWidgets.QFileDialog.getSaveFileName(parent, caption, last_dir, filter, initial_filter)
+            if len(file) > 1:
+                if remember_dir:
+                    settings.write_last_dir(os.path.dirname(file))
+                return file
+
         else:
             # открытие файла
-            arr = QtWidgets.QFileDialog.getOpenFileNames(parent, caption, last_dir, filter, initial_filter)
-        select_files = arr[0]
-        if len(arr[0]) > 0:
-            if remember_dir:
-                settings.write_last_dir(os.path.dirname(select_files[0]))
-            return select_files
+            file, _ = QtWidgets.QFileDialog.getOpenFileNames(parent, caption, last_dir, filter, initial_filter)
+            if len(file) > 0:
+                if remember_dir:
+                    settings.write_last_dir(os.path.dirname(file))
+                return file
 
 
 # ----------------------------------------------------------------------------------------------------------------------
 def save_via_qtextstream(table_data, path, exclude_columns: list = None):
     """Экспорт и сохранение табличных данных (table_data) в файл (path),
     исключая перечень столбцов указанный в exclude_columns"""
-
     # Добавить ловлю ошибок при экспорте
     file = QtCore.QFile(path)
     result = False

@@ -496,8 +496,26 @@ class DatasetSAMAHandler:
 
         return stats
 
+    def get_sort_data(self):
+        """
+        Az+: Извлечение данных для класса сортировщика.
+        {"image_name":str, [label1_counts:int, label2_counts:int, ... ] }
+        """
+        data = {}
+        label_n = len(self.get_labels())
+        for im_name, image in self.data["images"].items():  # смотрим каждое изображение
+            label_counts = [0] * label_n  # делаем лист по количеству классов/меток
+            for shape in image["shapes"]:  # по каждому объекту
+                label_counts[shape["cls_num"]] += 1  # добавляем в столбец, в соответствии с классом/меткой
+            data[im_name] = label_counts
+        return data
+        values = list(data.values())
+        # преобразуем значения в списки
+        result = list(map(sum, zip(*values)))
+        print(result)
+
     def get_model_data(self, object_name=None, label_name=None, count=-1, pattern=r"^([^_]+)_([^_]+)"):
-        """Извлечение строк для заполнения таблицы модели"""
+        """Az+: Извлечение строк для заполнения таблицы модели"""
         if self.data is None:
             return
         if object_name == "< all >":
@@ -542,9 +560,9 @@ class DatasetSAMAHandler:
 
     def get_group_objects(self, pattern=r"^([^_]+)_([^_]+)"):
         """
-        Извлечение перечня объектов. Под объектами понимаются разновременные изображения одного и того же объекта,
+        Az+: Извлечение перечня объектов. Под объектами понимаются разновременные изображения одного и того же объекта,
         например в для изображения '138_DEU_2021-06_003.jpg' таким объектом будет '138_DEU'. Если использовать
-        регулярные выражения, то шаблоном поиска будет r"^([^_]+)_([^_]+)", т.е. любой последовательность символов,
+        регулярные выражения, то шаблоном поиска будет r"^([^_]+)_([^_]+)", т.е. любая последовательность символов,
         с начала строки (^) и состоящей из 2 групп, разделенных символом "_".
         """
         objects = []

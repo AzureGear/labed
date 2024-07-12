@@ -2,44 +2,30 @@
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
-import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel
-
-class MainWindow(QWidget):
-    def __init__(self):
-        super().__init__()
-
-        # Создаем QVBoxLayout
-        self.layout = QVBoxLayout()
-
-        # Добавляем несколько QHBoxLayout в QVBoxLayout
-        for i in range(3):
-            hbox_layout = QHBoxLayout()
-            for j in range(2):
-                if i == 1 and j == 0:
-                    # Добавляем QPushButton
-                    button = QPushButton("Button")
-                    hbox_layout.addWidget(button)
-                else:
-                    # Добавляем QLabel
-                    label = QLabel("Label {}-{}".format(i + 1, j + 1))
-                    hbox_layout.addWidget(label)
-            self.layout.addLayout(hbox_layout)
-
-        # Устанавливаем QVBoxLayout для виджета
-        self.setLayout(self.layout)
-
-        # Отключаем все элементы в QLayout
-        self.layout.setEnabled(True)
-
-app = QApplication(sys.argv)
-
-window = MainWindow()
-window.show()
-
-sys.exit(app.exec_())
+# indexes = self.image_table.selectionModel().selectedIndexes()
+# print(len(indexes))
+# for index in indexes:
+#     role = QtCore.Qt.ItemDataRole.DisplayRole  # or Qt.DecorationRole
+#     print(self.image_table.model().data(self.image_table.model().index(index.row(), 1)))
+#     # print(self.image_table.model().data(index, role))
+#     # print(self.image_table.model().data(self.image_table.index .index(index.row(), 0)))
+#     # QTableView, Selection, QModelIndexes
 # ----------------------------------------------------------------------------------------------------------------------
+# исходный список
+images = [["dota2.jpg", [0, 1, 3, 0, 0]], ["csgo.jpg", [1, 0, 0, 2, 0]], ["vertigo.jpg", [2, 0, 0, 0, 9]]]
 
+# создаем список, где будем хранить суммы для каждого класса
+sums = [0] * len(images[0][1])
+
+# суммируем элементы для каждого класса
+for image in images:
+    for i in range(len(image[1])):
+        sums[i] += image[1][i]
+
+print(sums)
+# выводим результат
+for i in range(len(sums)):
+    print(f"Sum of class {i+1}: {sums[i]}")
 # ----------------------------------------------------------------------------------------------------------------------
 import re
 
