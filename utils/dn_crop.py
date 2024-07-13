@@ -1,4 +1,4 @@
-# Реализация Жукова Дениса
+# Реализация Жукова Дениса, некоторые доработки: Az
 from shapely import Polygon, MultiPolygon, GeometryCollection, Point
 import cv2 as cv
 import numpy as np
@@ -1050,7 +1050,9 @@ class DNImgCut:
 
             # Перебор по всем картинкам в Json-файле
             JsonAllData['images'] = {}
-            summ_all_files_Mb = 0
+
+            # Az+: функция для расчета статистики и ориентировочного времени работы
+            overall_size, images_count = az_calc_stats(self.JsonObj.PathToImg, self.JsonObj.ImgsName)
             for i in range(len(self.JsonObj.ImgsName)):
                 # Az: пропускаем несуществующие файлы
                 if not os.path.exists(os.path.join(self.JsonObj.PathToImg, self.JsonObj.ImgsName[i])):
@@ -1065,14 +1067,10 @@ class DNImgCut:
                 # if not self.JsonObj.ImgsName[i] in bad_files:
                 #     continue
 
-                if DEBUG:
-                    az_file_size = os.path.getsize(
-                        os.path.join(self.JsonObj.PathToImg, self.JsonObj.ImgsName[i])) / (1024 * 1024)
-                    summ_all_files_Mb += az_file_size
-                    print(
-                        f"{(i + 1)}/{len(self.JsonObj.ImgsName)}, объём файлов: {int(summ_all_files_Mb)}/32500, "
-                        f"% отношение ~{round((i + 1) / len(self.JsonObj.ImgsName) * 100, 2)}, "
-                        f"обрабатываю: {self.JsonObj.ImgsName[i]}")
+                if DEBUG: # немного статистики, для понимания процесса
+                    print(f"{(i + 1)} из {images_count}: ~{(i + 1) / images_count}%, объем: "
+                          f"~{az_calc_size(os.path.join(self.JsonObj.PathToImg, self.JsonObj.ImgsName[i])) // overall_size}"
+                          f" из {overall_size} Mb, обрабатываю: {self.JsonObj.ImgsName[i]}")
                 CutData = self.CutImg(i, SizeWind, ProcOverlapPol, ProcOverlapW,
                                       os.path.dirname(NameJsonFile), DKray, IsSmartCut)
 
@@ -1212,7 +1210,7 @@ class DNImgCut:
 
                 # Генерим имя сохраняемого изображения
                 NameImg = os.path.splitext(os.path.basename(path))[0]
-                NameImg += "_mc_{:0>3}.jpg".format(i)
+                NameImg += "_mc_{:0>3}.jpg".format(i)  # Az: Денис, такая запись проще и быстрее
                 i += 1  # увеличиваем счетчик
                 FullFileName = os.path.join(output_image_dir, NameImg)
                 # Записываем картинки
@@ -1226,3 +1224,21 @@ class DNImgCut:
                 ClsNumsImg.append(ClsNums)
 
         return {'ImgNames': NameCropImgs, 'Pols': PolsImg, 'ClsNums': ClsNumsImg}
+
+
+def az_calc_stats(path_to_dir, images):
+    """Az: Расчет статистики обрабатываемых данных и ориентировочного времени работы"""
+    count = 0  # количество реальных файлов
+    summ_size = 0  # их суммарный размер в Mb
+    for image in images:
+        if not os.path.exists(os.path.join(path_to_dir, image)):
+            continue  # переходим к следующему, т.к. этого файла не существует
+        summ_size += az_calc_size(os.path.join(path_to_dir, image))  # получаем сумму...
+        count += 1  # ...и реальное количество объектов
+    return summ_size, count
+
+
+def az_calc_size(file, degree=2):
+    """Расчет размера файла и перевод его в нужную размерность. degree: 1 - Килобайты; 2 - Мб; 3 - Гб и т.д."""
+    size = os.path.getsize(file) / (1024 ** degree)
+    return size

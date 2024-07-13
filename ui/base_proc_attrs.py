@@ -1,7 +1,6 @@
 import copy
 
 from PyQt5 import QtWidgets, QtGui, QtCore
-from PyQt5.QtCore import pyqtProperty
 from utils import AppSettings, UI_COLORS, helper, config, natural_order
 from utils.sama_project_handler import DatasetSAMAHandler
 from utils.az_dataset_sort_handler import DatasetSortHandler
@@ -17,6 +16,7 @@ color_train = UI_COLORS.get("automation_color")
 color_val = UI_COLORS.get("settings_color")
 
 
+# TODO: сделать растяжку в центральном виджете для размещения таблицы фильтрата и общей
 # TODO: добавить инструмент назначения Разметчика
 # TODO: добавить описание проекта, добавить его в сам проект SAMA_handler
 # TODO: Сделать фрейм общей статистики отдельно справа, сделать кнопку сбросить данные.
@@ -56,19 +56,23 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.table_widget.signal_message.connect(self.forward_signal)  # перенаправление сигнала в строку состояния
         self.table_widget.signal_data_changed.connect(self.log_change_data)  # запись информации в лог для пользователя
 
-        # изменение фильтра объект
+        # изменение фильтра
         self.ti_cbx_sel_class.currentIndexChanged.connect(self.table_image_filter_changed)
         self.ti_cbx_sel_obj.currentIndexChanged.connect(self.table_image_filter_changed)
         # print("init, cur_file:", self.current_file)
         # print("init, sama_labels:", self.sama_data.get_labels())
 
-        # смотрим, есть ли в реестре файл, который запускали прошлый раз?
+        # смотрим, есть ли в реестре файл проекта, который запускали прошлый раз?
         if os.path.exists(self.settings.read_attributes_input()):
             # пробуем загрузить
             self.load_project(self.settings.read_attributes_input(),
                               self.tr(f"Loaded last used project file: {self.settings.read_attributes_input()}"))
         else:  # файла нет, тогда ограничиваем функционал
             self.toggle_tool_buttons(False)
+
+        if self.sama_data.is_correct_file:  # успешна ли автозагрузка данных из реестра?
+            if os.path.exists(self.settings.read_sort_file_input()):
+                self.load_sort_project(self.settings.read_sort_file_input())  # загружаем проект сортировки
 
     @QtCore.pyqtSlot(str)
     def forward_signal(self, message):  # перенаправление сигналов
@@ -136,17 +140,12 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         # сортировщик Train/Val/Test
         self.table_train = QtWidgets.QTableView()
         self.table_val = QtWidgets.QTableView()
-        tables_train_val = [self.table_train, self.table_val]
-        data = [["test0"], ["test1"], ["test2"]]
+        tables = [self.table_train, self.table_val]
 
-        for table in tables_train_val:  # настраиваем таблицы для Train/Val
-            model = AzTableModel(data, [self.tr("Images")])
-            table.setModel(model)
-            table.setRowHeight(0, 20)  # TODO: for row in range(model.rowCount()):
+        for i, table in enumerate(tables):  # настраиваем таблицы для Train/Val
             table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
             table.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.MultiSelection)
-            header = table.horizontalHeader()
-            header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Stretch)
+            table.setWindowTitle("t" + str(i))
 
         h_layout_instr = QtWidgets.QHBoxLayout()  # компоновщик инструментов
         self.ti_tb_sort_mode = new_button(self, "tb", self.tr(" Toggle sort\n train/val"), "glyph_categorization",
@@ -356,52 +355,63 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         central_layout.addWidget(self.table_widget)
         wid.setLayout(central_layout)
 
-    def sort_data_fill(self):
-        """Заполнение таблиц данными сортировщика"""
+    def update_sort_data_tables(self):
+        """Заполнение таблиц сортировки данными сортировщика DatasetSortHandler"""
         self.set_sort_data_with_model(self.table_val, self.sort_data.get_images_names("val"))
         self.set_sort_data_with_model(self.table_train, self.sort_data.get_images_names("train"))
         # такое же будет и для таблицы Test
 
     def set_sort_data_with_model(self, table_view, data):
-        """Создание модели и установка в table_view, выравнивание строк"""
-        model = AzTableModel(data, ["images"])
+        """Создание модели для таблиц сортировки и установка в table_view, выравнивание строк"""
+        # обязательно конвертируем просто список в список списков
+        print(f"image names {table_view.windowTitle()}:", self.sort_data.get_images_names("train"))
+        data = [[item] for item in data]
+        if len(data) < 1:
+            model = AzTableModel()
+        else:
+            model = AzTableModel(data, ["images"])  # заголовок всего один "images"
         table_view.setModel(model)
-        for row in range(model.rowCount()):  # выравниваем высоту
-            self.table_view.setRowHeight(row, ROW_H)
+        if table_view.model().columnCount() > 0:
+            table_view.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Stretch)
+        if table_view.model().rowCount() > 0:
+            for row in range(model.rowCount()):  # выравниваем высоту
+                table_view.setRowHeight(row, ROW_H)
 
     def add_to_sort_table(self):
         """Добавление в сортировочные таблицы строк из table_image"""
         sender = self.sender().text()  # определяем от кого пришёл сигнал
         if sender:
-            print(f"Сигнал на добавление от объекта: {sender}")
-            self.move_to_sort_data(sender, self.get_table(sender))
+            self.move_to_sort_data(sender)
 
     def remove_from_sort_table(self):
         """Удаление строк из сортировочной таблицы и возвращение их в table_image"""
         sender = self.sender().text()  # определяем от кого пришёл сигнал
         if sender:
-            print(f"Сигнал на удаление от объекта: {sender}")
-            self.remove_from_sort_data(sender, self.get_table(sender))
+            self.remove_from_sort_data(sender)
 
-    def move_to_sort_data(self, table, data):
-        """Добавление в классе DatasetSortHandler"""
+    def move_to_sort_data(self, table):
+        """Перемещение записей в классе DatasetSortHandler. table - таблица, в которую следует переместить"""
         if not self.image_table.selectionModel().hasSelection():  # ничего не выбрано
+            return
+        if not self.sort_file:  # данных для сортировки не загружено
             return
         # нас интересуют выделенные строки 2 столбца
         indexes = self.image_table.selectionModel().selectedRows(column=1)
         role = QtCore.Qt.ItemDataRole.DisplayRole  # работает и с Qt.DecorationRole
         sel_rows = []
-        for index in indexes:
+        for index in indexes:  # следует помнить, что index это объект QModelIndex, а не простой итератор
             sel_rows.append(self.image_table.model().data(index, role))
-        unique = tuple(sel_rows)
-        print(unique)
+        unique = set(sel_rows)  # получаем набор уникальных значений
+        self.sort_data.move_rows_by_images_names("unsort", table, unique)  # добавляем эти объекты в таблицу
+        self.update_sort_data_tables()  # обновляем таблицы сортировки train/val
+        self.table_image_filter_changed()  # обновляем таблицу фильтрата
 
     def remove_from_sort_data(self, table, data):
         """Удаление в классе DatasetSortHandler"""
         # asdlalsd
         print("TODO")
 
-    def get_table(self, name):  # определить таблицу
+    def get_table(self, name):  # определить таблицу # todo: нужно ли это мне?
         if name == "train":
             return self.table_train
         elif name == "val":
@@ -410,7 +420,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             print("Тут что-то странное")
 
     def alla(self):
-        self.sama_data.get_sort_data()
+        pass
 
     def toggle_sort_mode(self):
         """Включение и выключение режима сортировщика"""
@@ -449,11 +459,13 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         # TODO: проверку файла, сообщения для пользователя
         sort_data = DatasetSortHandler()  # создаем объект сортировщика
         sort_data.load_from_file(path)  # заполняем его данными
+
         if sort_data.is_correct_file:  # если всё хорошо, то загружаем
             self.sort_file = path
             self.sort_data = sort_data
+            self.settings.write_sort_file_input(path)  # записываем удачный файл для последующего автооткрытия
             self.ti_tb_sort_open.setText(path)
-            self.sort_data_fill()  # заполняем таблицы
+            self.update_sort_data_tables()  # заполняем таблицы
             self.signal_message.emit(self.tr(f"Train-val sorting project load: {path}"))
         else:
             self.ti_tb_sort_open.clear()  # Очищаем поле с файлом, что выбрал пользователь, т.к. файл не корректен
@@ -660,25 +672,57 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             if save_via_qtextstream(self.table_widget, file, [7, 8]):
                 self.signal_message.emit(self.tr(f"Table data export to: {file}"))
 
-    def load_image_data_model(self):
+    def sef_image_data_model(self, data):
+        """Создание и установка модели в таблице фильтрата, по исходным данным, настройка ui таблицы"""
         # TODO: сортировку TableView
-        self.image_table.setSortingEnabled(False)
+        self.image_table.setSortingEnabled(False)  # обязательно отключаем
 
+        if len(data) < 1:
+            model_sorting = AzTableModel()
+        else:
+            model_sorting = AzTableModel(data, self.image_headers)  # модель для данных фильтрата
+        self.image_table.setModel(model_sorting)
+
+        # настраиваем отображение
+        if self.image_table.model().columnCount() > 0:  # для столбцов
+            header = self.image_table.horizontalHeader()
+            for col in range(model_sorting.columnCount()):
+                header.setSectionResizeMode(col, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
+            header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.Stretch)
+        if self.image_table.model().rowCount() > 0:  # для строк
+            for row in range(self.image_table.model().rowCount()):  # выравниваем высоту
+                self.image_table.setRowHeight(row, ROW_H)
+
+        self.image_table.setSortingEnabled(True)  # включаем сортировку
+
+    def table_image_filter_changed(self):
+        """Загрузка данных в таблицу фильтрата при изменении фильтров. Если включен режим сортировки, то также
+         проверяется наличие объектов в таблицах Train/Val через класс DatasetSortHandler"""
+        # выбираем новые результаты в соответствии с доступными фильтрами
+        data = self.get_filtered_model_data(self.ti_cbx_sel_obj.currentText(), self.ti_cbx_sel_class.currentText())
+        if self.ti_tb_sort_mode.isChecked():
+            # Если сортировщик включён, то:
+            # данные = data[all] - train[data] - val[data] - test[data] = unsort[data] in data[all]
+            exclusions = list(self.sort_data.get_images_names_train_val_test())  # недопустимые для вывода данные
+            # фильтруем данные с учетом недопустимых элементов
+            print("data before:", data)  # Теперь нужно оставить только те данные которые в таблице Unsort
+            data = [item for item in data if item[1] not in exclusions]
+            print("data after:", data)
+        self.sef_image_data_model(data)  # загружаем и устанавливаем модель
+
+    def load_image_data_model(self):
+        """Первичное заполнение таблицы фильтрата данными"""
         # Данные - массив [["object1", "image_name1", "label1, "item1"][...]]
         if self.original_image_data is None:
             data = self.sama_data.get_model_data()
             self.original_image_data = data
-        self.fill_image_data_filters()
-        model_sorting = AzTableModel(data, self.image_headers)
-        self.image_table.setModel(model_sorting)
-        header = self.image_table.horizontalHeader()
-        for col in range(model_sorting.columnCount()):
-            header.setSectionResizeMode(col, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.Stretch)
-
-        self.image_table.setSortingEnabled(True)
+        self.fill_image_data_filters()  # заполняем параметрами для сортировки (фильтрами)
+        self.sef_image_data_model(data)  # загружаем и устанавливаем модель
 
     def fill_image_data_filters(self):
+        self.ti_cbx_sel_obj.blockSignals(True)  # Отключаем вызов сигналов, т.к. добавляем фильтры
+        self.ti_cbx_sel_class.blockSignals(True)
+
         self.ti_cbx_sel_class.clear()  # сначала ...
         self.ti_cbx_sel_obj.clear()  # ...чистим
 
@@ -693,19 +737,8 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         if helper.check_list(items):
             self.ti_cbx_sel_obj.addItems(items)
 
-    def table_image_filter_changed(self):
-        # изменение фильтров
-        self.image_table.setSortingEnabled(False)
-
-        # выбираем новые результаты в соответствии с доступными фильтрами
-        data = self.get_filtered_model_data(self.ti_cbx_sel_obj.currentText(), self.ti_cbx_sel_class.currentText())
-
-        model_sorting = AzTableModel(data, self.image_headers)
-        self.image_table.setModel(model_sorting)
-        for row in range(model_sorting.rowCount()):  # выравниваем высоту
-            self.image_table.setRowHeight(row, ROW_H)
-
-        self.image_table.setSortingEnabled(True)
+        self.ti_cbx_sel_obj.blockSignals(False)  # возвращаем функционал обратно
+        self.ti_cbx_sel_class.blockSignals(False)
 
     def get_filtered_model_data(self, object_name=None, label_name=None, pattern=r"^([^_]+)_([^_]+)"):
         """Фильтр строк исходных данных (self.original_image_data) таблицы фильтрата"""
@@ -720,6 +753,9 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         filtered = [row for row in self.original_image_data if (object_name is None or row[0] == object_name) and
                     (label_name is None or row[2] == label_name)]
         return filtered
+
+    def message_toggle_sort_mode(self):
+        self.signal_message.emit(self.tr("Toggle train/val sort mode"))
 
     def tr(self, text):
         return QtCore.QCoreApplication.translate("TabAttributesUI", text)

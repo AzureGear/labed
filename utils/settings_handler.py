@@ -10,38 +10,48 @@ class AppSettings:
     def __init__(self):
         self.settings = QtCore.QSettings(config.ORGANIZATION, config.APPLICATION)
 
-    def read_ui_stack_widget_cur_tab(self):  # активный виджет для боковой панели [r]
+    def read_ui_stack_widget_cur_tab(self):
+        """Активный виджет для боковой панели [r]"""
         return self.settings.value('ui/ui_stack_widget_current_tab', 0)
 
-    def write_ui_stack_widget_cur_tab(self, ui_tab):  # активный виджет для боковой панели [w]
+    def write_ui_stack_widget_cur_tab(self, ui_tab):
+        """Активный виджет для боковой панели [w]"""
         self.settings.setValue('ui/ui_stack_widget_current_tab', ui_tab)
 
-    def read_ui_proc_page(self):  # активная страница для 1 виджета, если он выбран [r]
+    def read_ui_proc_page(self):
+        """Активная страница для 1 виджета, если он выбран [r]"""
         return self.settings.value('ui/ui_proc_page', 3)
 
-    def write_ui_proc_page(self, proc_page):  # активная страница для 1 виджета, если он выбран [w]
+    def write_ui_proc_page(self, proc_page):
+        """Активная страница для 1 виджета, если он выбран [w]"""
         self.settings.setValue('ui/ui_proc_page', proc_page)
 
-    def read_lang(self):  # язык [r]
+    def read_lang(self):
+        """Язык [r] """
         return self.settings.value('ui/language', 'English')
 
-    def write_lang(self, lang):  # язык [w]
+    def write_lang(self, lang):
+        """Язык [w]"""
         self.settings.setValue('ui/language', lang)
 
-    def read_ui_theme(self):  # тема интерфейса [r]
+    def read_ui_theme(self):
+        """Тема интерфейса [r]"""
         return self.settings.value('ui/theme', 'light')
 
-    def write_ui_theme(self, theme):  # тема интерфейса [w]
+    def write_ui_theme(self, theme):
+        """Тема интерфейса [w]"""
         self.settings.setValue('ui/theme', theme)
 
-    def read_ui_position(self):  # позиция, размер и состояние окна приложения [r]
+    def read_ui_position(self):
+        """Позиция, размер и состояние окна приложения [r]"""
         # if len(screeninfo.get_monitors()) == 1: # TODO: что если отключили монитор?
         position = self.settings.value('ui/base_gui_position', QtCore.QPoint(250, 250))
         size = self.settings.value('ui/base_gui_size', QtCore.QSize(900, 565))
         state = self.settings.value('ui/base_gui_state', QtCore.Qt.WindowState.WindowNoState)  # QWindow
         return position, size, state
 
-    def write_ui_position(self, position, size, state):  # позиция, размер и состояние окна приложения [w]
+    def write_ui_position(self, position, size, state):
+        """Позиция, размер и состояние окна приложения [w]"""
         self.settings.setValue('ui/base_gui_position', position)
         self.settings.setValue('ui/base_gui_size', size)
         self.settings.setValue('ui/base_gui_state', state)
@@ -94,32 +104,50 @@ class AppSettings:
         """Датасет MNIST [w]"""
         self.settings.setValue('datasets/mnist', path)
 
-    def read_slicing_input(self):  # исходный файл проекта для автонарезки [r]
+    def read_slicing_input(self):
+        """Исходный файл проекта для автонарезки [r] """
         return self.settings.value('slicing/input_file', '')
 
-    def write_slicing_input(self, path):  # исходный файл проекта для автонарезки [w]
+    def write_slicing_input(self, path):
+        """Исходный файл проекта для автонарезки [w] """
         self.settings.setValue('slicing/input_file', path)
 
-    def read_default_slice_overlap_pols(self):  # значение перекрытия для полигонов по умолчанию [r]
+    def read_default_slice_overlap_pols(self):
+        """Значение перекрытия для полигонов по умолчанию [r]"""
         return self.settings.value('slicing/default_slice_overlap_pols', 5)
 
-    def write_default_slice_overlap_pols(self, percent):  # значение перекрытия для полигонов по умолчанию [w]
+    def write_default_slice_overlap_pols(self, percent):
+        """Значение перекрытия для полигонов по умолчанию [w]"""
         self.settings.setValue('slicing/default_slice_overlap_pols', percent)
 
-    def read_slice_window_overlap(self):  # значение перекрытия для сканирующего окна [r]
+    def read_slice_window_overlap(self):
+        """Значение перекрытия для сканирующего окна [r]"""
         return self.settings.value('slicing/default_slice_window_overlap', 50)
 
-    def write_slice_window_overlap(self, percent):  # значение перекрытия для сканирующего окна [w]
+    def write_slice_window_overlap(self, percent):
+        """Значение перекрытия для сканирующего окна [w]"""
         self.settings.setValue('slicing/default_slice_window_overlap', percent)
 
-    def read_slice_crop_size(self):  # размер сканирующего окна/окна кадрирования [r]
+    def read_slice_crop_size(self):
+        """Размер сканирующего окна/окна кадрирования [r]"""
         return self.settings.value('slicing/slice_crop_size', 1280)
 
-    def write_slice_crop_size(self, size):  # размер сканирующего окна/окна кадрирования [w]
+    def write_slice_crop_size(self, size):
+        """Размер сканирующего окна/окна кадрирования [w]"""
         self.settings.setValue('slicing/slice_crop_size', size)
 
-    def read_attributes_input(self):  # файл проекта для страницы атрибутов [r]
+    def read_attributes_input(self):
+        """Файл проекта для страницы атрибутов [r]"""
         return self.settings.value('attributes/input_file', '')
 
-    def write_attributes_input(self, path):  # файл проекта для страницы атрибутов [w]
+    def write_attributes_input(self, path):
+        """Файл проекта для страницы атрибутов [w]"""
         self.settings.setValue('attributes/input_file', path)
+
+    def read_sort_file_input(self):
+        """Файл сортировки train-val-test для страницы атрибутов [r]"""
+        return self.settings.value('attributes/sort_file', '')
+
+    def write_sort_file_input(self, path):
+        """Файл сортировки train-val-test для страницы атрибутов [w]"""
+        self.settings.setValue('attributes/sort_file', path)
