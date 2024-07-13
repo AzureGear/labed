@@ -676,12 +676,12 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         """Создание и установка модели в таблице фильтрата, по исходным данным, настройка ui таблицы"""
         # TODO: сортировку TableView
         self.image_table.setSortingEnabled(False)  # обязательно отключаем
-
+        print(data)
         if len(data) < 1:
-            model_sorting = AzTableModel()
+            self.image_table.setModel(AzTableModel())
         else:
             model_sorting = AzTableModel(data, self.image_headers)  # модель для данных фильтрата
-        self.image_table.setModel(model_sorting)
+            self.image_table.setModel(model_sorting)
 
         # настраиваем отображение
         if self.image_table.model().columnCount() > 0:  # для столбцов

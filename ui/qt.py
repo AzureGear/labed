@@ -223,8 +223,12 @@ class AzTableModel(QtCore.QAbstractTableModel):
         if role != QtCore.Qt.ItemDataRole.DisplayRole:
             return None
         if orientation == QtCore.Qt.Orientation.Horizontal:
-            return self._header_data[section]
+            if section < len(self._header_data):
+                return self._header_data[section]
+            else:
+                return ""
         return section + 1
+
 
     def rowCount(self, parent=QtCore.QModelIndex()):
         # Количество строк = всего элементов списка списков [[x1, y1], [x2, y2] ... >>[xN, yN]<< ]
