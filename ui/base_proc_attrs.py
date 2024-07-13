@@ -46,11 +46,27 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
         # Настройка ui
         self.setup_log()
-        self.setup_central_widget()
-        self.setup_image_table()
+        caption = self.setup_caption_widget()  # возвращает QHBoxLayout, настроенный компоновщик
+        container_up = self.setup_up_central_widget()  # общая таблица и - компоновщик-виджет
+        container_down = self.setup_down_central_widget()  # таблица фильтрата и остальное
+
+        splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical, self)
+        splitter.addWidget(container_up)
+        splitter.addWidget(container_down)
+        central_layout = QtWidgets.QVBoxLayout(self)  # главный Layout, наследуемый класс
+        central_layout.addLayout(caption)
+        central_layout.addWidget(splitter)
+        wid = QtWidgets.QWidget()
+        wid.setLayout(central_layout)
+        self.setCentralWidget(wid)
+
+        # self.bottom_dock = QtWidgets.QDockWidget()
+        # self.bottom_dock.setWidget(wid)
+        # self.bottom_dock.setWindowTitle(self.tr("Dataset sorter table"))
+        # self.addDockWidget(QtCore.Qt.DockWidgetArea.BottomDockWidgetArea, self.bottom_dock)
 
         # настраиваем все виджеты
-        setup_dock_widgets(self, ["top_dock", "bottom_dock"], config.UI_BASE_ATTRS)
+        setup_dock_widgets(self, ["bottom_dock"], config.UI_BASE_ATTRS)
 
         # Signals
         self.table_widget.signal_message.connect(self.forward_signal)  # перенаправление сигнала в строку состояния
@@ -94,12 +110,26 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         """ Настройка интерфейса для лога """
         self.log = QtWidgets.QTextEdit(self)  # лог, для вывода сообщений.
         self.log.setReadOnly(True)
-        self.top_dock = QtWidgets.QDockWidget("")  # контейнер для информации о логе
-        self.top_dock.setWidget(self.log)  # устанавливаем в контейнер QLabel
-        self.top_dock.setWindowTitle("Log")
-        self.addDockWidget(QtCore.Qt.DockWidgetArea.TopDockWidgetArea, self.top_dock)
+        self.bottom_dock = QtWidgets.QDockWidget("")  # контейнер для информации о логе
+        self.bottom_dock.setWidget(self.log)  # устанавливаем в контейнер QLabel
+        self.bottom_dock.setWindowTitle("Log")
+        self.addDockWidget(QtCore.Qt.DockWidgetArea.BottomDockWidgetArea, self.bottom_dock)
 
-    def setup_image_table(self):
+    def setup_caption_widget(self):
+        self.btn_log_and_status = new_button(self, "tb", icon="circle_grey", color=None, icon_size=16,
+                                             slot=self.toggle_log, checkable=True, tooltip=self.tr("Toggle log"))
+        self.label_project = QtWidgets.QLabel("Path to file project *.json:")
+        self.file_json = AzButtonLineEdit("glyph_folder", the_color, caption=self.tr("Load dataset SAMA project"),
+                                          read_only=True, dir_only=False, filter=self.tr("Projects files (*.json)"),
+                                          slot=self.attr_load_projects_data,
+                                          initial_filter="json (*.json)")
+        hlay = QtWidgets.QHBoxLayout()
+        hlay.addWidget(self.btn_log_and_status)
+        hlay.addWidget(self.label_project)  # метка для пути проекта
+        hlay.addWidget(self.file_json)  # текущий проект
+        return hlay
+
+    def setup_down_central_widget(self):
         """
         Настройка интерфейса для таблицы просмотра изображений/объектов/меток, далее по тексту таблица фильтрата,
         для инструментов сортировки данных на train/val
@@ -248,23 +278,10 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         wid.setLayout(h_layout3)
         set_widgets_and_layouts_margins(wid, 0, 0, 0, 0)
         wid.setContentsMargins(5, 5, 5, 5)  # и только главный виджет будет иметь отступы
-        self.bottom_dock = QtWidgets.QDockWidget()
-        self.bottom_dock.setWidget(wid)
-        self.bottom_dock.setWindowTitle(self.tr("Dataset sorter table"))
-        self.addDockWidget(QtCore.Qt.DockWidgetArea.BottomDockWidgetArea, self.bottom_dock)
+        return wid
 
-    def setup_central_widget(self):
+    def setup_up_central_widget(self):
         """Настройка интерфейса для таблицы статистики и перечня инструментов (центральный виджет)"""
-        wid = QtWidgets.QWidget()
-        self.setCentralWidget(wid)
-        self.btn_log_and_status = new_button(self, "tb", icon="circle_grey", color=None, icon_size=16,
-                                             slot=self.toggle_log, checkable=True, tooltip=self.tr("Toggle log"))
-        self.label_project = QtWidgets.QLabel("Path to file project *.json:")
-        self.file_json = AzButtonLineEdit("glyph_folder", the_color, caption=self.tr("Load dataset SAMA project"),
-                                          read_only=True, dir_only=False, filter=self.tr("Projects files (*.json)"),
-                                          slot=self.attr_load_projects_data,
-                                          initial_filter="json (*.json)")
-
         self.dataset_info_images_desc = new_text(self, "Count of images: ", alignment="r")
         self.dataset_info_images_val = new_text(self, "-", bald=False)
         self.dataset_info_labels_desc = new_text(self, "Count of labels: ", "indianred", "r")
@@ -278,10 +295,6 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.labels_dataset_val = [self.dataset_info_images_val, self.dataset_info_labels_val,
                                    self.dataset_info_lrm_val, self.dataset_info_devi_lrm_val]
 
-        hlay = QtWidgets.QHBoxLayout()
-        hlay.addWidget(self.btn_log_and_status)
-        hlay.addWidget(self.label_project)  # метка для пути проекта
-        hlay.addWidget(self.file_json)  # текущий проект
         hlay2 = QtWidgets.QHBoxLayout()
         hlay2.setSpacing(0)
 
@@ -292,7 +305,6 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
         #  Перечень действий с файлом проекта: копия+; экспорт+; сохранить палитру+; применить палитру+;
         vlay2 = QtWidgets.QVBoxLayout()
-        vlay2.addLayout(hlay)
         vlay2.addLayout(hlay2)
         self.btn_copy = new_button(self, "tb", icon="glyph_duplicate", slot=self.attrs_copy_project, color=the_color,
                                    icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE,
@@ -350,10 +362,12 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Stretch)
 
         # итоговая настройка ui центрального виджета
-        central_layout = QtWidgets.QVBoxLayout(self)  # главный Layout, наследуемый класс
-        central_layout.addLayout(hlay_finish)  # добавляем ему расположение с кнопками и QLabel
-        central_layout.addWidget(self.table_widget)
-        wid.setLayout(central_layout)
+        layout_up = QtWidgets.QVBoxLayout()  # главный Layout, наследуемый класс
+        layout_up.addLayout(hlay_finish)  # добавляем ему расположение с кнопками и QLabel
+        layout_up.addWidget(self.table_widget)
+        container_up = QtWidgets.QWidget()
+        container_up.setLayout(layout_up)
+        return container_up
 
     def update_sort_data_tables(self):
         """Заполнение таблиц сортировки данными сортировщика DatasetSortHandler"""
@@ -406,7 +420,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.update_sort_data_tables()  # обновляем таблицы сортировки train/val
         self.table_image_filter_changed()  # обновляем таблицу фильтрата
 
-    def remove_from_sort_data(self, table, data):
+    def remove_from_sort_data(self, table):
         """Удаление в классе DatasetSortHandler"""
         # asdlalsd
         print("TODO")
@@ -421,11 +435,6 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     def alla(self):
         pass
-
-    def toggle_sort_mode(self):
-        """Включение и выключение режима сортировщика"""
-        # self.sort_mode = self.ti_tb_sort_mode.isChecked()
-        print(self.sort_mode)
 
     def new_sort_file(self):
         if not self.sama_data.is_correct_file:
@@ -482,18 +491,22 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             self.ti_cbx_sel_class.setCurrentIndex(0)
 
     def image_table_toggle_sort_mode(self):
-        # режим сортировки для Train\Val
+        """Включение и выключение режима сортировщика"""
         # set_widgets_enabled(self.v_layout2, False)
         # self.v_layout2.setEnabled(False)
+        # self.sort_mode = self.ti_tb_sort_mode.isChecked()
         self.sort_mode = self.ti_tb_sort_mode.isChecked()
         self.ti_tb_sort_mode.setEnabled(True)
+        self.ti_tb_sort_open.setEnabled(self.sort_mode)
+        self.ti_tb_sort_save.setEnabled(self.sort_mode)
+
         print(self.sort_mode)
 
     def toggle_log(self):
         if self.btn_log_and_status.isChecked():
-            self.top_dock.setHidden(False)
+            self.bottom_dock.setHidden(False)
         else:
-            self.top_dock.setHidden(True)
+            self.bottom_dock.setHidden(True)
 
     def log_clear(self):
         self.log.clear()

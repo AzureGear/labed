@@ -25,7 +25,7 @@ class TabSliceUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         if color_inactive:
             self.icon_inactive = coloring_icon("glyph_slice", color_inactive)
         self.json_obj = None
-        split = QtWidgets.QSplitter(QtCore.Qt.Vertical)  # вертикальный разделитель
+        split = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical)  # вертикальный разделитель
         slice_auto_form = QtWidgets.QFormLayout()  # форма для расположения виджетов "автоматического разрезания"
 
         # Общая строка в форме
