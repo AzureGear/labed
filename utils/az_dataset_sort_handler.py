@@ -56,10 +56,6 @@ class DatasetSortHandler:
         """Возвращаем имена изображений из выбранного (table_name) словаря"""
         return self.data[dict_name].keys()
 
-    # def get_image(self, dict_name, image_name):
-    #     """Возвращаем имя изображение в """
-    #     return self.data[dict_name].get(image_name, None)
-
     def load_from_file(self, json_path):
         """Загрузка данных в класс из файла *.sort (по факту json)"""
         try:
@@ -82,6 +78,23 @@ class DatasetSortHandler:
         with open(json_path, 'w', encoding='utf8') as f:
             ujson.dump(self.data, f)
 
+    def sum_dict_values(self, the_dict, count_cls):
+        """Поэлементное суммирование значений внутри словаря для списка классов типа [0, 0, 1, 4, 0, 2...]"""
+        summ = [0] * count_cls  # нулевой список result по количеству классов
+        for key, value in the_dict.items():  # обходим весь словарь и...
+            for i, val in enumerate(value):  # ...каждый элемент класса...
+                summ[i] += val  # ...суммируем в пределах его класса (т.е. [0, 4, 2] + [1, 0, 7] = [1, 4, 9])
+        return summ
+
     def update_stats(self):
         """Обновление статистики"""
-        pass
+        if not self.data["full"]:
+            # TODO: сделать что-то если для датасета нет никаких значений
+            pass
+        count_classes = len(next(iter(self.data["full"].items()))[1])  # определяем количество классов
+        dicts = [self.data["unsort"], self.data["train"], self.data["val"], self.data["test"]]
+        if self.data["unsort"]:
+            class_sum = self.sum_dict_values(self.data["unsort"], count_classes)
+        else:
+            class_sum = [0] * count_classes  # иначе это нулевой список
+

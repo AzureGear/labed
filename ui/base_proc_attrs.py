@@ -6,7 +6,7 @@ from utils.sama_project_handler import DatasetSAMAHandler
 from utils.az_dataset_sort_handler import DatasetSortHandler
 from ui import new_button, AzButtonLineEdit, coloring_icon, new_text, az_file_dialog, save_via_qtextstream, new_act, \
     AzInputDialog, az_custom_dialog, new_icon, setup_dock_widgets, AzTableModel, set_widgets_and_layouts_margins, \
-    set_widgets_enabled
+    set_widgets_enabled, new_label_icon
 import os
 from datetime import datetime
 
@@ -47,8 +47,8 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         # Настройка ui
         self.setup_log()
         caption = self.setup_caption_widget()  # возвращает QHBoxLayout, настроенный компоновщик
-        container_up = self.setup_up_central_widget()  # общая таблица и - компоновщик-виджет
-        container_down = self.setup_down_central_widget()  # таблица фильтрата и остальное
+        container_up = self.setup_up_central_widget()  # настройка ui, общая таблица возвращает виджет
+        container_down = self.setup_down_central_widget()  # настройка ui, таблица фильтрата, возвращает виджет
 
         splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical, self)
         splitter.addWidget(container_up)
@@ -60,13 +60,9 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         wid.setLayout(central_layout)
         self.setCentralWidget(wid)
 
-        # self.bottom_dock = QtWidgets.QDockWidget()
-        # self.bottom_dock.setWidget(wid)
-        # self.bottom_dock.setWindowTitle(self.tr("Dataset sorter table"))
-        # self.addDockWidget(QtCore.Qt.DockWidgetArea.BottomDockWidgetArea, self.bottom_dock)
-
         # настраиваем все виджеты
         setup_dock_widgets(self, ["bottom_dock"], config.UI_BASE_ATTRS)
+        self.image_table_toggle_sort_mode()  # запускаем, чтобы привести в порядок ui инструментов таблицы сортировки
 
         # Signals
         self.table_widget.signal_message.connect(self.forward_signal)  # перенаправление сигнала в строку состояния
@@ -75,8 +71,6 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         # изменение фильтра
         self.ti_cbx_sel_class.currentIndexChanged.connect(self.table_image_filter_changed)
         self.ti_cbx_sel_obj.currentIndexChanged.connect(self.table_image_filter_changed)
-        # print("init, cur_file:", self.current_file)
-        # print("init, sama_labels:", self.sama_data.get_labels())
 
         # смотрим, есть ли в реестре файл проекта, который запускали прошлый раз?
         if os.path.exists(self.settings.read_attributes_input()):
@@ -89,31 +83,6 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         if self.sama_data.is_correct_file:  # успешна ли автозагрузка данных из реестра?
             if os.path.exists(self.settings.read_sort_file_input()):
                 self.load_sort_project(self.settings.read_sort_file_input())  # загружаем проект сортировки
-
-    @QtCore.pyqtSlot(str)
-    def forward_signal(self, message):  # перенаправление сигналов
-        self.signal_message.emit(message)
-
-    @QtCore.pyqtSlot(str)
-    def default_dir_changed(self, path):
-        # заглушка на смену каталога для выходных данных по умолчанию
-        pass
-
-    def save(self):
-        self.save_and_reload(self.current_file, self.tr(f"Project was saved and reload: {self.current_file}"))
-
-    def save_and_reload(self, file, message):
-        self.sama_data.save(file)  # сохранение данных и перезагрузка данных
-        self.load_project(file, message)
-
-    def setup_log(self):
-        """ Настройка интерфейса для лога """
-        self.log = QtWidgets.QTextEdit(self)  # лог, для вывода сообщений.
-        self.log.setReadOnly(True)
-        self.bottom_dock = QtWidgets.QDockWidget("")  # контейнер для информации о логе
-        self.bottom_dock.setWidget(self.log)  # устанавливаем в контейнер QLabel
-        self.bottom_dock.setWindowTitle("Log")
-        self.addDockWidget(QtCore.Qt.DockWidgetArea.BottomDockWidgetArea, self.bottom_dock)
 
     def setup_caption_widget(self):
         self.btn_log_and_status = new_button(self, "tb", icon="circle_grey", color=None, icon_size=16,
@@ -135,27 +104,32 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         для инструментов сортировки данных на train/val
         """
         self.image_headers = [self.tr("Group"), self.tr("Images"), self.tr("Label"), self.tr("Number")]
-
         self.image_table = QtWidgets.QTableView()  # используется таблица QTableView, поскольку значений >1000
         self.image_table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
         self.image_table.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.MultiSelection)
         self.image_table.resizeColumnsToContents()
 
         h_layout = QtWidgets.QHBoxLayout()
-        self.ti_sel_class_label = new_button(self, "lb", self.tr(" Selected\n label:"), "glyph_filter_labels",
-                                             the_color)
+        # для настройки метки (класса)
+        self.ti_sel_class_text = QtWidgets.QLabel(self.tr("Selected\nlabel:"))
+        self.ti_sel_class_icon = new_label_icon("glyph_filter_labels", the_color, config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
+
+        # для настройки группы
+        self.ti_sel_obj_text = QtWidgets.QLabel(self.tr("Selected\ngroup:"))
+        self.ti_sel_obj_icon = new_label_icon("glyph_objects", the_color, config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
+
         self.ti_cbx_sel_class = QtWidgets.QComboBox()
-        self.ti_sel_obj_label = new_button(self, "lb", self.tr(" Selected\n group:"), "glyph_objects", the_color)
         self.ti_cbx_sel_obj = QtWidgets.QComboBox()
-        self.ti_cbx_sel_obj.setMaximumWidth(120)
+        self.ti_cbx_sel_obj.setMaximumWidth(130)
         self.ti_pb_sel_clear_selection = new_button(self, "tb", self.tr("Reset selection"), "glyph_clear_selection",
                                                     the_color, self.image_table_clear_selection,
                                                     tooltip=self.tr("Reset selection"))
         self.ti_pb_sel_clear_filters = new_button(self, "tb", self.tr("Clear filters"), "glyph_clear_filter",
                                                   the_color, self.image_table_clear_filters,
                                                   tooltip=self.tr("Clear filters"))
-        h_widgets = [self.ti_sel_class_label, self.ti_cbx_sel_class, self.ti_sel_obj_label, self.ti_cbx_sel_obj,
-                     self.ti_pb_sel_clear_selection, self.ti_pb_sel_clear_filters]
+        h_widgets = [self.ti_sel_class_icon, self.ti_sel_class_text, self.ti_cbx_sel_class, self.ti_sel_obj_icon,
+                     self.ti_sel_obj_text, self.ti_cbx_sel_obj, self.ti_pb_sel_clear_selection,
+                     self.ti_pb_sel_clear_filters]
 
         for widget in h_widgets:  # добавляем виджеты и меняем размер иконки
             if isinstance(widget, QtWidgets.QPushButton) or isinstance(widget, QtWidgets.QToolButton):
@@ -179,21 +153,20 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
         h_layout_instr = QtWidgets.QHBoxLayout()  # компоновщик инструментов
         self.ti_tb_sort_mode = new_button(self, "tb", self.tr(" Toggle sort\n train/val"), "glyph_categorization",
-                                          the_color, self.image_table_toggle_sort_mode, True, True,
+                                          the_color, self.image_table_toggle_sort_mode, True, False,
                                           config.UI_AZ_PROC_ATTR_IM_ICON_SIZE,
                                           self.tr("Enable sort mode for train/val"))
+        # активатор режима сортировки Train/Val/Test
         self.ti_tb_sort_mode.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-        h_layout_instr.addWidget(self.ti_tb_sort_mode)  # главный переключатель
+        h_layout_instr.addWidget(self.ti_tb_sort_mode)
 
-        # self.ti_tb_sort_open = new_button(self, "tb", icon="glyph_folder", color=the_color, slot=self.alla,
-        #                                   tooltip=self.tr("Open train-val project"))
         self.ti_tb_sort_new = new_button(self, "tb", icon="glyph_add", color=the_color, slot=self.new_sort_file,
                                          tooltip=self.tr("New train-val sorting project"))
         self.ti_tb_sort_save = new_button(self, "tb", icon="glyph_save", color=the_color, slot=self.save_sort_file,
                                           tooltip=self.tr("Save train-val sorting project"))
-        self.ti_tb_sort_smart = new_button(self, "tb", icon="glyph_smart_process", color=the_color, slot=self.alla,
-                                           tooltip=self.tr("Smart dataset sort"))
-        self.ti_tb_sort_cook = new_button(self, "tb", icon="glyph_cook", color=the_color, slot=self.alla,
+        self.ti_tb_sort_smart = new_button(self, "tb", icon="glyph_smart_process", color=the_color,
+                                           slot=self.smart_sort, tooltip=self.tr("Smart dataset sort"))
+        self.ti_tb_sort_cook = new_button(self, "tb", icon="glyph_cook", color=the_color, slot=self.cook_dataset,
                                           tooltip=self.tr("Cook dataset"))
         self.ti_tb_sort_open = AzButtonLineEdit("glyph_folder", the_color, "Open file", True, dir_only=False,
                                                 filter="sort (*.sort)", initial_filter="sort (*.sort)",
@@ -268,17 +241,22 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         line = QtWidgets.QFrame()  # добавляем линию-разделитель
         line.setFrameShape(QtWidgets.QFrame.Shape.HLine)
         v_layout2.addWidget(line)
-        v_layout2.addLayout(h_layout2)
-        v_layout2.addLayout(v_layout_stat)
+        v_layout2.addLayout(h_layout2, 1)  # компоновщик для таблиц Train/Val/Stats, делаем доминантным
+        v_layout2.addLayout(v_layout_stat)  # компоновщик для статистики
 
-        h_layout3 = QtWidgets.QHBoxLayout()  # общий компоновщик
-        h_layout3.addLayout(v_layout)  # компоновщик инструментов фильтра и таблицы фильтрата
-        h_layout3.addLayout(v_layout2, 1)  # компоновщик таблиц Train/Val/Stats и их инструментов, делаем доминантным
-        wid = QtWidgets.QWidget()  # контейнер для общего компоновщика
-        wid.setLayout(h_layout3)
-        set_widgets_and_layouts_margins(wid, 0, 0, 0, 0)
-        wid.setContentsMargins(5, 5, 5, 5)  # и только главный виджет будет иметь отступы
-        return wid
+        container_left = QtWidgets.QWidget()  # контейнер инструментов фильтра и таблицы фильтрата
+        container_left.setLayout(v_layout)
+        container_right = QtWidgets.QWidget()  # контейнер таблиц Train/Val/Stats и их инструментов
+        container_right.setLayout(v_layout2)
+
+        # добавляем контейнеры в разделитель
+        splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)
+        splitter.addWidget(container_left)
+        splitter.addWidget(container_right)
+
+        set_widgets_and_layouts_margins(splitter, 0, 0, 0, 0)
+        splitter.setContentsMargins(5, 5, 5, 5)  # и только главный виджет будет иметь отступы
+        return splitter
 
     def setup_up_central_widget(self):
         """Настройка интерфейса для таблицы статистики и перечня инструментов (центральный виджет)"""
@@ -369,16 +347,57 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         container_up.setLayout(layout_up)
         return container_up
 
+    @QtCore.pyqtSlot(str)
+    def forward_signal(self, message):  # перенаправление сигналов
+        self.signal_message.emit(message)
+
+    @QtCore.pyqtSlot(str)
+    def default_dir_changed(self, path):
+        # заглушка на смену каталога для выходных данных по умолчанию
+        pass
+
+    def save(self):
+        self.save_and_reload(self.current_file, self.tr(f"Project was saved and reload: {self.current_file}"))
+
+    def save_and_reload(self, file, message):
+        self.sama_data.save(file)  # сохранение данных и перезагрузка данных
+        self.load_project(file, message)
+
+    def setup_log(self):
+        """ Настройка интерфейса для лога """
+        self.log = QtWidgets.QTextEdit(self)  # лог, для вывода сообщений.
+        self.log.setReadOnly(True)
+        self.bottom_dock = QtWidgets.QDockWidget("")  # контейнер для информации о логе
+        self.bottom_dock.setWidget(self.log)  # устанавливаем в контейнер QLabel
+        self.bottom_dock.setWindowTitle("Log")
+        self.addDockWidget(QtCore.Qt.DockWidgetArea.BottomDockWidgetArea, self.bottom_dock)
+
+    def set_sort_data_statistic(self):
+        """Заполнение таблицы статистики для по результатам сортировки"""
+        # data = [[item] for item in data]
+        # if len(data) < 1:
+        #     model = AzTableModel()
+        # else:
+        #     model = AzTableModel(data, ["images"])  # заголовок всего один "images"
+        # table_view.setModel(model)
+        pass
+
+        # if table_view.model().columnCount() > 0:
+        #     table_view.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Stretch)
+        # if table_view.model().rowCount() > 0:
+        #     for row in range(model.rowCount()):  # выравниваем высоту
+        #         table_view.setRowHeight(row, ROW_H)
+
     def update_sort_data_tables(self):
         """Заполнение таблиц сортировки данными сортировщика DatasetSortHandler"""
         self.set_sort_data_with_model(self.table_val, self.sort_data.get_images_names("val"))
         self.set_sort_data_with_model(self.table_train, self.sort_data.get_images_names("train"))
         # такое же будет и для таблицы Test
+        self.set_sort_data_statistic()
 
     def set_sort_data_with_model(self, table_view, data):
         """Создание модели для таблиц сортировки и установка в table_view, выравнивание строк"""
         # обязательно конвертируем просто список в список списков
-        print(f"image names {table_view.windowTitle()}:", self.sort_data.get_images_names("train"))
         data = [[item] for item in data]
         if len(data) < 1:
             model = AzTableModel()
@@ -403,35 +422,46 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         if sender:
             self.remove_from_sort_data(sender)
 
-    def move_to_sort_data(self, table):
+    def move_to_sort_data(self, table_sender):
         """Перемещение записей в классе DatasetSortHandler. table - таблица, в которую следует переместить"""
         if not self.image_table.selectionModel().hasSelection():  # ничего не выбрано
             return
         if not self.sort_file:  # данных для сортировки не загружено
             return
-        # нас интересуют выделенные строки 2 столбца
-        indexes = self.image_table.selectionModel().selectedRows(column=1)
-        role = QtCore.Qt.ItemDataRole.DisplayRole  # работает и с Qt.DecorationRole
-        sel_rows = []
-        for index in indexes:  # следует помнить, что index это объект QModelIndex, а не простой итератор
-            sel_rows.append(self.image_table.model().data(index, role))
-        unique = set(sel_rows)  # получаем набор уникальных значений
-        self.sort_data.move_rows_by_images_names("unsort", table, unique)  # добавляем эти объекты в таблицу
-        self.update_sort_data_tables()  # обновляем таблицы сортировки train/val
-        self.table_image_filter_changed()  # обновляем таблицу фильтрата
+        sel_rows = self.get_selected_rows(self.image_table, 1)  # нас интересуют выделенные строки 2 столбца
+        if sel_rows:
+            self.sort_data.move_rows_by_images_names("unsort", table_sender, sel_rows)  # добавляем объекты в таблицу
+            self.update_sort_data_tables()  # обновляем таблицы сортировки train/val
+            self.table_image_filter_changed()  # обновляем таблицу фильтрата
 
-    def remove_from_sort_data(self, table):
+    def remove_from_sort_data(self, table_sender):
         """Удаление в классе DatasetSortHandler"""
-        # asdlalsd
-        print("TODO")
+        table = self.get_table(table_sender)
+        if table is None or not table.selectionModel().hasSelection():
+            return  # нет выделенных элементов либо мистика
+        sel_rows = self.get_selected_rows(table, 0)  # для удаления - 1 столбец
+        if sel_rows:
+            self.sort_data.move_rows_by_images_names(table_sender, "unsort", sel_rows)
+            self.update_sort_data_tables()  # обновляем таблицы сортировки train/val
+            self.table_image_filter_changed()  # обновляем таблицу фильтрата
 
-    def get_table(self, name):  # определить таблицу # todo: нужно ли это мне?
+    @staticmethod
+    def get_selected_rows(table, column):
+        """Получение выделенных строк таблицы"""
+        indexes = table.selectionModel().selectedIndexes()
+        sel_rows = set()
+        for index in indexes:
+            if index.column() == column:
+                sel_rows.add(index.data(QtCore.Qt.ItemDataRole.DisplayRole))  # получаем набор уникальных значений
+        return sel_rows
+
+    def get_table(self, name):  # определить таблицу #
         if name == "train":
             return self.table_train
         elif name == "val":
             return self.table_val
-        else:
-            print("Тут что-то странное")
+        elif name == "test":
+            return self.table_test
 
     def alla(self):
         pass
@@ -492,15 +522,21 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     def image_table_toggle_sort_mode(self):
         """Включение и выключение режима сортировщика"""
-        # set_widgets_enabled(self.v_layout2, False)
-        # self.v_layout2.setEnabled(False)
-        # self.sort_mode = self.ti_tb_sort_mode.isChecked()
         self.sort_mode = self.ti_tb_sort_mode.isChecked()
-        self.ti_tb_sort_mode.setEnabled(True)
         self.ti_tb_sort_open.setEnabled(self.sort_mode)
         self.ti_tb_sort_save.setEnabled(self.sort_mode)
-
-        print(self.sort_mode)
+        self.ti_tb_sort_new.setEnabled(self.sort_mode)
+        self.ti_tb_sort_add_to_train.setEnabled(self.sort_mode)
+        self.ti_tb_sort_add_to_val.setEnabled(self.sort_mode)
+        self.ti_tb_sort_remove_from_train.setEnabled(self.sort_mode)
+        self.ti_tb_sort_remove_from_val.setEnabled(self.sort_mode)
+        self.ti_tb_sort_cook.setEnabled(self.sort_mode)
+        self.ti_tb_sort_smart.setEnabled(self.sort_mode)
+        if self.sort_mode:
+            self.signal_message.emit(self.tr("Toggle train/val sort mode on"))
+            self.table_image_filter_changed()  # если включено, то следует отфильтровать вывод в таблице фильтрата
+        else:
+            self.signal_message.emit(self.tr("Toggle train/val sort mode off"))
 
     def toggle_log(self):
         if self.btn_log_and_status.isChecked():
@@ -689,7 +725,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         """Создание и установка модели в таблице фильтрата, по исходным данным, настройка ui таблицы"""
         # TODO: сортировку TableView
         self.image_table.setSortingEnabled(False)  # обязательно отключаем
-        print(data)
+
         if len(data) < 1:
             self.image_table.setModel(AzTableModel())
         else:
@@ -718,9 +754,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             # данные = data[all] - train[data] - val[data] - test[data] = unsort[data] in data[all]
             exclusions = list(self.sort_data.get_images_names_train_val_test())  # недопустимые для вывода данные
             # фильтруем данные с учетом недопустимых элементов
-            print("data before:", data)  # Теперь нужно оставить только те данные которые в таблице Unsort
             data = [item for item in data if item[1] not in exclusions]
-            print("data after:", data)
         self.sef_image_data_model(data)  # загружаем и устанавливаем модель
 
     def load_image_data_model(self):
@@ -767,8 +801,12 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                     (label_name is None or row[2] == label_name)]
         return filtered
 
-    def message_toggle_sort_mode(self):
-        self.signal_message.emit(self.tr("Toggle train/val sort mode"))
+    def smart_sort(self):
+        """Интеллектуальная автоматизированная сортировка"""
+        pass
+
+    def cook_dataset(self):
+        """Сортировка датасета в соответствии с выбранными параметрами"""
 
     def tr(self, text):
         return QtCore.QCoreApplication.translate("TabAttributesUI", text)

@@ -335,6 +335,14 @@ def new_act(parent, text, icon=None, color=None, slot=None, checkable=False, che
     a.setChecked(checked)
     return a
 
+def new_label_icon(icon_path, the_color, size, ):
+    """Возвращает QLabel с объектом иконкой заданного цвета (the_color) и размера (size)"""
+    label_icon = QtWidgets.QLabel()
+    icon = coloring_icon(icon_path, the_color)
+    pixmap = QtGui.QPixmap.fromImage(icon.pixmap(size,size).toImage())
+    label_icon.setPixmap(pixmap)
+    label_icon.setSizePolicy(size, size)
+    return label_icon
 
 # ----------------------------------------------------------------------------------------------------------------------
 def new_pixmap(path):
@@ -560,10 +568,13 @@ def set_widgets_and_layouts_margins(widget, left, top, right, bottom):
         layout = widget.layout()
         if layout is not None:
             layout.setContentsMargins(left, top, right, bottom)
-        for i in range(widget.layout().count()):
-            # запускаем рекурсию
-            set_widgets_and_layouts_margins(widget.layout().itemAt(i).widget(), left, top, right, bottom)
+            for i in range(widget.layout().count()):
+                # запускаем рекурсию
+                set_widgets_and_layouts_margins(widget.layout().itemAt(i).widget(), left, top, right, bottom)
     elif isinstance(widget, QtWidgets.QLayout):  # наш тип Layout
+        for i in range(widget.count()):
+            set_widgets_and_layouts_margins(widget.itemAt(i).widget(), left, top, right, bottom)  # запускаем рекурсию
+    elif isinstance(widget, QtWidgets.QSplitter):  # наш тип разделитель
         for i in range(widget.count()):
             set_widgets_and_layouts_margins(widget.itemAt(i).widget(), left, top, right, bottom)  # запускаем рекурсию
 
