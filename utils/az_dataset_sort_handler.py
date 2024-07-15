@@ -112,44 +112,6 @@ class DatasetSortHandler:
 
     def update_stats(self):
         """Обновление статистики"""
-        if not self.statistic["full"]:  # изображений и меток нет, расчет не имеет смысла
-            return
-
-        dict_names = ["train", "val", "test"]  # будем использовать имена разделов
-        for dict_name in dict_names:
-            if self.data[dict_name]:  # проверяем, имеются ли данные в словаре?
-                images_count, class_sum = self.sum_dict_values(self.data[dict_name], self.get_cls_count())
-            else:  # иначе это нулевой список
-                class_sum = [0] * self.get_cls_count()
-                images_count = 0  # изображения отсутствуют
-            # записываем результаты статистики:
-            self.statistic[dict_name] = {"images_count": images_count, "class_sum": class_sum}
-        # делаем массив-пустышку для статистики
-        print(self.statistic)
-        result = [[0] * 4 for _ in range(self.get_cls_count() + 2)]
-
-        # print(self.statistic["full"]["class_sum"][0])
-        summ_train_val_test_cls = [0] * self.get_cls_count()
-        summ_train_val_test_img = 0
-        for y, dict_name in enumerate(dict_names):
-            result[1][y] = self.statistic[dict_name]["images_count"]  # статистика изображений
-            summ_train_val_test_img += result[1][y]
-            # x и y: сначала строки (x), затем столбцы/элементы (y)
-            for x in range(self.get_cls_count()):
-                result[x + 2][y] = self.statistic[dict_name]["class_sum"][x]
-                summ_train_val_test_cls[x] += self.statistic[dict_name]["class_sum"][x]
-        result[1][3] = summ_train_val_test_img / self.statistic["full"]["images_count"]  # итоговое кол-во изображений
-        for i in range(self.get_cls_count()):
-            result[i + 2][3] = summ_train_val_test_cls[i]  # итоговое количество объектов по каждой метке
-        self.export_data = result
-        print(result)
-        # print(next(iter(self.statistic[dict_name].items())))
-
-        # result self.statistic["train"] =
-
-        # for i, cls in enumerate(class_sum):
-        #     self.statistic[i] = cls
-
         # Статистика имеет вид(пример): строки = число классов + 2; столбцы = 4
         #                   | Train |   Val  |  Test  | Total |
         # Всего меток       |  11%  |   4%   |   0%   |  15%  |
@@ -157,5 +119,61 @@ class DatasetSortHandler:
         # Class1_name       |  42   |   24   |   0    |  52%  |
         # Class2_name       |  7    |  ...
         # ...
+        # Рассчет статистики имее
+
+        cls_count = self.get_cls_count()
+        if not self.statistic["full"]:  # изображений и меток нет, расчет не имеет смысла
+            return
+        # 1. Собираем статистику по каждому из разделов
+        dict_names = ["train", "val", "test"]  # будем использовать имена разделов
+        for dict_name in dict_names:
+            if self.data[dict_name]:  # проверяем, имеются ли данные в словаре?
+                images_count, class_sum = self.sum_dict_values(self.data[dict_name], cls_count)
+            else:  # иначе это нулевой список
+                class_sum = [0] * cls_count
+                images_count = 0  # изображения отсутствуют
+            # записываем результаты статистики:
+            self.statistic[dict_name] = {"images_count": images_count, "class_sum": class_sum}
+
+        # делаем массив-пустышку для статистики
+        result = [[0] * 4 for _ in range(cls_count + 2)]
+
+        # 2. Считаем их сумму и количество изображений
+        summ_train_val_test_cls = [0] * cls_count
+        summ_train_val_test_img = 0
+        for y, dict_name in enumerate(dict_names):
+            result[1][y] = self.statistic[dict_name]["images_count"]  # статистика изображений
+            summ_train_val_test_img += result[1][y]  # общая сумма снимков
+            # x и y: сначала строки (x), затем столбцы/элементы (y)
+            for x in range(cls_count):
+                result[x + 2][y] = self.statistic[dict_name]["class_sum"][x]  # сумма по каждому классу
+                summ_train_val_test_cls[x] += self.statistic[dict_name]["class_sum"][x]
+        print(result)
+
+        # 3. Рассчитываем колонку с "итоговыми" данными
+        summ_total = 0
+        summ_total_train = 0
+        summ_total_val = 0
+        summ_total_test = 0
+
+        for i in range(cls_count):
+            # итоговое количество объектов по каждой метке
+            class_percent = (summ_train_val_test_cls[i] / self.statistic["full"]["class_sum"][i]) * 100
+            result[i + 2][3] = round(class_percent, 1)
+            # статистика
+            summ_total_train += (result[i + 2][0] / self.statistic["full"]["class_sum"][i]) * 100
+            summ_total_val += (result[i + 2][1] / self.statistic["full"]["class_sum"][i]) * 100
+            summ_total_test += (result[i + 2][2] / self.statistic["full"]["class_sum"][i]) * 100
+            summ_total += class_percent  # итоговая сумма в процентах по всем классам
+        # итого изображений
+        result[1][3] = round((summ_train_val_test_img / self.statistic["full"]["images_count"]) * 100, 0)
+        # итого меток
+        result[0][3] = round(summ_total / cls_count, 0)
+        result[0][0] = round(summ_total_train / cls_count, 0)
+        result[0][1] = round(summ_total_val / cls_count, 0)
+        result[0][2] = round(summ_total_test / cls_count, 0)
+        self.export_data = result
+
+        print(result)
 
         # self.statistic.append()

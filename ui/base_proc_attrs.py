@@ -380,7 +380,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         row_headers = self.sort_data.get_rows_labels_headers()  # базовый список меток
         row_headers.insert(0, self.tr("Total images, %"))  # добавляем в начало строки: всего изображений...
         row_headers.insert(0, self.tr("Total labels, %"))  # ...и всего меток
-        model = AzTableModel(self.sort_data.export_data, header, vertical_data=row_headers)  # заголовок всего один "images"
+        model = AzTableModel(self.sort_data.export_data, header)  # заголовок всего один "images"
         self.table_statistic.setModel(model)
         # self.table_statistic.setVerticalHeader(row_headers)
 
