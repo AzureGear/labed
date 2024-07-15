@@ -374,13 +374,15 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     def set_sort_data_statistic(self):
         """Заполнение таблицы статистики для по результатам сортировки"""
-        # data = [[item] for item in data]
-        # if len(data) < 1:
-        #     model = AzTableModel()
-        # else:
-        #     model = AzTableModel(data, ["images"])  # заголовок всего один "images"
-        # table_view.setModel(model)
-        pass
+        if not self.sort_file:
+            return
+        header = ["Train", "Val", "Test", "Total"]
+        row_headers = self.sort_data.get_rows_labels_headers()  # базовый список меток
+        row_headers.insert(0, self.tr("Total images, %"))  # добавляем в начало строки: всего изображений...
+        row_headers.insert(0, self.tr("Total labels, %"))  # ...и всего меток
+        model = AzTableModel(self.sort_data.export_data, header, vertical_data=row_headers)  # заголовок всего один "images"
+        self.table_statistic.setModel(model)
+        # self.table_statistic.setVerticalHeader(row_headers)
 
         # if table_view.model().columnCount() > 0:
         #     table_view.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Stretch)
@@ -520,7 +522,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         if self.ti_cbx_sel_class.count() > 0:
             self.ti_cbx_sel_class.setCurrentIndex(0)
 
-    def image_table_toggle_sort_mode(self):
+    def image_table_toggle_sort_mode(self, silent=False):
         """Включение и выключение режима сортировщика"""
         self.sort_mode = self.ti_tb_sort_mode.isChecked()
         self.ti_tb_sort_open.setEnabled(self.sort_mode)
@@ -533,10 +535,12 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.ti_tb_sort_cook.setEnabled(self.sort_mode)
         self.ti_tb_sort_smart.setEnabled(self.sort_mode)
         if self.sort_mode:
-            self.signal_message.emit(self.tr("Toggle train/val sort mode on"))
+            if not silent:
+                self.signal_message.emit(self.tr("Toggle train/val sort mode on"))
             self.table_image_filter_changed()  # если включено, то следует отфильтровать вывод в таблице фильтрата
         else:
-            self.signal_message.emit(self.tr("Toggle train/val sort mode off"))
+            if not silent:
+                self.signal_message.emit(self.tr("Toggle train/val sort mode off"))
 
     def toggle_log(self):
         if self.btn_log_and_status.isChecked():
@@ -585,6 +589,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     def load_project(self, filename, message):  # загрузка проекта
         self.sama_data = None  # очищаем
         self.sama_data = DatasetSAMAHandler()
+        self.unload_sort_file()  # выгружаем файлы сортировки, если они были загружены
         self.sama_data.load(filename)
         self.log_clear()
         if not self.sama_data.is_correct_file:
@@ -800,6 +805,15 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         filtered = [row for row in self.original_image_data if (object_name is None or row[0] == object_name) and
                     (label_name is None or row[2] == label_name)]
         return filtered
+
+    def unload_sort_file(self):
+        """Выгрузка данных режима сортировщика"""
+        if self.sort_file:  # имеется файл сортировки
+            if self.sort_mode:
+                self.image_table_toggle_sort_mode(silent=True)  # выключаем режим сортировки в тихом режиме
+            self.sort_file = None  # убираем данные
+            self.ti_tb_sort_open.clear()
+            self.sort_data = None
 
     def smart_sort(self):
         """Интеллектуальная автоматизированная сортировка"""

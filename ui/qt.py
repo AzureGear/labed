@@ -179,10 +179,11 @@ class AzTableModel(QtCore.QAbstractTableModel):
     Все методы "перегруженные" для минимального функционала.
     """
 
-    def __init__(self, data=None, header_data=None, edit_column=None, parent=None):
+    def __init__(self, data=None, header_data=None, edit_column=None, parent=None, vertical_data=None):
         super(AzTableModel, self).__init__(parent)
         self._data = data
         self._header_data = header_data
+        self._vertical_data = vertical_data
         self.edit_col = edit_column
         if self._data is None:
             self._header_data = [["no data available"]]
@@ -225,6 +226,11 @@ class AzTableModel(QtCore.QAbstractTableModel):
         if orientation == QtCore.Qt.Orientation.Horizontal:
             if section < len(self._header_data):
                 return self._header_data[section]
+            else:
+                return ""
+        if orientation == QtCore.Qt.Orientation.Vertical:
+            if section < len(self._vertical_data):
+                return self._vertical_data[section]
             else:
                 return ""
         return section + 1
