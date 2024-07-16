@@ -220,19 +220,18 @@ class AzTableModel(QtCore.QAbstractTableModel):
             return True
         return False
 
-    def headerData(self, section: int, orientation: QtCore.Qt.Orientation, role):
+    def headerData(self, section, orientation, role):
         if role != QtCore.Qt.ItemDataRole.DisplayRole:
             return None
-        if orientation == QtCore.Qt.Orientation.Horizontal:
-            if section < len(self._header_data):
-                return self._header_data[section]
-            else:
-                return ""
-        if orientation == QtCore.Qt.Orientation.Vertical:
-            if section < len(self._vertical_data):
-                return self._vertical_data[section]
-            else:
-                return ""
+        if role == QtCore.Qt.ItemDataRole.DisplayRole:
+            if orientation == QtCore.Qt.Orientation.Horizontal:
+                if section < len(self._header_data):
+                    return self._header_data[section]
+                else:
+                    return ""
+            if orientation == QtCore.Qt.Orientation.Vertical:
+                if self._vertical_data:
+                    return str(self._vertical_data[section])
         return section + 1
 
 

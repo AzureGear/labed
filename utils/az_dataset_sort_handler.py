@@ -93,7 +93,7 @@ class DatasetSortHandler:
             init_stats = {"images_count": images_count, "class_sum": class_sum}
             # статистика обо всех объектах (выношу отдельно, чтобы не было пустых пересчётов)
             self.statistic["full"] = init_stats
-            self.update_stats  # расчет статистики для таблиц Train, Val, Test
+            self.update_stats()  # расчет статистики для таблиц Train, Val, Test
 
     @staticmethod
     def sum_dict_values(the_dict, count_cls):
@@ -112,14 +112,14 @@ class DatasetSortHandler:
 
     def update_stats(self):
         """Обновление статистики"""
-        # Статистика имеет вид(пример): строки = число классов + 2; столбцы = 4
+        # Статистика имеет вид (пример): строки = число классов + 2; столбцы = 4
         #                   | Train |   Val  |  Test  | Total |
         # Всего меток       |  11%  |   4%   |   0%   |  15%  |
         # Изображений всего |  280  |   119  |   0    |  19%  |
         # Class1_name       |  42   |   24   |   0    |  52%  |
         # Class2_name       |  7    |  ...
         # ...
-        # Рассчет статистики имее
+        # Расчет статистики производится как
 
         cls_count = self.get_cls_count()
         if not self.statistic["full"]:  # изображений и меток нет, расчет не имеет смысла
@@ -146,34 +146,57 @@ class DatasetSortHandler:
             summ_train_val_test_img += result[1][y]  # общая сумма снимков
             # x и y: сначала строки (x), затем столбцы/элементы (y)
             for x in range(cls_count):
-                result[x + 2][y] = self.statistic[dict_name]["class_sum"][x]  # сумма по каждому классу
-                summ_train_val_test_cls[x] += self.statistic[dict_name]["class_sum"][x]
-        print(result)
-
-        # 3. Рассчитываем колонку с "итоговыми" данными
-        summ_total = 0
+                # сумма по каждому классу в процентах
+                val = round(self.statistic[dict_name]["class_sum"][x] / self.statistic["full"]["class_sum"][x] * 100, 1)
+                result[x + 2][y] = val
+                # result[x + 2][y] = self.statistic[dict_name]["class_sum"][x] / \
+                #                    self.statistic["full"]["class_sum"][x] * 100  # сумма по каждому классу в процентах
+                # сумма по каждому объекту
+                summ_train_val_test_cls[x] += val
+        sum_total = 0
         summ_total_train = 0
         summ_total_val = 0
         summ_total_test = 0
-
         for i in range(cls_count):
-            # итоговое количество объектов по каждой метке
-            class_percent = (summ_train_val_test_cls[i] / self.statistic["full"]["class_sum"][i]) * 100
-            result[i + 2][3] = round(class_percent, 1)
-            # статистика
-            summ_total_train += (result[i + 2][0] / self.statistic["full"]["class_sum"][i]) * 100
-            summ_total_val += (result[i + 2][1] / self.statistic["full"]["class_sum"][i]) * 100
-            summ_total_test += (result[i + 2][2] / self.statistic["full"]["class_sum"][i]) * 100
-            summ_total += class_percent  # итоговая сумма в процентах по всем классам
+            result[i + 2][3] = round(summ_train_val_test_cls[i], 1)
+            sum_total += round(summ_train_val_test_cls[i], 1)
+            summ_total_train += result[i + 2][0]
+            summ_total_val += result[i + 2][1]
+            summ_total_test += result[i + 2][2]
         # итого изображений
-        result[1][3] = round((summ_train_val_test_img / self.statistic["full"]["images_count"]) * 100, 0)
+        result[1][3] = round((summ_train_val_test_img / self.statistic["full"]["images_count"]) * 100, 1)
         # итого меток
-        result[0][3] = round(summ_total / cls_count, 0)
-        result[0][0] = round(summ_total_train / cls_count, 0)
-        result[0][1] = round(summ_total_val / cls_count, 0)
-        result[0][2] = round(summ_total_test / cls_count, 0)
+        result[0][0] = round(summ_total_train / cls_count, 1)
+        result[0][1] = round(summ_total_val / cls_count, 1)
+        result[0][2] = round(summ_total_test / cls_count, 1)
+        result[0][3] = round(sum_total / cls_count, 1)
+
         self.export_data = result
-
-        print(result)
-
-        # self.statistic.append()
+        return
+        # # 3. Рассчитываем колонку с "итоговыми" данными (и заменяем на проценты количество)
+        # summ_total = 0
+        # summ_total_train = 0
+        # summ_total_val = 0
+        # summ_total_test = 0
+        #
+        # for i in range(cls_count):
+        #     # итоговое количество объектов по каждой метке
+        #     class_percent = (summ_train_val_test_cls[i] / self.statistic["full"]["class_sum"][i]) * 100
+        #     result[i + 2][3] = round(class_percent, 1)
+        #     # статистика
+        #     summ_total_train += (result[i + 2][0] / self.statistic["full"]["class_sum"][i]) * 100
+        #     summ_total_val += (result[i + 2][1] / self.statistic["full"]["class_sum"][i]) * 100
+        #     summ_total_test += (result[i + 2][2] / self.statistic["full"]["class_sum"][i]) * 100
+        #     # for j in range(dict_names):
+        #     #     self.
+        #     summ_total += class_percent  # итоговая сумма в процентах по всем классам
+        # # итого изображений
+        # result[1][3] = round((summ_train_val_test_img / self.statistic["full"]["images_count"]) * 100, 0)
+        # # итого меток
+        # result[0][3] = round(summ_total / cls_count, 0)
+        # result[0][0] = round(summ_total_train / cls_count, 0)
+        # result[0][1] = round(summ_total_val / cls_count, 0)
+        # result[0][2] = round(summ_total_test / cls_count, 0)
+        #
+        # # сохраняем статистику
+        # self.export_data = result
