@@ -15,7 +15,7 @@ from .qt import new_text
 from .qt import save_via_qtextstream
 from .qt import labelValidator
 from .qt import set_widgets_and_layouts_margins
-from .qt import set_widgets_enabled
+from .qt import set_widgets_visible
 
 from .az_slice_manual_crop import AzManualSlice
 from .az_exp_mnist import PageMNIST

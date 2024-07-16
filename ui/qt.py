@@ -586,16 +586,19 @@ def set_widgets_and_layouts_margins(widget, left, top, right, bottom):
 
 # ----------------------------------------------------------------------------------------------------------------------
 
-def set_widgets_enabled(layout, flag):
+def set_widgets_visible(layout, flag):
     """Отключение всех виджетов и компоновщиков. Работает рекурсивно"""
     # TODO: не работает, разобраться
+
     for i in range(layout.count()):
         item = layout.itemAt(i)
-        if isinstance(item, QtWidgets.QWidget):
-            item.setEnabled(flag)
+        widget = item.widget()
+        if widget is not None:
+            widget.setVisible(flag)
+            if isinstance(widget, QtWidgets.QGroupBox) or isinstance(widget, QtWidgets.QWidget):
+                set_widgets_visible(widget.layout(), flag)
         elif isinstance(item, QtWidgets.QLayout):
-            set_widgets_enabled(item, flag)
-        layout.setEnabled(flag)
+            set_widgets_visible(item, flag)
 
 # ----------------------------------------------------------------------------------------------------------------------
 

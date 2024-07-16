@@ -28,7 +28,10 @@ UI_COLORS = {
     "settings_color": "deepskyblue",
     "default_color": "grey",
     "line_color": "deepskyblue",  # цвет отображения границ меток по умолчанию - голубой"
-    "crop_color": "yellow"  # цвет центральной точки и границ для ручного кадрирования
+    "crop_color": "yellow",  # цвет центральной точки и границ для ручного кадрирования
+    "train_color": "darkorange",  # цвет таблицы Train - оранжевый
+    "val_color": "deepskyblue",  # цвет таблицы Val - голубой
+    "test_color": "red"  # цвет таблицы Test - красный
 }
 
 # настройка Интерфейса доступных модулей:

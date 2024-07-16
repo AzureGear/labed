@@ -30,7 +30,7 @@
 # glyph_cirlce_red: customicondesign_1
 # glyph_filter_labels: Lizel Arina
 # glyph_objects: Mihimihi
-# glyph_categorization: orvipixel
+# glyph_categorization: Uniconlabs
 # glyph_finish: Vector Stall
 # glyph_add2: Rizki Ahmad Fauzi
 
@@ -54,6 +54,7 @@
 # glyph_point_remove: Pixel perfect
 # glyph_point_universal: me & Pixel perfect
 # glyph_clear_selection: Pixel perfect
+# glyph_smart_process: zero_wing
 
 # glyph_upload: KP Arts
 # glyph_add: KP Arts
@@ -85,5 +86,4 @@
 # glyph_resize: Freepik
 # glyph_pen_code: Freepik
 # glyph_clear_filter: Freepik
-# glyph_smart_process: Freepik
 # glyph_cook: Freepik

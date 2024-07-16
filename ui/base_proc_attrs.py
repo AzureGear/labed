@@ -6,15 +6,16 @@ from utils.sama_project_handler import DatasetSAMAHandler
 from utils.az_dataset_sort_handler import DatasetSortHandler
 from ui import new_button, AzButtonLineEdit, coloring_icon, new_text, az_file_dialog, save_via_qtextstream, new_act, \
     AzInputDialog, az_custom_dialog, new_icon, setup_dock_widgets, AzTableModel, set_widgets_and_layouts_margins, \
-    set_widgets_enabled, new_label_icon
+    set_widgets_visible, new_label_icon
 import os
 import shutil
 from datetime import datetime
 
 ROW_H = 16
 the_color = UI_COLORS.get("processing_color")
-color_train = UI_COLORS.get("automation_color")
-color_val = UI_COLORS.get("settings_color")
+color_train = UI_COLORS.get("train_color")
+color_val = UI_COLORS.get("val_color")
+color_test = UI_COLORS.get("test_color")
 
 
 # TODO: сделать кнопку "Добавлять все объекты из выбранной группы"
@@ -164,6 +165,8 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
         self.ti_tb_sort_new = new_button(self, "tb", icon="glyph_add", color=the_color, slot=self.new_sort_file,
                                          tooltip=self.tr("New train-val sorting project"))
+        self.ti_tb_toggle_tables = new_button(self, "tb", icon="glyph_save", color=the_color, slot=self.toggle_tables,
+                                              tooltip=self.tr("Toggle tables"))
         self.ti_tb_sort_save = new_button(self, "tb", icon="glyph_save", color=the_color, slot=self.save_sort_file,
                                           tooltip=self.tr("Save train-val sorting project"))
         self.ti_tb_sort_smart = new_button(self, "tb", icon="glyph_smart_process", color=the_color,
@@ -177,8 +180,8 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         v_line.setFrameShape(QtWidgets.QFrame.Shape.VLine)
         v_line2 = QtWidgets.QFrame()
         v_line2.setFrameShape(QtWidgets.QFrame.Shape.VLine)
-        self.ti_instruments = [self.ti_tb_sort_open, self.ti_tb_sort_new, v_line, self.ti_tb_sort_save, v_line2,
-                               self.ti_tb_sort_smart, self.ti_tb_sort_cook]
+        self.ti_instruments = [self.ti_tb_sort_open, self.ti_tb_sort_new, v_line, self.ti_tb_toggle_tables,
+                               self.ti_tb_sort_save, v_line2, self.ti_tb_sort_smart, self.ti_tb_sort_cook]
 
         for tool in self.ti_instruments:
             h_layout_instr.addWidget(tool)
@@ -224,12 +227,16 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         lay_val.addLayout(h_lay_val)
         lay_val.addWidget(self.table_val)
 
-        h_layout2 = QtWidgets.QHBoxLayout()
+        h_layout2 = QtWidgets.QHBoxLayout()  # устанавливаем виджеты-таблицы
         h_layout2.addLayout(lay_train)
         table_line = QtWidgets.QFrame()  # добавляем линию-разделитель
         table_line.setFrameShape(QtWidgets.QFrame.Shape.VLine)
         h_layout2.addWidget(table_line)
         h_layout2.addLayout(lay_val)
+        self.widget_test = AzSortTable(color_test, "test", self)
+
+        ####
+        h_layout2.addWidget(self.widget_test)
 
         self.table_statistic = QtWidgets.QTableView()
         h_lay_stat = QtWidgets.QHBoxLayout()  # горизонтальный компоновщик с меткой для таблицы результатов разбиения
@@ -238,13 +245,17 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         v_layout_stat = QtWidgets.QVBoxLayout()  # вертикальный компоновщик, который принимает еще таблицу
         v_layout_stat.addLayout(h_lay_stat)
         v_layout_stat.addWidget(self.table_statistic)
+
+        h_layout2.addLayout(v_layout_stat)
+
         v_layout2 = QtWidgets.QVBoxLayout()
         v_layout2.addLayout(h_layout_instr)
         line = QtWidgets.QFrame()  # добавляем линию-разделитель
         line.setFrameShape(QtWidgets.QFrame.Shape.HLine)
         v_layout2.addWidget(line)
         v_layout2.addLayout(h_layout2, 1)  # компоновщик для таблиц Train/Val/Stats, делаем доминантным
-        v_layout2.addLayout(v_layout_stat)  # компоновщик для статистики
+
+        # v_layout2.addLayout(v_layout_stat)  # компоновщик для статистики
 
         container_left = QtWidgets.QWidget()  # контейнер инструментов фильтра и таблицы фильтрата
         container_left.setLayout(v_layout)
@@ -259,6 +270,10 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         set_widgets_and_layouts_margins(splitter, 0, 0, 0, 0)
         splitter.setContentsMargins(5, 5, 5, 5)  # и только главный виджет будет иметь отступы
         return splitter
+
+    def toggle_tables(self):
+        """Включение и выключение таблиц"""
+        self.widget_test.setHidden(not self.widget_test.isHidden())
 
     def setup_up_central_widget(self):
         """Настройка интерфейса для таблицы статистики и перечня инструментов (центральный виджет)"""
@@ -388,10 +403,10 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         if self.table_statistic.model().rowCount() > 0:  # для строк
             for row in range(self.table_statistic.model().rowCount()):  # выравниваем высоту
                 self.table_statistic.setRowHeight(row, ROW_H)
-        # self.table_statistic.setVerticalHeader(row_headers)
-
-        # if table_view.model().columnCount() > 0:
-        #     table_view.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Stretch)
+        if self.table_statistic.model().columnCount() > 0:
+            header = self.table_statistic.horizontalHeader()
+            for col in range(self.table_statistic.model().columnCount()):
+                header.setSectionResizeMode(col, QtWidgets.QHeaderView.ResizeMode.Stretch)
 
     def update_sort_data_tables(self):
         """Заполнение таблиц сортировки данными сортировщика DatasetSortHandler"""
@@ -855,8 +870,8 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
         train = self.move_sorting_files(input_dir, output_dir, "train", self.sort_data.get_images_names("train"))
         val = self.move_sorting_files(input_dir, output_dir, "val", self.sort_data.get_images_names("val"))
-        self.signal_message.emit(self.tr(f"Moving complete. Success moved {train[0]+val[0]} files. "
-                                         f"Errors for {train[1]+val[1]} files"))
+        self.signal_message.emit(self.tr(f"Moving complete. Success moved {train[0] + val[0]} files. "
+                                         f"Errors for {train[1] + val[1]} files"))
 
     @staticmethod
     def move_sorting_files(input_dir, output_dir, train_val_test, data):
@@ -888,7 +903,6 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                 bad_counts += 1
         return [good_counts, bad_counts]
 
-
     def tr(self, text):
         return QtCore.QCoreApplication.translate("TabAttributesUI", text)
 
@@ -908,10 +922,85 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
 # ----------------------------------------------------------------------------------------------------------------------
 
+
+class AzSortTable(QtWidgets.QWidget):
+    """Testestet"""
+    def __init__(self, color, sort_type="train",  parent=None):
+        super().__init__(parent)
+
+        # создаем таблицу QTableView
+        self.table_view = QtWidgets.QTableView()
+
+        h_lay_train = QtWidgets.QHBoxLayout()
+        self.ti_train_label = QtWidgets.QLabel(self.tr("Train table:"))
+        self.ti_tb_sort_add_to_train = new_button(self, "tb", "train", "glyph_add2", color=color,
+                                                  slot=self.add_to_sort_table, tooltip=self.tr("Add to train"),
+                                                  icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
+        self.ti_tb_sort_remove_from_train = new_button(self, "tb", "train", "glyph_delete2", color=color,
+                                                       slot=self.remove_from_sort_table,
+                                                       tooltip=self.tr("Remove selected rows from train"),
+                                                       icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
+
+        spacer = QtWidgets.QWidget()
+        spacer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)  # горизонтальный спейсер
+        h_lay_train.addWidget(self.ti_train_label)
+        h_lay_train.addWidget(self.ti_tb_sort_add_to_train)
+        h_lay_train.addWidget(spacer)
+        h_lay_train.addWidget(self.ti_tb_sort_remove_from_train)
+
+        # итоговая настройка компоновки
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addLayout(h_lay_train)
+        layout.addWidget(self.table_view, 1)  # делаем доминантным
+
+        # Создаем модель данных
+        self.model = MyTableModel()
+
+        # Устанавливаем модель данных для QTableView
+        self.table_view.setModel(self.model)
+
+        # Разрешаем выделение строк
+        self.table_view.setSelectionBehavior(QtWidgets.QTableView.SelectionBehavior.SelectRows)
+        self.table_view.setSelectionMode(QtWidgets.QTableView.SelectionMode.MultiSelection)
+
+    def add_to_sort_table(self):
+        print("add_to_sort_table")
+        pass
+
+    def remove_from_sort_table(self):
+        print("remove_from_sort_table")
+        pass
+
+
+class MyTableModel(QtCore.QAbstractTableModel):
+    def __init__(self, data=[], headers=[]):
+        super().__init__()
+        self._data = data
+        self._headers = headers
+
+    def data(self, index, role=QtCore.Qt.ItemDataRole.DisplayRole):
+        if role == QtCore.Qt.ItemDataRole.DisplayRole:
+            row = index.row()
+            column = index.column()
+            value = self._data[row][column]
+            return value
+
+    def rowCount(self, parent=None):
+        return len(self._data)
+
+    def columnCount(self, parent=None):
+        return len(self._data[0])
+
+    def headerData(self, section, orientation, role=QtCore.Qt.ItemDataRole.DisplayRole):
+        if role == QtCore.Qt.ItemDataRole.DisplayRole and orientation == QtCore.Qt.Orientation.Horizontal:
+            return self._headers[section]
+
+# ----------------------------------------------------------------------------------------------------------------------
+
 class AzTableAttributes(QtWidgets.QTableWidget):
     """
-    Таблица для взаимодействия с QTabWidget для работы с MNIST:
-    headers - перечень заголовков (может быть переводимым, если translate_headers = True).
+    Таблица для взаимодействия с общей статистикой данных проекта SAMA *.json:
+    headers - перечень заголовков (может быть переводимым, если translate_headers = True*), *пока не реализовано
     special_cols - словарь особых столбцов: ключ - номер столбца, значение - acton или color; может быть None, следует
         помнить, что нумерация идет с 0.
     data - данные для таблицы, если тип данных DatasetSAMAHandler, то записываются в self.my_data.
