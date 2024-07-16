@@ -246,7 +246,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         v_layout_stat.addLayout(h_lay_stat)
         v_layout_stat.addWidget(self.table_statistic)
 
-        h_layout2.addLayout(v_layout_stat)
+        h_layout2.addLayout(v_layout_stat) # here
 
         v_layout2 = QtWidgets.QVBoxLayout()
         v_layout2.addLayout(h_layout_instr)
