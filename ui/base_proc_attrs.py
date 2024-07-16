@@ -393,7 +393,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         """Заполнение таблицы статистики для по результатам сортировки"""
         if not self.sort_file:
             return
-        header = ["Train", "Val", "Test", "Total, %"]
+        header = ["Train", "Val", "Test", "Total"]
         row_headers = self.sort_data.get_rows_labels_headers()  # базовый список меток
         row_headers.insert(0, self.tr("Total images, %"))  # добавляем в начало строки: всего изображений...
         row_headers.insert(0, self.tr("Total labels, %"))  # ...и всего меток
@@ -406,7 +406,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         if self.table_statistic.model().columnCount() > 0:
             header = self.table_statistic.horizontalHeader()
             for col in range(self.table_statistic.model().columnCount()):
-                header.setSectionResizeMode(col, QtWidgets.QHeaderView.ResizeMode.Stretch)
+                header.setSectionResizeMode(col, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
 
     def update_sort_data_tables(self):
         """Заполнение таблиц сортировки данными сортировщика DatasetSortHandler"""
@@ -989,7 +989,10 @@ class MyTableModel(QtCore.QAbstractTableModel):
         return len(self._data)
 
     def columnCount(self, parent=None):
-        return len(self._data[0])
+        if self._data:
+            return len(self._data[0])
+        else:
+            return 0
 
     def headerData(self, section, orientation, role=QtCore.Qt.ItemDataRole.DisplayRole):
         if role == QtCore.Qt.ItemDataRole.DisplayRole and orientation == QtCore.Qt.Orientation.Horizontal:
