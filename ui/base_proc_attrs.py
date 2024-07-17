@@ -232,7 +232,23 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     def toggle_tables(self):
         """Включение и выключение таблиц"""
-        self.sort_widget_test.setHidden(not self.sort_widget_test.isHidden())
+        # self.sort_widget_test.setHidden(not self.sort_widget_test.isHidden())
+
+        toggle_train = new_act(self, self.tr(f"Toggle train"), "glyph_signature", the_color,
+                               tip=self.tr("Show or hide table train"))
+        toggle_train.triggered.connect(lambda: self.sort_widget_train.setHidden(not self.sort_widget_train.isHidden()))
+        toggle_val = new_act(self, self.tr(f"Toggle val"), "glyph_signature", the_color,
+                             tip=self.tr("Show or hide table val"))
+        toggle_val.triggered.connect(lambda: self.sort_widget_val.setHidden(not self.sort_widget_val.isHidden()))
+        toggle_test = new_act(self, self.tr(f"Toggle test"), "glyph_signature", the_color,
+                              tip=self.tr("Show or hide table test"))
+        toggle_test.triggered.connect(lambda: self.sort_widget_test.setHidden(not self.sort_widget_test.isHidden()))
+
+        acts = [toggle_train, toggle_val, toggle_test]  # перечень наших действий
+        menu = QtWidgets.QMenu(self)
+        menu.addActions(acts)
+        self.ti_tb_toggle_tables.setMenu(menu)
+        self.ti_tb_toggle_tables.setPopupMode(QtWidgets.QToolButton.ToolButtonPopupMode.InstantPopup)
 
     def setup_up_central_widget(self):
         """Настройка интерфейса для таблицы статистики и перечня инструментов (центральный виджет)"""
@@ -367,55 +383,55 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             for col in range(self.table_statistic.model().columnCount()):
                 header.setSectionResizeMode(col, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
 
+    def add_to_sort_table(self):
+        """
+        Добавление в сортировочные таблицы строк из table_image. Производится перемещение записей в классе
+        DatasetSortHandler из "unsort" в выбранную таблицу Train, Sort или Val.
+        """
+        sender = self.sender()
+        if not sender:
+            return
+        sender = self.sender().text()  # определяем от кого пришёл сигнал
+        if not sender:
+            return
+
+        if not self.image_table.selectionModel().hasSelection():  # выбранных строк нет
+            return
+        if not self.sort_file:  # данных для сортировки не загружено
+            return
+        sel_rows = self.get_selected_rows(self.image_table, 1)  # нас интересуют выделенные строки 2 столбца
+        if sel_rows:
+            self.sort_data.move_rows_by_images_names("unsort", sender, sel_rows)  # добавляем объекты в таблицу
+            self.update_sort_data_tables()  # обновляем таблицы сортировки train/val
+            self.table_image_filter_changed()  # обновляем таблицу фильтрата
+
+    def remove_from_sort_table(self):
+        """
+        Удаление строк из сортировочной таблицы и в классе DatasetSortHandler.
+        Перемещение удаленных строк в table_image
+        """
+        sender = self.sender()
+        if not sender:
+            return
+        sender = self.sender().text()  # определяем от кого пришёл сигнал
+        if not sender:
+            return
+        wid = self.get_table(sender)  # определение виджета и таблицы
+        # проверка наличие выделенных строк
+        if wid.table_view is None or not wid.table_view.selectionModel().hasSelection():
+            return  # нет выделенных элементов либо мистика
+        sel_rows = self.get_selected_rows(wid.table_view, 0)  # для удаления - 1 столбец
+        if sel_rows:
+            self.sort_data.move_rows_by_images_names(sender, "unsort", sel_rows)
+            self.update_sort_data_tables()  # обновляем таблицы сортировки train/val
+            self.table_image_filter_changed()  # обновляем таблицу фильтрата
+
     def update_sort_data_tables(self):
         """Заполнение таблиц сортировки данными сортировщика DatasetSortHandler"""
         for wid in self.sort_tables:  # устанавливаем последовательно для каждой таблицы
             # нам нужны данные [[data1], [data2], ...], а не [data1, data2, ...]
             wid.model.setData([[item] for item in self.sort_data.get_images_names(wid.sort_type)])
         self.set_sort_data_statistic()
-
-    def add_to_sort_table(self):
-        """Добавление в сортировочные таблицы строк из table_image"""
-        sender = self.sender()
-        if not sender:
-            return
-        sender = self.sender().text()  # определяем от кого пришёл сигнал
-        print(sender)
-        if sender:
-            self.move_to_sort_data(sender)
-
-    def remove_from_sort_table(self):
-        sender = self.sender()
-        if not sender:
-            return
-        """Удаление строк из сортировочной таблицы и возвращение их в table_image"""
-        sender = self.sender().text()  # определяем от кого пришёл сигнал
-        print(sender)
-        if sender:
-            self.remove_from_sort_data(sender)
-
-    def move_to_sort_data(self, table_sender):
-        """Перемещение записей в классе DatasetSortHandler. table - таблица, в которую следует переместить"""
-        if not self.image_table.selectionModel().hasSelection():  # ничего не выбрано
-            return
-        if not self.sort_file:  # данных для сортировки не загружено
-            return
-        sel_rows = self.get_selected_rows(self.image_table, 1)  # нас интересуют выделенные строки 2 столбца
-        if sel_rows:
-            self.sort_data.move_rows_by_images_names("unsort", table_sender, sel_rows)  # добавляем объекты в таблицу
-            self.update_sort_data_tables()  # обновляем таблицы сортировки train/val
-            self.table_image_filter_changed()  # обновляем таблицу фильтрата
-
-    def remove_from_sort_data(self, table_sender):
-        """Удаление в классе DatasetSortHandler"""
-        table = self.get_table(table_sender)
-        if table is None or not table.selectionModel().hasSelection():
-            return  # нет выделенных элементов либо мистика
-        sel_rows = self.get_selected_rows(table, 0)  # для удаления - 1 столбец
-        if sel_rows:
-            self.sort_data.move_rows_by_images_names(table_sender, "unsort", sel_rows)
-            self.update_sort_data_tables()  # обновляем таблицы сортировки train/val
-            self.table_image_filter_changed()  # обновляем таблицу фильтрата
 
     @staticmethod
     def get_selected_rows(table, column):
@@ -427,16 +443,11 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                 sel_rows.add(index.data(QtCore.Qt.ItemDataRole.DisplayRole))  # получаем набор уникальных значений
         return sel_rows
 
-    def get_table(self, name):  # определить таблицу #
-        if name == "train":
-            return self.table_train
-        elif name == "val":
-            return self.table_val
-        elif name == "test":
-            return self.sort_widget_test.table_view
-
-    def alla(self):
-        pass
+    def get_table(self, name):
+        """Определение таблицы сортировки по значению сигнала кнопки"""
+        for wid in self.sort_tables:
+            if wid.sort_type == name:
+                return wid
 
     def new_sort_file(self):
         if not self.sama_data.is_correct_file:
@@ -471,7 +482,8 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         sort_data = DatasetSortHandler()  # создаем объект сортировщика
         sort_data.load_from_file(path)  # заполняем его данными
 
-        if sort_data.is_correct_file:  # если всё хорошо, то загружаем
+        if sort_data.is_correct_file:  # если всё хорошо, то очищаем текущий, если он был и загружаем новый
+            self.unload_sort_file()  # выгружаем, если был старый проект
             self.sort_file = path
             self.sort_data = sort_data
             self.settings.write_sort_file_input(path)  # записываем удачный файл для последующего автооткрытия
@@ -771,18 +783,18 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                     (label_name is None or row[2] == label_name)]
         return filtered
 
-    def unload_sort_file(self):
-        """Выгрузка данных режима сортировщика"""
+    def unload_sort_file(self, soft=False):
+        """Выгрузка данных режима сортировщика. Флаг soft - использование мягкого режима, без отключения панели."""
         if self.sort_file:  # имеется файл сортировки
             if self.sort_mode:
-                self.ti_tb_sort_mode.setChecked(False)  # отключаем инструмент
+                if not soft:
+                    self.ti_tb_sort_mode.setChecked(False)  # отключаем инструмент
                 self.image_table_toggle_sort_mode(silent=True)  # выключаем режим сортировки в тихом режиме
             self.sort_file = None  # убираем данные
             self.ti_tb_sort_open.clear()
             self.sort = None
-            self.table_statistic.setModel(None)
-            self.table_train.setModel(None)
-            self.table_val.setModel(None)
+            for wid in self.sort_tables:
+                wid.model.setData(None)
             # self.table_statistic.setModel(None) # Table Test
 
     def smart_sort(self):

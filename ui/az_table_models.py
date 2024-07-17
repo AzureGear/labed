@@ -150,14 +150,7 @@ class AzSortTable(QtWidgets.QWidget):
             for row in range(self.model.rowCount()):  # выравниваем высоту
                 self.table_view.setRowHeight(row, self.row_h)
 
-    def add_to_sort_table(self):
-        print("add_to_sort_table")
-        pass
-
-    def remove_from_sort_table(self):
-        print("remove_from_sort_table")
-        pass
-
+    # TODO: подключить сортировку
     def set_sort_data_with_model(self, table_view, data):
         """Создание модели для таблиц сортировки и установка в table_view, выравнивание строк"""
         # обязательно конвертируем просто список в список списков
@@ -176,7 +169,7 @@ class AzSortTable(QtWidgets.QWidget):
             table_view.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Stretch)
         if table_view.model().rowCount() > 0:
             for row in range(model.rowCount()):  # выравниваем высоту
-                table_view.setRowHeight(row, ROW_H)
+                table_view.setRowHeight(row, self.row_h)
 
 
 
@@ -199,13 +192,17 @@ class AzSimpleModel(QtCore.QAbstractTableModel):
             value = self._data[row][column]
             return value
 
+
     def setData(self, data):
         self.beginResetModel()
         self._data = data
         self.endResetModel()
 
     def rowCount(self, parent=None):
-        return len(self._data)
+        if self._data:
+            return len(self._data)
+        else:
+            return 0
 
     def columnCount(self, parent=None):
         if self._data:
@@ -219,6 +216,7 @@ class AzSimpleModel(QtCore.QAbstractTableModel):
                 return self._headers[section]
             else:
                 return ""
+        return section + 1
 
 
 # ----------------------------------------------------------------------------------------------------------------------
