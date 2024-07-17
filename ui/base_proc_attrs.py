@@ -4,9 +4,10 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 from utils import AppSettings, UI_COLORS, helper, config, natural_order
 from utils.sama_project_handler import DatasetSAMAHandler
 from utils.az_dataset_sort_handler import DatasetSortHandler
-from ui import new_button, AzButtonLineEdit, coloring_icon, new_text, az_file_dialog, save_via_qtextstream, new_act, \
-    AzInputDialog, az_custom_dialog, new_icon, setup_dock_widgets, AzTableModel, set_widgets_and_layouts_margins, \
-    set_widgets_visible, new_label_icon
+from ui import new_act, new_button, new_icon, coloring_icon, new_text, new_label_icon, AzButtonLineEdit, \
+    az_file_dialog
+from ui import save_via_qtextstream, setup_dock_widgets, set_widgets_and_layouts_margins
+from ui import AzSortTable, AzTableModel, AzTableAttributes
 import os
 import shutil
 from datetime import datetime
@@ -61,6 +62,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         wid = QtWidgets.QWidget()
         wid.setLayout(central_layout)
         self.setCentralWidget(wid)
+        # self.setStyleSheet("QWidget { border: 1px solid yellow; }")  # проверка отображения виджетов
 
         # настраиваем все виджеты
         setup_dock_widgets(self, ["bottom_dock"], config.UI_BASE_ATTRS)
@@ -70,9 +72,14 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.table_widget.signal_message.connect(self.forward_signal)  # перенаправление сигнала в строку состояния
         self.table_widget.signal_data_changed.connect(self.log_change_data)  # запись информации в лог для пользователя
 
-        # изменение фильтра
+        # Signals: изменение фильтра
         self.ti_cbx_sel_class.currentIndexChanged.connect(self.table_image_filter_changed)
         self.ti_cbx_sel_obj.currentIndexChanged.connect(self.table_image_filter_changed)
+
+        # Signals: взаимодействие с таблицами сортировки
+        for wid in self.sort_tables:
+            wid.ti_tb_sort_add_to.clicked.connect(self.add_to_sort_table)  # добавление
+            wid.ti_tb_sort_remove_from.clicked.connect(self.remove_from_sort_table)  # удаление
 
         # смотрим, есть ли в реестре файл проекта, который запускали прошлый раз?
         if os.path.exists(self.settings.read_attributes_input()):
@@ -123,6 +130,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.ti_cbx_sel_class = QtWidgets.QComboBox()
         self.ti_cbx_sel_obj = QtWidgets.QComboBox()
         self.ti_cbx_sel_obj.setMaximumWidth(130)
+        self.ti_cbx_sel_class.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
         self.ti_pb_sel_clear_selection = new_button(self, "tb", self.tr("Reset selection"), "glyph_clear_selection",
                                                     the_color, self.image_table_clear_selection,
                                                     tooltip=self.tr("Reset selection"))
@@ -143,17 +151,6 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         v_layout.addLayout(h_layout)
         v_layout.addWidget(self.image_table)
 
-        # сортировщик Train/Val/Test
-        self.table_train = QtWidgets.QTableView()
-        self.table_val = QtWidgets.QTableView()
-        tables = [self.table_train, self.table_val]
-
-        for i, table in enumerate(tables):  # настраиваем таблицы для Train/Val
-            table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
-            table.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.MultiSelection)
-            table.setWindowTitle("t" + str(i))
-            table.setSortingEnabled(True)
-
         h_layout_instr = QtWidgets.QHBoxLayout()  # компоновщик инструментов
         self.ti_tb_sort_mode = new_button(self, "tb", self.tr(" Toggle sort\n train/val"), "glyph_categorization",
                                           the_color, self.image_table_toggle_sort_mode, True, False,
@@ -161,12 +158,13 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                                           self.tr("Enable sort mode for train/val"))
         # активатор режима сортировки Train/Val/Test
         self.ti_tb_sort_mode.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        # добавляем инструмент "переключения режима сортировки" отдельно, чтобы к нему не применялись общие свойства
         h_layout_instr.addWidget(self.ti_tb_sort_mode)
 
         self.ti_tb_sort_new = new_button(self, "tb", icon="glyph_add", color=the_color, slot=self.new_sort_file,
                                          tooltip=self.tr("New train-val sorting project"))
-        self.ti_tb_toggle_tables = new_button(self, "tb", icon="glyph_save", color=the_color, slot=self.toggle_tables,
-                                              tooltip=self.tr("Toggle tables"))
+        self.ti_tb_toggle_tables = new_button(self, "tb", icon="glyph_toggle_cols", color=the_color,
+                                              slot=self.toggle_tables, tooltip=self.tr("Toggle tables"))
         self.ti_tb_sort_save = new_button(self, "tb", icon="glyph_save", color=the_color, slot=self.save_sort_file,
                                           tooltip=self.tr("Save train-val sorting project"))
         self.ti_tb_sort_smart = new_button(self, "tb", icon="glyph_smart_process", color=the_color,
@@ -188,55 +186,16 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             if isinstance(tool, QtWidgets.QToolButton):
                 tool.setIconSize(QtCore.QSize(config.UI_AZ_PROC_ATTR_IM_ICON_SIZE, config.UI_AZ_PROC_ATTR_IM_ICON_SIZE))
 
-        # компоновка таблицы Train
-        lay_train = QtWidgets.QVBoxLayout()
-        h_lay_train = QtWidgets.QHBoxLayout()
-        self.ti_train_label = QtWidgets.QLabel(self.tr("Train table:"))
-        self.ti_tb_sort_add_to_train = new_button(self, "tb", "train", "glyph_add2", color=color_train,
-                                                  slot=self.add_to_sort_table, tooltip=self.tr("Add to train"),
-                                                  icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
-        self.ti_tb_sort_remove_from_train = new_button(self, "tb", "train", "glyph_delete2", color=color_train,
-                                                       slot=self.remove_from_sort_table,
-                                                       tooltip=self.tr("Remove selected rows from train"),
-                                                       icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
+        # создание виджетов таблиц Train, Val, Sort
+        self.sort_widget_train = AzSortTable(color_train, "train", self, ROW_H, [self.tr("Images")])
+        self.sort_widget_val = AzSortTable(color_val, "val", self, ROW_H, [self.tr("Images")])
+        self.sort_widget_test = AzSortTable(color_test, "test", self, ROW_H, [self.tr("Images")])
+        self.sort_tables = [self.sort_widget_train, self.sort_widget_val, self.sort_widget_test]
 
-        spacer = QtWidgets.QWidget()
-        spacer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)  # горизонтальный спейсер
-        h_lay_train.addWidget(self.ti_train_label)
-        h_lay_train.addWidget(self.ti_tb_sort_add_to_train)
-        h_lay_train.addWidget(spacer)
-        h_lay_train.addWidget(self.ti_tb_sort_remove_from_train)
-        lay_train.addLayout(h_lay_train)
-        lay_train.addWidget(self.table_train)
-
-        # компоновка таблицы Validation
-        lay_val = QtWidgets.QVBoxLayout()
-        h_lay_val = QtWidgets.QHBoxLayout()
-        self.ti_train_val = QtWidgets.QLabel(self.tr("Validation table:"))
-        self.ti_tb_sort_add_to_val = new_button(self, "tb", "val", "glyph_add2", color=color_val,
-                                                slot=self.add_to_sort_table, tooltip=self.tr("Add to val"),
-                                                icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
-        self.ti_tb_sort_remove_from_val = new_button(self, "tb", "val", "glyph_delete2", color=color_val,
-                                                     slot=self.remove_from_sort_table,
-                                                     tooltip=self.tr("Remove selected rows from val"),
-                                                     icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
-        h_lay_val.addWidget(self.ti_train_val)
-        h_lay_val.addWidget(self.ti_tb_sort_add_to_val)
-        h_lay_val.addWidget(spacer)
-        h_lay_val.addWidget(self.ti_tb_sort_remove_from_val)
-        lay_val.addLayout(h_lay_val)
-        lay_val.addWidget(self.table_val)
-
-        h_layout2 = QtWidgets.QHBoxLayout()  # устанавливаем виджеты-таблицы
-        h_layout2.addLayout(lay_train)
-        table_line = QtWidgets.QFrame()  # добавляем линию-разделитель
-        table_line.setFrameShape(QtWidgets.QFrame.Shape.VLine)
-        h_layout2.addWidget(table_line)
-        h_layout2.addLayout(lay_val)
-        self.widget_test = AzSortTable(color_test, "test", self)
-
-        ####
-        h_layout2.addWidget(self.widget_test)
+        h_layout2 = QtWidgets.QHBoxLayout()  # компоновщик таблиц сортировки и таблицы статистики
+        h_layout2.addWidget(self.sort_widget_train)
+        h_layout2.addWidget(self.sort_widget_val)
+        h_layout2.addWidget(self.sort_widget_test)
 
         self.table_statistic = QtWidgets.QTableView()
         h_lay_stat = QtWidgets.QHBoxLayout()  # горизонтальный компоновщик с меткой для таблицы результатов разбиения
@@ -246,7 +205,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         v_layout_stat.addLayout(h_lay_stat)
         v_layout_stat.addWidget(self.table_statistic)
 
-        h_layout2.addLayout(v_layout_stat) # here
+        h_layout2.addLayout(v_layout_stat)  # добавляем компоновщик статистики
 
         v_layout2 = QtWidgets.QVBoxLayout()
         v_layout2.addLayout(h_layout_instr)
@@ -273,7 +232,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     def toggle_tables(self):
         """Включение и выключение таблиц"""
-        self.widget_test.setHidden(not self.widget_test.isHidden())
+        self.sort_widget_test.setHidden(not self.sort_widget_test.isHidden())
 
     def setup_up_central_widget(self):
         """Настройка интерфейса для таблицы статистики и перечня инструментов (центральный виджет)"""
@@ -339,7 +298,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
         # данные из DatasetSAMAHandler будут отображаться в таблице
         self.table_widget = AzTableAttributes(headers=self.headers, special_cols={7: "color", 8: "action"},
-                                              data=None, parent=self)  # и таблица тоже пустая
+                                              data=None, parent=self, color=the_color, row_h=ROW_H)  # таблица пустая
 
         header = self.table_widget.horizontalHeader()  # настраиваем отображение столбцов именно таблицы SAMA
         for column in range(self.table_widget.columnCount()):
@@ -384,7 +343,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         """ Настройка интерфейса для лога """
         self.log = QtWidgets.QTextEdit(self)  # лог, для вывода сообщений.
         self.log.setReadOnly(True)
-        self.bottom_dock = QtWidgets.QDockWidget("")  # контейнер для информации о логе
+        self.bottom_dock = QtWidgets.QDockWidget()  # контейнер для информации о логе
         self.bottom_dock.setWidget(self.log)  # устанавливаем в контейнер QLabel
         self.bottom_dock.setWindowTitle("Log")
         self.addDockWidget(QtCore.Qt.DockWidgetArea.BottomDockWidgetArea, self.bottom_dock)
@@ -410,40 +369,28 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     def update_sort_data_tables(self):
         """Заполнение таблиц сортировки данными сортировщика DatasetSortHandler"""
-        self.set_sort_data_with_model(self.table_val, self.sort_data.get_images_names("val"))
-        self.set_sort_data_with_model(self.table_train, self.sort_data.get_images_names("train"))
-        # такое же будет и для таблицы Test
+        for wid in self.sort_tables:  # устанавливаем последовательно для каждой таблицы
+            # нам нужны данные [[data1], [data2], ...], а не [data1, data2, ...]
+            wid.model.setData([[item] for item in self.sort_data.get_images_names(wid.sort_type)])
         self.set_sort_data_statistic()
-
-    def set_sort_data_with_model(self, table_view, data):
-        """Создание модели для таблиц сортировки и установка в table_view, выравнивание строк"""
-        # обязательно конвертируем просто список в список списков
-        data = [[item] for item in data]
-        if len(data) < 1:
-            model = AzTableModel()
-        else:
-            model = AzTableModel(data, ["images"])  # заголовок всего один "images"
-
-        proxyModel = QtCore.QSortFilterProxyModel()  # используем для включения сортировки
-        proxyModel.setSourceModel(model)
-        table_view.setSortingEnabled(True)
-
-        table_view.setModel(proxyModel)
-        if table_view.model().columnCount() > 0:
-            table_view.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Stretch)
-        if table_view.model().rowCount() > 0:
-            for row in range(model.rowCount()):  # выравниваем высоту
-                table_view.setRowHeight(row, ROW_H)
 
     def add_to_sort_table(self):
         """Добавление в сортировочные таблицы строк из table_image"""
+        sender = self.sender()
+        if not sender:
+            return
         sender = self.sender().text()  # определяем от кого пришёл сигнал
+        print(sender)
         if sender:
             self.move_to_sort_data(sender)
 
     def remove_from_sort_table(self):
+        sender = self.sender()
+        if not sender:
+            return
         """Удаление строк из сортировочной таблицы и возвращение их в table_image"""
         sender = self.sender().text()  # определяем от кого пришёл сигнал
+        print(sender)
         if sender:
             self.remove_from_sort_data(sender)
 
@@ -486,7 +433,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         elif name == "val":
             return self.table_val
         elif name == "test":
-            return self.table_test
+            return self.sort_widget_test.table_view
 
     def alla(self):
         pass
@@ -548,20 +495,16 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     def image_table_toggle_sort_mode(self, silent=False):
         """Включение и выключение режима сортировщика"""
         self.sort_mode = self.ti_tb_sort_mode.isChecked()  # устанавливаем текущий режим
-        self.ti_tb_sort_open.setEnabled(self.sort_mode)
-        self.ti_tb_sort_save.setEnabled(self.sort_mode)
-        self.ti_tb_sort_new.setEnabled(self.sort_mode)
-        self.ti_tb_sort_add_to_train.setEnabled(self.sort_mode)
-        self.ti_tb_sort_add_to_val.setEnabled(self.sort_mode)
-        self.ti_tb_sort_remove_from_train.setEnabled(self.sort_mode)
-        self.ti_tb_sort_remove_from_val.setEnabled(self.sort_mode)
-        self.ti_tb_sort_cook.setEnabled(self.sort_mode)
-        self.ti_tb_sort_smart.setEnabled(self.sort_mode)
-        if self.sort_mode:
-            if not silent:
+        for ti_instr in self.ti_instruments:
+            ti_instr.setEnabled(self.sort_mode)
+
+        for wid in self.sort_tables:  # устанавливаем флаг для виджетов таблиц сортировки
+            wid.setEnabled(self.sort_mode)
+
+        if not silent:
+            if self.sort_mode:
                 self.signal_message.emit(self.tr("Toggle train/val sort mode on"))
-        else:
-            if not silent:
+            else:
                 self.signal_message.emit(self.tr("Toggle train/val sort mode off"))
         self.table_image_filter_changed()  # отфильтровать вывод в таблице фильтрата
 
@@ -921,342 +864,6 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-
-
-class AzSortTable(QtWidgets.QWidget):
-    """Testestet"""
-    def __init__(self, color, sort_type="train",  parent=None):
-        super().__init__(parent)
-
-        # создаем таблицу QTableView
-        self.table_view = QtWidgets.QTableView()
-
-        h_lay_train = QtWidgets.QHBoxLayout()
-        self.ti_train_label = QtWidgets.QLabel(self.tr("Train table:"))
-        self.ti_tb_sort_add_to_train = new_button(self, "tb", "train", "glyph_add2", color=color,
-                                                  slot=self.add_to_sort_table, tooltip=self.tr("Add to train"),
-                                                  icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
-        self.ti_tb_sort_remove_from_train = new_button(self, "tb", "train", "glyph_delete2", color=color,
-                                                       slot=self.remove_from_sort_table,
-                                                       tooltip=self.tr("Remove selected rows from train"),
-                                                       icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
-
-        spacer = QtWidgets.QWidget()
-        spacer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)  # горизонтальный спейсер
-        h_lay_train.addWidget(self.ti_train_label)
-        h_lay_train.addWidget(self.ti_tb_sort_add_to_train)
-        h_lay_train.addWidget(spacer)
-        h_lay_train.addWidget(self.ti_tb_sort_remove_from_train)
-
-        # итоговая настройка компоновки
-        layout = QtWidgets.QVBoxLayout(self)
-        layout.addLayout(h_lay_train)
-        layout.addWidget(self.table_view, 1)  # делаем доминантным
-
-        # Создаем модель данных
-        self.model = MyTableModel()
-
-        # Устанавливаем модель данных для QTableView
-        self.table_view.setModel(self.model)
-
-        # Разрешаем выделение строк
-        self.table_view.setSelectionBehavior(QtWidgets.QTableView.SelectionBehavior.SelectRows)
-        self.table_view.setSelectionMode(QtWidgets.QTableView.SelectionMode.MultiSelection)
-
-    def add_to_sort_table(self):
-        print("add_to_sort_table")
-        pass
-
-    def remove_from_sort_table(self):
-        print("remove_from_sort_table")
-        pass
-
-
-class MyTableModel(QtCore.QAbstractTableModel):
-    def __init__(self, data=[], headers=[]):
-        super().__init__()
-        self._data = data
-        self._headers = headers
-
-    def data(self, index, role=QtCore.Qt.ItemDataRole.DisplayRole):
-        if role == QtCore.Qt.ItemDataRole.DisplayRole:
-            row = index.row()
-            column = index.column()
-            value = self._data[row][column]
-            return value
-
-    def rowCount(self, parent=None):
-        return len(self._data)
-
-    def columnCount(self, parent=None):
-        if self._data:
-            return len(self._data[0])
-        else:
-            return 0
-
-    def headerData(self, section, orientation, role=QtCore.Qt.ItemDataRole.DisplayRole):
-        if role == QtCore.Qt.ItemDataRole.DisplayRole and orientation == QtCore.Qt.Orientation.Horizontal:
-            return self._headers[section]
-
-# ----------------------------------------------------------------------------------------------------------------------
-
-class AzTableAttributes(QtWidgets.QTableWidget):
-    """
-    Таблица для взаимодействия с общей статистикой данных проекта SAMA *.json:
-    headers - перечень заголовков (может быть переводимым, если translate_headers = True*), *пока не реализовано
-    special_cols - словарь особых столбцов: ключ - номер столбца, значение - acton или color; может быть None, следует
-        помнить, что нумерация идет с 0.
-    data - данные для таблицы, если тип данных DatasetSAMAHandler, то записываются в self.my_data.
-    Пример: tb = AzTableAttributes(headers=self.headers, special_cols={5: "color", 6: "action"},data=None, parent=self)
-    """
-    signal_message = QtCore.pyqtSignal(str)  # сигнал для вывода сообщения
-
-    signal_data_changed = QtCore.pyqtSignal(str)  # сигнал об изменении в данных
-
-    def __init__(self, headers=None, special_cols=None, data=None, parent=None,
-                 translate_headers=False, current_file=None):
-        # создать заголовки, построить ячейки, заполнить данными, заполнить особыми столбцами
-        super(AzTableAttributes, self).__init__(parent)
-        self.col_color = None  # столбец цвета
-        self.current_file = current_file
-        self.special_cols = special_cols
-        self.translate_headers = translate_headers  # надобность перевода
-        self.setColumnCount(len(headers))
-        self.setHorizontalHeaderLabels(headers)  # заголовки
-        self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)  # выделение построчно
-        self.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)  # отключаем редактирование
-        self.setSortingEnabled(True)  # включаем сортировку
-        self.setAlternatingRowColors(True)  # включаем чередование цветов
-        self.horizontalHeader().setDefaultAlignment(
-            QtCore.Qt.AlignmentFlag.AlignCenter | QtCore.Qt.Alignment(QtCore.Qt.TextFlag.TextWordWrap))
-
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        self.setColumnWidth(0, int(self.width() * 0.23))  # устанавливаем у первого столбца ширину в 23% от общей ширины
-
-    def clear_table(self):  # простая очистка таблицы
-        self.setRowCount(0)
-
-    def set_special_cols(self):  # установка особых типов столбцов: action - меню; color - цвет;
-        for column, item_type in self.special_cols.items():
-            if item_type == "color":
-                for row in range(self.rowCount()):
-                    self.setCellWidget(row, column, self.add_color_button())
-            elif item_type == "action":
-                for row in range(self.rowCount()):
-                    self.setCellWidget(row, column, self.add_action_button())
-
-    def add_action_button(self):  # добавление кнопки меню
-        act_button = new_button(self, "tb", icon="glyph_menu", color=the_color, tooltip=self.tr("Select action"),
-                                icon_size=14)
-        act_button.clicked.connect(self.show_context_menu)
-        # act_button.clicked.connect(lambda ch, row=row: self.show_context_menu(row))
-        return act_button
-
-    def add_color_button(self):  # добавление цветной кнопки выбора цвета
-        color_button = new_button(self, "tb", tooltip=self.tr("Select color"))
-        color_button.setStyleSheet("QToolButton { background-color: rgb(0, 0, 0); }")  # по умолчанию черного цвета
-        color_button.clicked.connect(self.change_color)
-        # color_button.clicked.connect(lambda ch, btn=color_button, row=row: self.change_color(btn, row))
-        return color_button
-
-    def show_context_menu(self):
-        """Дополнительное меню действий с именами меток/классами"""
-        button = self.sender()  # определяем от кого пришёл сигнал
-        index = self.indexAt(button.pos())  # вот и индекс (проклятье, часа четыре потратил на эти 3 строчки!)
-        row = index.row()
-
-        menu = QtWidgets.QMenu()
-        rename_act = new_act(self, self.tr(f"Rename"), "glyph_signature", the_color,
-                             tip=self.tr("Rename current label"))
-        rename_act.triggered.connect(lambda ch, the_row=row: self.label_rename(row))
-
-        delete_act = new_act(self, self.tr("Delete"), "glyph_delete2", the_color, tip=self.tr("Delete current label"))
-        delete_act.triggered.connect(lambda ch, the_row=row: self.label_delete(row))
-
-        merge_act = new_act(self, self.tr("Merge"), "glyph_merge", the_color,
-                            tip=self.tr("Merge current label to other label"))
-        merge_act.triggered.connect(lambda ch, the_row=row: self.label_merge(row))
-
-        acts = [rename_act, merge_act, delete_act]  # перечень наших действий
-        menu.addActions(acts)
-
-        pos = QtGui.QCursor.pos()
-        menu.exec_(pos)
-
-    def load_table_data(self, data):
-        self.clear_table()
-        if isinstance(data, DatasetSAMAHandler):  # установка данных SAMA, если они переданы
-            self.my_data = data
-            self.horizontalHeader().setFixedHeight(36)  # для SAMA
-            self.load_sama_data()
-        else:
-            # заглушка на другие типы данных
-            pass
-
-    def load_sama_data(self):
-        labels = self.my_data.get_labels()
-        self.setRowCount(len(labels))  # число строк
-        self.col_color = None  # по умолчанию "цветного" столбца нет
-
-        # устанавливаем особые столбцы
-        if self.special_cols is not None and self.my_data is not None:  # в конец, т.к. изначально установим цвет
-            self.set_special_cols()
-            self.col_color = next((k for k, v in self.special_cols.items() if v == "color"), None)  # номер столбца
-
-        stat = self.my_data.calc_stat()  # рассчитываем статистику
-        self.setSortingEnabled(False)  # обязательно отключить сортировку, иначе случится дичь
-        for row, name in enumerate(labels):
-            if self.col_color:  # заполнение кнопки цветом
-                color_tuple = self.my_data.get_label_color(name)
-                color = QtGui.QColor(*color_tuple)
-                button = self.cellWidget(row, self.col_color)
-                button.setStyleSheet(f"background-color: rgb({color.red()}, {color.green()}, {color.blue()});")
-            # имя класса/метки
-            self.add_item_text(row, 0, name, QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter)
-            self.add_item_number(row, 1, stat[name]['count'])  # количество объектов/меток
-            self.add_item_number(row, 2, stat[name]['frequency'], 1)  # частота встречаемости на изображении
-            self.add_item_number(row, 3, stat[name]['percent'], 2)  # проценты от общего
-            self.add_item_number(row, 4, stat[name]['size']['mean'], 1)  # средний размер
-            self.add_item_number(row, 5, stat[name]['size']['std'], 1)  # СКО размера
-        self.setSortingEnabled(True)
-        for row in range(self.rowCount()):  # выравниваем высоту
-            self.setRowHeight(row, ROW_H)
-
-    def add_item_text(self, row, col, text,
-                      align=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter):
-        """ Установка текстовых значений.
-        row - строка, col - столбце,  text - текстовое значение, align - расположение значения по
-        горизонтали | вертикали типа "Qt.AlignmentFlag"
-        """
-        item = QtWidgets.QTableWidgetItem(text)
-        item.setTextAlignment(align)
-        self.setItem(row, col, item)
-
-    def add_item_number(self, row, col, number, acc=0,
-                        align=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter):
-        """ Установка числовых значений.
-        row - строка, col - столбце, number - отображаемое число, acc - знаки с точностью после запятой
-        align - расположение значения по горизонтали | вертикали типа "Qt.AlignmentFlag"
-        """
-        item = QtWidgets.QTableWidgetItem()
-        item.setData(QtCore.Qt.ItemDataRole.EditRole, round(float(number), acc))
-        item.setTextAlignment(align)
-        self.setItem(row, col, item)
-
-    def fill_column(self, col, text_data):  # заполнение столбца данными
-        for row, text in enumerate(text_data):
-            new_item = QtWidgets.QTableWidgetItem(text)
-            self.setItem(row, col, new_item)
-
-    def change_color(self):  # изменение цвета
-        button = self.sender()  # определяем от кого пришёл сигнал
-        index = self.indexAt(button.pos())
-        row = index.row()
-        name = self.item(row, 0).text()
-
-        if self.col_color is None:
-            return
-        button = self.cellWidget(row, self.col_color)  # узнаем по какой кнопке щелкнули
-        if button is None:
-            self.signal_message.emit(self.tr("Something goes wrong. Can't assign a button"))
-            return
-        color_dialog = QtWidgets.QColorDialog(self)  # создаём и настраиваем диалог цвета
-        color_dialog.setWindowTitle(self.tr("Select label color"))
-        color_dialog.setCurrentColor(button.palette().color(button.backgroundRole()))  # начальный цвет
-        result = color_dialog.exec_()  # запускаем
-        if result != QtWidgets.QDialog.Accepted:
-            return
-        color = color_dialog.selectedColor()
-        if color.isValid():
-            button.setStyleSheet(
-                f"QToolButton {{ background-color: rgb({color.red()}, {color.green()}, {color.blue()}); }}")
-        self.my_data.set_label_color(name, [color.red(), color.green(), color.blue()])  # устанавливаем цвет и в данных
-        self.signal_message.emit(
-            self.tr(f"Label '{name}' color was changed to 'rgb({color.red()}, {color.green()}, {color.blue()})'"))
-        self.signal_data_changed.emit(self.tr(f"Label color was changed to 'rgb({color.red()}, {color.green()}, "
-                                              f"{color.blue()})'"))
-
-    def label_rename(self, row):
-        """ Перечень действий: переименовать класс"""
-        names = self.my_data.get_labels()  # набор исходных имён
-        current_name = self.item(row, 0).text()
-        if current_name not in names:
-            self.signal_message.emit(self.tr("Something goes wrong. Check input data."))
-        dialog = AzInputDialog(self, 1, [self.tr("Enter new label name:")], input_type=[0],
-                               window_title=f"Rename label '{self.item(row, 0).text()}'",
-                               cancel_text=self.tr("Cancel"))
-        if dialog.exec_() == QtWidgets.QDialog.DialogCode.Rejected:  # нажата "Отмена"
-            return
-        result = dialog.get_inputs()  # получаем введенные данные
-
-        # проверки
-        if result is None:
-            return
-        if len(result) < 1:
-            return
-        if result[0] in names:
-            self.signal_message.emit(
-                self.tr(f"The specified name '{result[0]}' is present in the dataset, rename was canceled."))
-            return
-        self.my_data.change_name(current_name, result[0])
-        self.item(row, 0).setText(result[0])
-        self.signal_message.emit(self.tr(f"Objects with label '{current_name}' was renamed to '{result[0]}'"))
-        self.signal_data_changed.emit(self.tr(f"Objects with label '{current_name}' was renamed to '{result[0]}'"))
-
-    def label_delete(self, row):
-        """ Перечень действий: удалить метку"""
-        name = self.item(row, 0).text()
-        dialog = az_custom_dialog(self.tr("Label deleting"),
-                                  self.tr(f"Are you sure you want to delete all objects related to label '{name}'?"),
-                                  parent=self)
-        if dialog != 1:  # если не "утверждение", то выходим
-            return
-
-        if not self.my_data.filename:  # ошибка, дальше даже не стоит продолжать
-            self.signal_message.emit(self.tr("Something goes wrong."))
-            return
-        self.my_data.delete_data_by_class_name(name)  # удаляем данные
-        self.removeRow(row)
-        self.signal_message.emit(self.tr(f"Objects with label '{name}' was deleted"))
-        self.signal_data_changed.emit(self.tr(f"Objects with label '{name}' was deleted"))
-
-    def label_merge(self, row):
-        """Перечень действий: слить с другой меткой"""
-        if self.my_data is None:
-            return
-        name = self.item(row, 0).text()  # имя текущей метки
-        names = copy.copy(self.my_data.get_labels())  # имена всех меток
-        if len(names) < 2:
-            self.signal_message.emit(self.tr("There are not enough labels for merging."))
-            return
-        names.remove(name)  # сделать копию! ибо будет удаление
-
-        dialog = AzInputDialog(self, 1, [self.tr(f"Select the label {name} to merge with:")],
-                               self.tr("Merge labels"), input_type=[1],
-                               combo_inputs=[names], cancel_text=self.tr("Cancel"))
-        if dialog.exec_() == QtWidgets.QDialog.DialogCode.Rejected:  # нажата "Отмена"
-            return
-        result = dialog.get_inputs()  # получаем введенные данные
-        if result is None:
-            return
-        if len(result) < 1:
-            return
-        self.my_data.change_data_class_from_to(name, result[0])
-        self.removeRow(row)
-        self.signal_message.emit(self.tr(f"Merged object with labels '{name}' to '{result[0]}'"))
-        self.signal_data_changed.emit(self.tr(f"Merged object with labels '{name}' to '{result[0]}'"))
-
-    def tr(self, text):
-        return QtCore.QCoreApplication.translate("AzTableAttributes", text)
-
-    def translate_ui(self):  # переводим текущие тексты и добавленные/вложенные вкладки
-        # Processing - Attributes - AzTableAttributes
-        self.setToolTip(self.tr("Data by classes (labels) of the dataset"))
-        # Заголовки таблицы
-        if self.translate_headers:
-            pass
-        # TODO: headers
 
 
 # ----------------------------------------------------------------------------------------------------------------------

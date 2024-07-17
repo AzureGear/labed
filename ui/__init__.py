@@ -1,7 +1,6 @@
 from .qt import AzAction
 from .qt import AzButtonLineEdit
 from .qt import AzSpinBox
-from .qt import AzTableModel
 from .qt import AzInputDialog
 from .qt import az_file_dialog
 from .qt import az_custom_dialog
@@ -16,6 +15,10 @@ from .qt import save_via_qtextstream
 from .qt import labelValidator
 from .qt import set_widgets_and_layouts_margins
 from .qt import set_widgets_visible
+
+from .az_table_models import AzTableModel
+from .az_table_models import AzSortTable
+from .az_table_models import AzTableAttributes
 
 from .az_slice_manual_crop import AzManualSlice
 from .az_exp_mnist import PageMNIST

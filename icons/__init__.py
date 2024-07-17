@@ -33,6 +33,7 @@
 # glyph_categorization: Uniconlabs
 # glyph_finish: Vector Stall
 # glyph_add2: Rizki Ahmad Fauzi
+# glyph_toggle_cols: me & Yogi Aprelliyanto
 
 
 

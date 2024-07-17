@@ -1,3 +1,116 @@
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+from PyQt5 import QtWidgets, QtGui, QtCore
+import sys
+from ui import AzSortTable
+
+
+class MyApp(QtWidgets.QWidget):
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+        self.setStyleSheet("QWidget { border: 1px solid black; }")  # проверка отображения виджетов
+
+    def initUI(self):
+        layout = QtWidgets.QVBoxLayout(self)
+
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        h_lay = QtWidgets.QHBoxLayout()
+        h_lay2 = QtWidgets.QHBoxLayout()
+
+        self.pol = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+
+        for i in range(3):
+            button = QtWidgets.QPushButton(f"Button {i + 1}", self)
+            h_lay.addWidget(button)
+        self.tab1 = MySortTable("red", "train", self)
+        self.tab2 = AzSortTable("blue", "val", self)
+        self.button = QtWidgets.QPushButton(self)
+        self.tab1.setSizePolicy(self.pol)
+        self.tab2.setSizePolicy(self.pol)
+        self.button.setSizePolicy(self.pol)
+
+        layout.addLayout(h_lay)
+
+        h_lay2.addWidget(self.tab1)
+        self.tab1.setContentsMargins(0, 0, 0, 0)
+
+        h_lay2.addWidget(self.tab2)
+        h_lay2.addWidget(self.button)
+
+        layout.addLayout(h_lay2)
+
+        h_lay2.setContentsMargins(-1, -1, -1, -1)
+        h_lay2.setSpacing(0)
+        self.setLayout(layout)
+
+
+class MySortTable(QtWidgets.QWidget):
+    """Testestet"""
+
+    def __init__(self, color, sort_type="train", parent=None, row_h=16, table_headers=["no_data"]):
+        from ui import new_button
+        from utils import config
+        super().__init__(parent)
+        self.row_h = row_h  # высота строк по умолчанию
+        self.sort_type = sort_type  # строковое значение типа таблицы
+        # Выбираем заголовок
+        if sort_type == "train":
+            self.ti_label = QtWidgets.QLabel(self.tr("Train table:"))
+        elif sort_type == "val":
+            self.ti_label = QtWidgets.QLabel(self.tr("Val table:"))
+        elif sort_type == "test":
+            self.ti_label = QtWidgets.QLabel(self.tr("Test table:"))
+
+        # инструменты
+        self.ti_tb_sort_add_to = new_button(self, "tb", sort_type, "glyph_add2", color=color,
+                                            tooltip=self.tr(f"Add to {sort_type}"),
+                                            icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
+        self.ti_tb_sort_remove_from = new_button(self, "tb", sort_type, "glyph_delete2", color=color,
+                                                 tooltip=self.tr(f"Remove selected rows from {sort_type}"),
+                                                 icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
+
+        # создаем таблицу QTableView
+        self.table_view = QtWidgets.QTableView()
+
+        spacer = QtWidgets.QWidget()
+        spacer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)  # горизонтальный спейсер
+
+        h_lay = QtWidgets.QHBoxLayout()
+        h_lay.addWidget(self.ti_label)
+        h_lay.addWidget(self.ti_tb_sort_add_to)
+        h_lay.addWidget(spacer)
+        h_lay.addWidget(self.ti_tb_sort_remove_from)
+        h_lay.setSpacing(0)
+
+        # итоговая настройка компоновки
+        layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        layout.addLayout(h_lay)
+        layout.addWidget(self.table_view, 1)  # делаем доминантным
+        self.setLayout(layout)
+
+        # lay = QtWidgets.QVBoxLayout()
+        # lay.setContentsMargins(0, 0, 0, 0)
+        # lay.setSpacing(0)
+        # lay.addLayout(h_lay)
+        # lay.addWidget(self.table_view)
+        # self.setLayout(lay)
+
+
+if __name__ == "__main__":
+    app = QtWidgets.QApplication(sys.argv)
+
+    ex = MyApp()
+    ex.show()
+
+    sys.exit(app.exec_())
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -74,7 +187,7 @@
 import re
 
 # s = "asdasdasdaasdasdad03.jpg"
-#pattern = r"^([^_]+)_([^_]+)"
+# pattern = r"^([^_]+)_([^_]+)"
 # match = re.search(pattern, s)
 # result1 = match.group(0)
 # result2 = match.group(2)
