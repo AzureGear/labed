@@ -20,6 +20,7 @@ class DatasetSAMAHandler:
         self.data["images"] = {}
         self.data["labels"] = []
         self.data["labels_color"] = {}
+        self.data["description"] = ""  # Az+: описание проекта
         self.filename = None
         self.is_loaded = False
         self.is_correct_file = False
@@ -68,6 +69,7 @@ class DatasetSAMAHandler:
                 else:
                     labels_nums[label_name] += 1
         return labels_nums
+
 
     def save(self, json_path):
         with open(json_path, 'w', encoding='utf8') as f:
@@ -513,6 +515,14 @@ class DatasetSAMAHandler:
         # преобразуем значения в списки
         result = list(map(sum, zip(*values)))
         print(result)
+
+    def get_project_description(self):
+        """Az+: извлечение описания проекта"""
+        return self.data.get("description")
+
+    def set_project_decription(self, text):
+        """Az+: занесение описания проекта"""
+        self.data["decription"] = text
 
     def get_model_data(self, object_name=None, label_name=None, count=-1, pattern=r"^([^_]+)_([^_]+)"):
         """Az+: Извлечение строк для заполнения таблицы модели"""

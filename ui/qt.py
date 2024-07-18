@@ -242,14 +242,16 @@ def new_act(parent, text, icon=None, color=None, slot=None, checkable=False, che
     a.setChecked(checked)
     return a
 
+
 def new_label_icon(icon_path, the_color, size, ):
     """Возвращает QLabel с объектом иконкой заданного цвета (the_color) и размера (size)"""
     label_icon = QtWidgets.QLabel()
     icon = coloring_icon(icon_path, the_color)
-    pixmap = QtGui.QPixmap.fromImage(icon.pixmap(size,size).toImage())
+    pixmap = QtGui.QPixmap.fromImage(icon.pixmap(size, size).toImage())
     label_icon.setPixmap(pixmap)
     label_icon.setSizePolicy(size, size)
     return label_icon
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 def new_pixmap(path):
@@ -272,11 +274,11 @@ def new_text(parent, text: str = None, text_color: str = None, alignment="l", ba
     # label.setFrameShape(QtWidgets.QFrame.Box)
     qt_alignment = None  # центрирование текста
     if alignment == "r":
-        qt_alignment = QtCore.Qt.AlignmentFlag.AlignRight
+        qt_alignment = (QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignVCenter)
     elif alignment == "c":
-        qt_alignment = QtCore.Qt.AlignmentFlag.AlignCenter
+        qt_alignment = (QtCore.Qt.AlignmentFlag.AlignCenter | QtCore.Qt.AlignVCenter)
     else:  # во всех остальных случаях
-        qt_alignment = QtCore.Qt.AlignmentFlag.AlignLeft
+        qt_alignment = (QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignVCenter)
     label.setAlignment(qt_alignment)
     if text_color is not None:
         label.setStyleSheet("color: " + text_color)

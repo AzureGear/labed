@@ -1,5 +1,7 @@
 # icon pack https://www.flaticon.com/free-icons/machine-learning/30  NOQA
-# icon https://uxwing.com/category/computers-mobile-hardware/
+
+# good colors: "indianred", "peru"
+
 # Thanks you, designers! Большое спасибо за ваш труд!
 
 # gear_orbit: Parzival'1997
@@ -32,7 +34,8 @@
 # glyph_objects: Mihimihi
 # glyph_categorization: Uniconlabs
 # glyph_finish: Vector Stall
-# glyph_add2: Rizki Ahmad Fauzi
+# glyph_add2: Bharat Icons
+# glyph_add_multi: me & HideMaru
 # glyph_toggle_cols: me & Yogi Aprelliyanto
 
 

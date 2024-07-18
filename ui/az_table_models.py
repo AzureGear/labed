@@ -4,223 +4,6 @@ from utils import config, DatasetSAMAHandler
 import copy
 
 
-class AzTableModel(QtCore.QAbstractTableModel):
-    """
-    Модель для отображения табличных данных, принимает лист листов [[x1, y1], [x2, y2]... ]
-    Все методы "перегруженные" для минимального функционала.
-    """
-
-    def __init__(self, data=None, header_data=None, edit_column=None, parent=None, vertical_data=None):
-        super(AzTableModel, self).__init__(parent)
-        self._data = data
-        self._header_data = header_data
-        self._vertical_data = vertical_data
-        self.edit_col = edit_column
-        if self._data is None:
-            self._header_data = [["no data available"]]
-
-    def data(self, index, role=QtCore.Qt.ItemDataRole.DisplayRole):
-        if index.isValid():
-            if role == QtCore.Qt.ItemDataRole.DisplayRole or role == QtCore.Qt.ItemDataRole.EditRole:
-                return self._data[index.row()][index.column()]
-
-    def setData(self, index, value, role):
-        if role == QtCore.Qt.ItemDataRole.EditRole:
-            if value > 95:  # если есть возможность редактирования
-                value = 95
-            elif value < 0:
-                value = 0
-            self._data[index.row()][index.column()] = value
-            self.dataChanged.emit(index, index, [role])
-            return True
-        return False
-
-    def headerData(self, section, orientation, role):
-        if role != QtCore.Qt.ItemDataRole.DisplayRole:
-            return None
-        if role == QtCore.Qt.ItemDataRole.DisplayRole:
-            if orientation == QtCore.Qt.Orientation.Horizontal:
-                if section < len(self._header_data):
-                    return self._header_data[section]
-                else:
-                    return ""
-            if orientation == QtCore.Qt.Orientation.Vertical:
-                if self._vertical_data:
-                    return str(self._vertical_data[section])
-        return section + 1
-
-    def rowCount(self, parent=QtCore.QModelIndex()):
-        # Количество строк = всего элементов списка списков [[x1, y1], [x2, y2] ... >>[xN, yN]<< ]
-        if self._data:
-            return len(self._data)
-        else:
-            return 0
-
-    def columnCount(self, parent=QtCore.QModelIndex()):
-        # Количество столбцов = элементов внутреннего списка [[x1, >>y1<<], [x2, y2] ... [xN, yN]]
-        if self._data:
-            return len(self._data[0])
-        else:
-            return 0
-
-    # def flags(self, index: QtCore.QModelIndex):
-    #     # варианты возвращаемого флага:
-    #     # ItemIsEditable | ItemIsEnabled | ItemIsSelectable
-    #     flag = super().flags(index)
-    #     if self.edit_col is not None:
-    #         if index.column() == int(self.edit_col):
-    #             flag |= QtCore.Qt.ItemFlag.ItemIsEditable
-    #     else:
-    #         flag |= QtCore.Qt.ItemFlag.ItemIsSelectable
-    #     return flag  # type: ignore
-
-    def flags(self, index: QtCore.QModelIndex):
-        # Set ItemIsSelectable flag by default
-        flag = super().flags(index)
-        flag |= QtCore.Qt.ItemFlag.ItemIsSelectable | QtCore.Qt.ItemFlag.ItemIsEnabled
-        if self.edit_col is not None:
-            if index.column() == int(self.edit_col):
-                flag |= QtCore.Qt.ItemFlag.ItemIsEditable
-        return flag
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-
-class AzSortTable(QtWidgets.QWidget):
-    """Testestet"""
-
-    def __init__(self, color, sort_type="train", parent=None, row_h=16, table_headers=["no_data"]):
-        super().__init__(parent)
-
-        self.row_h = row_h  # высота строк по умолчанию
-        self.sort_type = sort_type  # строковое значение типа таблицы
-        # Выбираем заголовок
-        if sort_type == "train":
-            self.ti_label = QtWidgets.QLabel(self.tr("Train table:"))
-        elif sort_type == "val":
-            self.ti_label = QtWidgets.QLabel(self.tr("Val table:"))
-        elif sort_type == "test":
-            self.ti_label = QtWidgets.QLabel(self.tr("Test table:"))
-
-        # инструменты
-        self.ti_tb_sort_add_to = new_button(self, "tb", sort_type, "glyph_add2", color=color,
-                                            tooltip=self.tr(f"Add to {sort_type}"),
-                                            icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
-        self.ti_tb_sort_remove_from = new_button(self, "tb", sort_type, "glyph_delete2", color=color,
-                                                 tooltip=self.tr(f"Remove selected rows from {sort_type}"),
-                                                 icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
-
-        # создаем таблицу QTableView
-        self.table_view = QtWidgets.QTableView()
-
-        spacer = QtWidgets.QWidget()
-        spacer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)  # горизонтальный спейсер
-
-        h_lay = QtWidgets.QHBoxLayout()
-        h_lay.addWidget(self.ti_label)
-        h_lay.addWidget(self.ti_tb_sort_add_to)
-        h_lay.addWidget(spacer)
-        h_lay.addWidget(self.ti_tb_sort_remove_from)
-        h_lay.setSpacing(0)
-
-        # итоговая настройка компоновки
-        layout = QtWidgets.QVBoxLayout()
-        layout.setContentsMargins(0, 2, 0, 2)
-        layout.setSpacing(0)
-        layout.addLayout(h_lay)
-        layout.addWidget(self.table_view, 1)  # делаем доминантным
-        self.setLayout(layout)
-
-        # set_widgets_and_layouts_margins(layout, 0, 0, 0, 0)
-        # self.setStyleSheet("QWidget { border: 2px solid red; }")
-
-        # Создаем модель данных
-        self.model = AzSimpleModel([["aaa"], ["bbb"]], table_headers)
-
-        # Устанавливаем модель данных для QTableView
-        self.table_view.setModel(self.model)
-
-        # Разрешаем выделение строк
-        self.table_view.setSelectionBehavior(QtWidgets.QTableView.SelectionBehavior.SelectRows)
-        self.table_view.setSelectionMode(QtWidgets.QTableView.SelectionMode.MultiSelection)
-
-        if self.table_view.model().columnCount() > 0:
-            self.table_view.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Stretch)
-        if self.model.rowCount() > 0:
-            for row in range(self.model.rowCount()):  # выравниваем высоту
-                self.table_view.setRowHeight(row, self.row_h)
-
-    # TODO: подключить сортировку
-    def set_sort_data_with_model(self, table_view, data):
-        """Создание модели для таблиц сортировки и установка в table_view, выравнивание строк"""
-        # обязательно конвертируем просто список в список списков
-        data = [[item] for item in data]
-        if len(data) < 1:
-            model = AzTableModel()
-        else:
-            model = AzTableModel(data, ["images"])  # заголовок всего один "images"
-
-        proxyModel = QtCore.QSortFilterProxyModel()  # используем для включения сортировки
-        proxyModel.setSourceModel(model)
-        table_view.setSortingEnabled(True)
-
-        table_view.setModel(proxyModel)
-        if table_view.model().columnCount() > 0:
-            table_view.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Stretch)
-        if table_view.model().rowCount() > 0:
-            for row in range(model.rowCount()):  # выравниваем высоту
-                table_view.setRowHeight(row, self.row_h)
-
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-
-class AzSimpleModel(QtCore.QAbstractTableModel):
-    def __init__(self, data=None, headers=None):
-        super().__init__()
-        if headers is None:
-            headers = []
-        if data is None:
-            data = []
-        self._data = data
-        self._headers = headers
-
-    def data(self, index, role=QtCore.Qt.ItemDataRole.DisplayRole):
-        if role == QtCore.Qt.ItemDataRole.DisplayRole:
-            row = index.row()
-            column = index.column()
-            value = self._data[row][column]
-            return value
-
-
-    def setData(self, data):
-        self.beginResetModel()
-        self._data = data
-        self.endResetModel()
-
-    def rowCount(self, parent=None):
-        if self._data:
-            return len(self._data)
-        else:
-            return 0
-
-    def columnCount(self, parent=None):
-        if self._data:
-            return len(self._data[0])
-        else:
-            return 0
-
-    def headerData(self, section, orientation, role=QtCore.Qt.ItemDataRole.DisplayRole):
-        if role == QtCore.Qt.ItemDataRole.DisplayRole and orientation == QtCore.Qt.Orientation.Horizontal:
-            if section < len(self._headers):
-                return self._headers[section]
-            else:
-                return ""
-        return section + 1
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-
 class AzTableAttributes(QtWidgets.QTableWidget):
     """
     Таблица для взаимодействия с общей статистикой данных проекта SAMA *.json:
@@ -476,3 +259,248 @@ class AzTableAttributes(QtWidgets.QTableWidget):
         if self.translate_headers:
             pass
         # TODO: headers
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+class AzSortTable(QtWidgets.QWidget):
+    """Testestet"""
+
+    def __init__(self, color, sort_type="train", parent=None, row_h=16, table_headers=["no_data"]):
+        super().__init__(parent)
+
+        self.row_h = row_h  # высота строк по умолчанию
+        self.sort_type = sort_type  # строковое значение типа таблицы
+        # Выбираем заголовок
+        if sort_type == "train":
+            self.ti_label = QtWidgets.QLabel(self.tr("Train table:"))
+        elif sort_type == "val":
+            self.ti_label = QtWidgets.QLabel(self.tr("Val table:"))
+        elif sort_type == "test":
+            self.ti_label = QtWidgets.QLabel(self.tr("Test table:"))
+
+        # добавление
+        self.ti_tb_sort_add_to = new_button(self, "tb", sort_type, "glyph_add2", color=color,
+                                            tooltip=self.tr(f"Add image to {sort_type}"),
+                                            icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
+        # добавление группы объектов
+        self.ti_tb_sort_add_group_to = new_button(self, "tb", sort_type, "glyph_add_multi", color=color,
+                                            tooltip=self.tr(f"Add group to {sort_type}"),
+                                            icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
+        # удаление
+        self.ti_tb_sort_remove_from = new_button(self, "tb", sort_type, "glyph_delete4", color=color,
+                                                 tooltip=self.tr(f"Remove selected images from {sort_type}"),
+                                                 icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
+
+        self.ti_tb_sort_remove_group_from = new_button(self, "tb", sort_type, "glyph_delete_multi", color=color,
+                                                 tooltip=self.tr(f"Remove group from {sort_type}"),
+                                                 icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
+
+        # создаем таблицу QTableView
+        self.table_view = QtWidgets.QTableView()
+
+        spacer = QtWidgets.QWidget()
+        spacer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)  # горизонтальный спейсер
+
+        h_lay = QtWidgets.QHBoxLayout()
+        h_lay.addWidget(self.ti_label)
+        h_lay.addWidget(self.ti_tb_sort_add_to)
+        h_lay.addWidget(self.ti_tb_sort_add_group_to)
+        h_lay.addWidget(spacer)
+        h_lay.addWidget(self.ti_tb_sort_remove_group_from)
+        h_lay.addWidget(self.ti_tb_sort_remove_from)
+        h_lay.setSpacing(0)
+
+        # итоговая настройка компоновки
+        layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(0, 2, 0, 2)
+        layout.setSpacing(0)
+        layout.addLayout(h_lay)
+        layout.addWidget(self.table_view, 1)  # делаем доминантным
+        self.setLayout(layout)
+
+        # Создаем модель данных
+        self.model = AzSimpleModel([["aaa"], ["bbb"]], table_headers)  # изначально с тестовыми данными
+
+        # Устанавливаем модель данных для QTableView
+        self.table_view.setModel(self.model)
+
+        # Разрешаем выделение строк
+        self.table_view.setSelectionBehavior(QtWidgets.QTableView.SelectionBehavior.SelectRows)
+        self.table_view.setSelectionMode(QtWidgets.QTableView.SelectionMode.MultiSelection)
+        self.align_rows_and_cols()  # высота строк и ширина столбцов единообразна
+
+    def align_rows_and_cols(self, resize=QtWidgets.QHeaderView.ResizeMode.Stretch):
+        """Выравнивание всех строк и столбцов таблицы исходя из данных модели."""
+        if self.model.columnCount() > 0:  # для столбцов
+            header = self.table_view.horizontalHeader()
+            for col in range(self.model.columnCount()):
+                header.setSectionResizeMode(col, resize)
+        if self.model.rowCount() > 0:  # для строк
+            for row in range(self.model.rowCount()):  # выравниваем высоту
+                self.table_view.setRowHeight(row, self.row_h)
+
+    def set_sort_data_with_model(self, table_view, data):
+        # TODO: подключить сортировку
+        """Создание модели для таблиц сортировки и установка в table_view, выравнивание строк"""
+        # обязательно конвертируем просто список в список списков
+        data = [[item] for item in data]
+        if len(data) < 1:
+            model = AzTableModel()
+        else:
+            model = AzTableModel(data, ["images"])  # заголовок всего один "images"
+
+        proxyModel = QtCore.QSortFilterProxyModel()  # используем для включения сортировки
+        proxyModel.setSourceModel(model)
+        table_view.setSortingEnabled(True)
+
+        table_view.setModel(proxyModel)
+        if table_view.model().columnCount() > 0:
+            table_view.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Stretch)
+        if table_view.model().rowCount() > 0:
+            for row in range(model.rowCount()):  # выравниваем высоту
+                table_view.setRowHeight(row, self.row_h)
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+class AzSimpleModel(QtCore.QAbstractTableModel):
+    def __init__(self, data=None, headers=None):
+        super().__init__()
+        if headers is None:
+            headers = []
+        if data is None:
+            data = []
+        self._data = data
+        self._headers = headers
+
+    def data(self, index, role=QtCore.Qt.ItemDataRole.DisplayRole):
+        if role == QtCore.Qt.ItemDataRole.DisplayRole:
+            row = index.row()
+            column = index.column()
+            value = self._data[row][column]
+            return value
+
+    def setData(self, data):
+        self.beginResetModel()
+        self._data = data
+        self.endResetModel()
+
+    def rowCount(self, parent=QtCore.QModelIndex()):
+        if self._data:
+            return len(self._data)
+        else:
+            return 0
+
+    def columnCount(self, parent=QtCore.QModelIndex()):
+        if self._data:
+            return len(self._data[0])
+        else:
+            return 0
+
+    # def headerData(self, section, orientation, role=QtCore.Qt.ItemDataRole.DisplayRole):
+    #     if role == QtCore.Qt.ItemDataRole.DisplayRole and orientation == QtCore.Qt.Orientation.Horizontal:
+    #         if section < len(self._headers):
+    #             return self._headers[section]
+    #         else:
+    #             return ""
+
+    def headerData(self, section, orientation, role=QtCore.Qt.ItemDataRole.DisplayRole):
+        if role != QtCore.Qt.ItemDataRole.DisplayRole:
+            return None
+        if role == QtCore.Qt.ItemDataRole.DisplayRole:
+            if orientation == QtCore.Qt.Orientation.Horizontal:
+                if section < len(self._headers):
+                    return self._headers[section]
+        return section + 1
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+class AzTableModel(QtCore.QAbstractTableModel):
+    """
+    Модель для отображения табличных данных, принимает лист листов [[x1, y1], [x2, y2]... ]
+    Все методы "перегруженные" для минимального функционала. Настроена на внесение значений от 0 до 95 для
+    редактируемого столбца (метод setData).
+    vertical data - подписи для строк
+    no_row_captions - не ставить названия у строк
+    """
+
+    def __init__(self, data=None, header_data=None, edit_column=None, parent=None, vertical_data=None,
+                 no_rows_captions=False):
+        super(AzTableModel, self).__init__(parent)
+        self._data = data
+        self._header_data = header_data
+        self._vertical_data = vertical_data
+        self._no_rows_captions = no_rows_captions
+        self.edit_col = edit_column
+        if self._data is None:
+            self._header_data = [["no data available"]]
+
+    def data(self, index, role=QtCore.Qt.ItemDataRole.DisplayRole):
+        if index.isValid():
+            if role == QtCore.Qt.ItemDataRole.DisplayRole or role == QtCore.Qt.ItemDataRole.EditRole:
+                return self._data[index.row()][index.column()]
+
+    def setData(self, index, value, role):
+        if role == QtCore.Qt.ItemDataRole.EditRole:
+            if value > 95:  # если есть возможность редактирования
+                value = 95
+            elif value < 0:
+                value = 0
+            self._data[index.row()][index.column()] = value
+            self.dataChanged.emit(index, index, [role])
+            return True
+        return False
+
+    def headerData(self, section, orientation, role):
+        if role != QtCore.Qt.ItemDataRole.DisplayRole:
+            return None
+        if role == QtCore.Qt.ItemDataRole.DisplayRole:
+            if orientation == QtCore.Qt.Orientation.Horizontal:
+                if section < len(self._header_data):
+                    return self._header_data[section]
+                else:
+                    return ""
+            if orientation == QtCore.Qt.Orientation.Vertical:
+                if self._vertical_data:
+                    return str(self._vertical_data[section])
+        if self._no_rows_captions:
+            return None
+        else:
+            return section + 1
+
+    def rowCount(self, parent=QtCore.QModelIndex()):
+        # Количество строк = всего элементов списка списков [[x1, y1], [x2, y2] ... >>[xN, yN]<< ]
+        if self._data:
+            return len(self._data)
+        else:
+            return 0
+
+    def columnCount(self, parent=QtCore.QModelIndex()):
+        # Количество столбцов = элементов внутреннего списка [[x1, >>y1<<], [x2, y2] ... [xN, yN]]
+        if self._data:
+            return len(self._data[0])
+        else:
+            return 0
+
+    def flags(self, index: QtCore.QModelIndex):
+        # Set ItemIsSelectable flag by default
+        flag = super().flags(index)
+        flag |= QtCore.Qt.ItemFlag.ItemIsSelectable | QtCore.Qt.ItemFlag.ItemIsEnabled
+        if self.edit_col is not None:
+            if index.column() == int(self.edit_col):
+                flag |= QtCore.Qt.ItemFlag.ItemIsEditable
+        return flag
+
+    # def flags(self, index: QtCore.QModelIndex):
+    #     # варианты возвращаемого флага:
+    #     # ItemIsEditable | ItemIsEnabled | ItemIsSelectable
+    #     flag = super().flags(index)
+    #     if self.edit_col is not None:
+    #         if index.column() == int(self.edit_col):
+    #             flag |= QtCore.Qt.ItemFlag.ItemIsEditable
+    #     else:
+    #         flag |= QtCore.Qt.ItemFlag.ItemIsSelectable
+    #     return flag  # type: ignore

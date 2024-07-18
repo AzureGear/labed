@@ -25,11 +25,15 @@ class MyApp(QtWidgets.QWidget):
 
         self.pol = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
 
+
+
         for i in range(3):
             button = QtWidgets.QPushButton(f"Button {i + 1}", self)
             h_lay.addWidget(button)
         self.tab1 = MySortTable("red", "train", self)
         self.tab2 = AzSortTable("blue", "val", self)
+        delegate = MyDelegate(self.tab2)
+        self.tab2.table_view.setItemDelegateForRow(0, delegate)
         self.button = QtWidgets.QPushButton(self)
         self.tab1.setSizePolicy(self.pol)
         self.tab2.setSizePolicy(self.pol)
@@ -49,6 +53,11 @@ class MyApp(QtWidgets.QWidget):
         h_lay2.setSpacing(0)
         self.setLayout(layout)
 
+class MyDelegate(QtWidgets.QStyledItemDelegate):
+    def initStyleOption(self, option, index):
+        super().initStyleOption(option, index)
+        if "aaa" in index.data():
+            option.font.setColor(QtGui.QColor("red"))
 
 class MySortTable(QtWidgets.QWidget):
     """Testestet"""
@@ -96,13 +105,6 @@ class MySortTable(QtWidgets.QWidget):
         layout.addWidget(self.table_view, 1)  # делаем доминантным
         self.setLayout(layout)
 
-        # lay = QtWidgets.QVBoxLayout()
-        # lay.setContentsMargins(0, 0, 0, 0)
-        # lay.setSpacing(0)
-        # lay.addLayout(h_lay)
-        # lay.addWidget(self.table_view)
-        # self.setLayout(lay)
-
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
@@ -113,7 +115,8 @@ if __name__ == "__main__":
     sys.exit(app.exec_())
 
 # ----------------------------------------------------------------------------------------------------------------------
-
+# change_color = "#238b45"
+# self.project_description.setStyleSheet(f"*{{background-color: {bg_color}; border: 1px solid #d90909;;}}")
 # ----------------------------------------------------------------------------------------------------------------------
 # indexes = self.image_table.selectionModel().selectedIndexes()
 # print(len(indexes))
