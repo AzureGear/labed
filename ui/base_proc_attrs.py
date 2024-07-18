@@ -62,8 +62,11 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         wid = QtWidgets.QWidget()
         wid.setLayout(central_layout)
         self.setCentralWidget(wid)
-        #self.setStyleSheet("QWidget { border: 1px solid yellow; }")  # проверка отображения виджетов
+        # self.setStyleSheet("QWidget { border: 1px solid yellow; }")  # проверка отображения виджетов
 
+        # указываем инструменты, которые должны выключаться
+        self.special_tools = [self.ti_cbx_sel_obj, self.ti_cbx_sel_class, self.ti_tb_sort_mode,
+                              self.tb_edit_project_descr, self.ti_pb_sel_clear_selection, self.ti_pb_sel_clear_filters]
         # настраиваем все виджеты
         setup_dock_widgets(self, ["bottom_dock"], config.UI_BASE_ATTRS)
         self.image_table_toggle_sort_mode()  # запускаем, чтобы привести в порядок ui инструментов таблицы сортировки
@@ -98,7 +101,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     def setup_caption_widget(self):
         self.btn_log_and_status = new_button(self, "tb", icon="circle_grey", color=None, icon_size=16,
                                              slot=self.toggle_log, checkable=True, tooltip=self.tr("Toggle log"))
-        self.label_project = QtWidgets.QLabel("Path to file project *.json:")
+        self.label_project = QtWidgets.QLabel("Path to file project (*.json:)")
         self.file_json = AzButtonLineEdit("glyph_folder", the_color, caption=self.tr("Load dataset SAMA project"),
                                           read_only=True, dir_only=False, filter=self.tr("Projects files (*.json)"),
                                           slot=self.attr_load_projects_data,
@@ -115,28 +118,20 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     def setup_up_central_widget(self):
         """Настройка интерфейса для таблицы статистики и перечня инструментов (центральный виджет)"""
-
-        hlay2 = QtWidgets.QHBoxLayout()
-        hlay2.setSpacing(0)
-
-        #  Перечень действий с файлом проекта: копия+; экспорт+; сохранить палитру+; применить палитру+;
-        vlay2 = QtWidgets.QVBoxLayout()
-        vlay2.addLayout(hlay2)
-
-        # информация о датасете: количество снимков в датасете, количество меток, среднее ЛРМ, девиация ЛРМ
         self.common_headers = [self.tr("Count of\nimages: "), self.tr("Count of\nlabels: "),
                                self.tr("Average\nGSD: "), self.tr("Deviation\nGSD: ")]
         self.common_table = QtWidgets.QTableView()
         self.common_table.setFixedHeight(70)
+        # информация о датасете: количество снимков в датасете, количество меток, среднее ЛРМ, девиация ЛРМ
         self.common_data = [["-", "-", "-", "-"]]
-        self.project_label = new_text(self.tr("Project description:"))
-        self.edit_project_descr = new_button(self, "tb", None, "glyph_signature", the_color, self.toggle_edit_descr,
-                                             True, tooltip=self.tr("Toggle edit project description"))
+        self.project_label = new_text(self.tr("Project description:"))  # кнопка редактирования описания проекта
+        self.tb_edit_project_descr = new_button(self, "tb", None, "glyph_signature", the_color, self.toggle_edit_descr,
+                                                True, tooltip=self.tr("Toggle edit project description"))
         self.project_description = QtWidgets.QTextEdit()
         self.project_description.setReadOnly(True)
         hlay_descr = QtWidgets.QHBoxLayout()
         hlay_descr.addWidget(self.project_label, 1)
-        hlay_descr.addWidget(self.edit_project_descr)
+        hlay_descr.addWidget(self.tb_edit_project_descr)
         vlay_table_descr = QtWidgets.QVBoxLayout()
         vlay_table_descr.addWidget(self.common_table)
         vlay_table_descr.addLayout(hlay_descr)
@@ -159,8 +154,8 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                                         tooltip="Set GSD data from map files in folder to current project")
         self.btn_save = new_button(self, "tb", icon="glyph_save2", tooltip=self.tr("Save changes to the project"),
                                    slot=self.save, color=the_color, icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE)
-        self.common_buttons = [self.btn_copy, self.btn_save_palette, self.btn_apply_palette, self.btn_export,
-                               self.btn_apply_lrm, self.btn_save]
+        self.common_buttons = [self.btn_save, self.btn_save_palette, self.btn_apply_palette, self.btn_export,
+                               self.btn_apply_lrm, self.btn_copy]
 
         v_lay_buttons = QtWidgets.QVBoxLayout()
         for button in self.common_buttons:
@@ -270,6 +265,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                                            slot=self.smart_sort, tooltip=self.tr("Smart dataset sort"))
         self.ti_tb_sort_cook = new_button(self, "tb", icon="glyph_cook", color=the_color, slot=self.cook_dataset,
                                           tooltip=self.tr("Cook dataset"))
+        self.sort_project_name = new_text(self, self.tr("Path to sorting project (*.sort):"))
         self.ti_tb_sort_open = AzButtonLineEdit("glyph_folder", the_color, "Open file", True, dir_only=False,
                                                 filter="sort (*.sort)", initial_filter="sort (*.sort)",
                                                 slot=self.open_sort_file)
@@ -278,8 +274,9 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         v_line.setFrameShape(QtWidgets.QFrame.Shape.VLine)
         v_line2 = QtWidgets.QFrame()
         v_line2.setFrameShape(QtWidgets.QFrame.Shape.VLine)
-        self.ti_instruments = [self.ti_tb_sort_open, self.ti_tb_sort_new, v_line, self.ti_tb_toggle_tables,
-                               self.ti_tb_sort_save, v_line2, self.ti_tb_sort_smart, self.ti_tb_sort_cook]
+        self.ti_instruments = [self.sort_project_name, self.ti_tb_sort_open, self.ti_tb_sort_new, v_line,
+                               self.ti_tb_toggle_tables, self.ti_tb_sort_save, v_line2, self.ti_tb_sort_smart,
+                               self.ti_tb_sort_cook]
 
         for tool in self.ti_instruments:
             h_layout_instr.addWidget(tool)
@@ -359,9 +356,12 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         pass
 
     def toggle_edit_descr(self):
-        self.project_description.setReadOnly(not self.edit_project_descr.isChecked())
+        """Переключение (с сохранением в SamaDataHandler) редактора описания проекта"""
+        self.project_description.setReadOnly(not self.tb_edit_project_descr.isChecked())
         if self.project_description.isReadOnly():
             self.project_description.setStyleSheet("")
+            if self.sama_data.is_correct_file:  # добавляем то, что было описано
+                self.sama_data.set_project_description(self.project_description.toPlainText())
         else:
             if self.settings.read_ui_theme() == "light":
                 self.project_description.setStyleSheet("background-color: lavenderblush;")
@@ -411,10 +411,9 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                 self.signal_message.emit(self.tr("Toggle train/val sort mode off"))
         self.table_image_filter_changed()  # отфильтровать вывод в таблице фильтрата
 
-    def sef_image_data_model(self, data):
+    def set_image_data_model(self, data):
         """Создание и установка модели в таблице фильтрата, по исходным данным, настройка ui таблицы"""
         # TODO: сортировку TableView
-
         if len(data) < 1:
             self.image_table.setModel(AzTableModel())
         else:
@@ -424,7 +423,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         # настраиваем отображение
         if self.image_table.model().columnCount() > 0:  # для столбцов
             header = self.image_table.horizontalHeader()
-            for col in range(model_sorting.columnCount()):
+            for col in range(self.image_table.model().columnCount()):
                 header.setSectionResizeMode(col, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
             header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.Stretch)
         if self.image_table.model().rowCount() > 0:  # для строк
@@ -444,16 +443,18 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             exclusions = list(self.sort_data.get_images_names_train_val_test())  # недопустимые для вывода данные
             # фильтруем данные с учетом недопустимых элементов
             data = [item for item in data if item[1] not in exclusions]
-        self.sef_image_data_model(data)  # загружаем и устанавливаем модель
+        self.set_image_data_model(data)  # загружаем и устанавливаем модель
 
     def load_image_data_model(self):
         """Первичное заполнение таблицы фильтрата данными"""
         # Данные - массив [["object1", "image_name1", "label1, "item1"][...]]
+
         if self.original_image_data is None:
             data = self.sama_data.get_model_data()
             self.original_image_data = data
+
         self.fill_image_data_filters()  # заполняем параметрами для сортировки (фильтрами)
-        self.sef_image_data_model(data)  # загружаем и устанавливаем модель
+        self.set_image_data_model(data)  # загружаем и устанавливаем модель
 
     def fill_image_data_filters(self):
         self.ti_cbx_sel_obj.blockSignals(True)  # Отключаем вызов сигналов, т.к. добавляем фильтры
@@ -476,7 +477,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.ti_cbx_sel_obj.blockSignals(False)  # возвращаем функционал обратно
         self.ti_cbx_sel_class.blockSignals(False)
 
-    def get_filtered_model_data(self, object_name=None, label_name=None, pattern=r"^([^_]+)_([^_]+)"):
+    def get_filtered_model_data(self, object_name=None, label_name=None):
         """Фильтр строк исходных данных (self.original_image_data) таблицы фильтрата"""
         if self.original_image_data is None:
             return
@@ -519,6 +520,9 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.toggle_tool_buttons(False)
         self.clear_dataset_info()
         self.table_widget.clear_table()
+        self.image_table.setModel(None)
+        self.ti_cbx_sel_class.clear()
+        self.ti_cbx_sel_obj.clear()
         self.signal_message.emit(message)
 
     def clear_dataset_info(self):
@@ -528,9 +532,12 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         for i in range(self.common_table.model().columnCount()):
             self.common_table.horizontalHeader().setSectionResizeMode(i, QtWidgets.QHeaderView.ResizeMode.Stretch)
 
-    def toggle_tool_buttons(self, b):  # отключаем инструменты для датасета
+    def toggle_tool_buttons(self, flag):
+        """Переключаем базовые и особые инструменты"""
         for button in self.common_buttons:
-            button.setEnabled(b)
+            button.setEnabled(flag)
+        for item in self.special_tools:
+            item.setEnabled(flag)
 
     def attr_load_projects_data(self):
         if len(self.file_json.text()) < 5:  # недостойно внимания
@@ -621,12 +628,11 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                 self.signal_message.emit(self.tr(f"Table data export to: {file}"))
 
     def load_project(self, filename, message):  # загрузка проекта
-        self.sama_data = None  # очищаем
         self.sama_data = DatasetSAMAHandler()
         self.unload_sort_file()  # выгружаем файлы сортировки, если они были загружены
         self.sama_data.load(filename)
         self.log_clear()
-        self.toggle_descr(self.sama_data.is_correct_file)
+        self.toggle_descr()  # настраиваем ui описания проекта
         if not self.sama_data.is_correct_file:
             self.attr_actions_disable(
                 self.tr("Selected file isn't correct, or haven't data"))
@@ -686,11 +692,10 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         for i in range(self.common_table.model().columnCount()):
             self.common_table.horizontalHeader().setSectionResizeMode(i, QtWidgets.QHeaderView.ResizeMode.Stretch)
 
-    def toggle_descr(self, flag):
+    def toggle_descr(self):
         self.project_description.clear()  # очищаем текст
-        self.edit_project_descr.setChecked(False)
-        self.edit_project_descr.setEnabled(flag)
-        self.project_description.setEnabled(flag)
+        if self.tb_edit_project_descr.isChecked():  # остался включённым режим редактирования
+            self.tb_edit_project_descr.animateClick(0)
 
     def set_sort_data_statistic(self):
         """Заполнение таблицы статистики для по результатам сортировки"""
@@ -713,9 +718,9 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     def identify_sender_get_rows(self, check_in=False, check_out=False):
         """
-        Определяем отправителя, проверяем условия, таблицы, возвращаем выделенные строки искомой таблицы. Указать флаг!
-        check_in - проверка выделения таблицы self.image_table;
-        check_out  - проверка выделения таблиц сортировки;
+        Определяем отправителя, проверяем условия, таблицы, возвращаем выделенные строки искомой таблицы. Следует
+        обязательно указать флаг: check_in - проверка выделения таблицы self.image_table; check_out - проверка
+        выделения таблиц сортировки
         """
         sender = self.sender()
         if not sender:
@@ -739,9 +744,30 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             sel_rows = self.get_selected_rows(wid.table_view, 0)  # для удаления - 1 столбец
             return sender, sel_rows
 
-    def transfer_data(self, source, target, data):
+    def transfer_data(self, source, target, data, use_group=False):
         """Перенос данных и обновление виджетов"""
-        self.sort_data.move_rows_by_images_names(source, target, data)  # переносим объекты
+        if use_group:  # необходимо переместить всю группу объектов
+            pattern = r"^([^_]+)_([^_]+)"  # TODO: сделать библиотеку паттернов в конфиге, например
+            import re
+            unique_groups = set()
+            for image in data:
+                match = re.search(pattern, image)  # ищем имя объекта
+                if match:
+                    unique_groups.add(match.group(0))
+
+            filtered_rows = set()  # новый список изображений выбранных по значению групп
+            for group in unique_groups:
+                proxy_model = QtCore.QSortFilterProxyModel()  # используем фильтрующую модель
+                proxy_model.setSourceModel(self.image_table.model())
+                proxy_model.setFilterKeyColumn(0)  # фильтруем по первому столбцу
+                proxy_model.setFilterFixedString(group)  # фильтруем строки со значением группы (usa_66, ...)
+                # добавляем все найденные строки в set()
+                for row in range(proxy_model.rowCount()):
+                    index = proxy_model.index(row, 1)  # получаем индекс (!!!№!№! для будет 0)
+                    filtered_rows.add(index.data(QtCore.Qt.ItemDataRole.DisplayRole))
+                print("sel_rows:", filtered_rows)
+            return
+        self.sort_data.move_rows_by_images_names(source, target, data, use_group)  # переносим объекты
         self.update_sort_data_tables()  # обновляем таблицы сортировки train/val
         self.table_image_filter_changed()  # обновляем таблицу фильтрата
 
@@ -755,12 +781,14 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             self.transfer_data("unsort", sender, sel_rows)
 
     def add_group_to_sort_table(self):
-        pass
         """
-        Групповое добавление в сортировочные таблицы строк из table_image. Производится перемещение записей в классе
+        Групповое добавление в сортировочные таблицы строк из table_image: перемещение записей в классе
         DatasetSortHandler из "unsort" в выбранную таблицу Train, Sort или Val всех изображений, относящихся 
         к выбранной группе.
         """
+        sender, sel_rows = self.identify_sender_get_rows(check_in=True)
+        if sel_rows:
+            self.transfer_data("unsort", sender, sel_rows, use_group=True)
 
     def remove_from_sort_table(self):
         """
@@ -813,6 +841,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     def save_sort_file(self):
         """Сохранение файла проекта сортировщика"""
         if not helper.check_file(self.sort_file):
+            self.signal_message.emit(self.tr("Before saving you must to create or to open a sorting project"))
             return
         helper.save(self.sort_file, self.sort_data.data)
         self.signal_message.emit(self.tr(f"Train-val sorting project saved to: '{self.sort_file}'"))
@@ -824,7 +853,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         sort_data.load_from_file(path)  # заполняем его данными
 
         if sort_data.is_correct_file:  # если всё хорошо, то...
-            self.unload_sort_file()  # ...сначала выгружаем (если был загружен) старый проект
+            self.unload_sort_file(True)  # ...сначала выгружаем (если был загружен) старый проект
             self.sort_file = path
             self.sort_data = sort_data
             self.settings.write_sort_file_input(path)  # записываем удачный файл для последующего автооткрытия
@@ -842,11 +871,12 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                     self.ti_tb_sort_mode.setChecked(False)  # отключаем инструмент
                 self.image_table_toggle_sort_mode(silent=True)  # выключаем режим сортировки в тихом режиме
             self.sort_file = None  # убираем данные
-            self.ti_tb_sort_open.clear()
             self.sort = None
+            self.ti_tb_sort_open.clear()
+            # выгружаем все таблицы
             for wid in self.sort_tables:
                 wid.model.setData(None)
-            # self.table_statistic.setModel(None) # Table Test
+            self.table_statistic.setModel(None)
 
     def smart_sort(self):
         """Интеллектуальная автоматизированная сортировка"""
@@ -925,7 +955,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     def translate_ui(self):  # переводим текущие тексты и добавленные/вложенные вкладки
         # Processing - Attributes
         self.table_widget.translate_ui()
-        self.label_project.setText(self.tr("Path to file project *.json:"))
+        self.label_project.setText(self.tr("Path to file project (*.json):"))
         self.btn_copy.setToolTip(self.tr("Make copy of current project"))
         self.btn_export.setToolTip(self.tr("Export current project info"))
         self.btn_save_palette.setToolTip(self.tr("Save palette from current project"))

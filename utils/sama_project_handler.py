@@ -520,9 +520,9 @@ class DatasetSAMAHandler:
         """Az+: извлечение описания проекта"""
         return self.data.get("description")
 
-    def set_project_decription(self, text):
+    def set_project_description(self, text):
         """Az+: занесение описания проекта"""
-        self.data["decription"] = text
+        self.data["description"] = text
 
     def get_model_data(self, object_name=None, label_name=None, count=-1, pattern=r"^([^_]+)_([^_]+)"):
         """Az+: Извлечение строк для заполнения таблицы модели"""

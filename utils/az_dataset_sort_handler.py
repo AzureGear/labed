@@ -61,7 +61,7 @@ class DatasetSortHandler:
                 self.is_correct_file = True
                 self.calc_init_stats()
 
-    def move_rows_by_images_names(self, start_dict, dest_dict, images_names):
+    def move_rows_by_images_names(self, start_dict, dest_dict, images_names, use_group=False):
         """Перемещение записей из start_dict (начального) словаря в dest_dict (конечный)"""
         for item in images_names:
             try:
