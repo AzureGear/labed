@@ -3,6 +3,8 @@ import os
 import ujson
 import re
 
+PATTERNS = {"double_underscore": r"^([^_]+)_([^_]+)"}  # общие паттерны поиска
+
 
 def create_blank_image(self):
     return {"shapes": [], "lrm": None, 'status': 'empty'}
@@ -524,7 +526,7 @@ class DatasetSAMAHandler:
         """Az+: занесение описания проекта"""
         self.data["description"] = text
 
-    def get_model_data(self, object_name=None, label_name=None, count=-1, pattern=r"^([^_]+)_([^_]+)"):
+    def get_model_data(self, object_name=None, label_name=None, count=-1, pattern=PATTERNS.get("double_underscore")):
         """Az+: Извлечение строк для заполнения таблицы модели"""
         if self.data is None:
             return
@@ -568,12 +570,12 @@ class DatasetSAMAHandler:
                         row_count += 1
         return data
 
-    def get_group_objects(self, pattern=r"^([^_]+)_([^_]+)"):
+    def get_group_objects(self, pattern=PATTERNS.get("double_underscore")):
         """
         Az+: Извлечение перечня объектов. Под объектами понимаются разновременные изображения одного и того же объекта,
         например в для изображения '138_DEU_2021-06_003.jpg' таким объектом будет '138_DEU'. Если использовать
-        регулярные выражения, то шаблоном поиска будет r"^([^_]+)_([^_]+)", т.е. любая последовательность символов,
-        с начала строки (^) и состоящей из 2 групп, разделенных символом "_".
+        регулярные выражения, то шаблоном поиска будет PATTERNS.get("double_underscore"), т.е. любая последовательность
+        символов, с начала строки (^) и состоящей из 2 групп, разделенных символом "_".
         """
         objects = []
         for image in self.data["images"].keys():

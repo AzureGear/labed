@@ -16,6 +16,7 @@ class AzButtonLineEdit(QtWidgets.QLineEdit):
     read_only - возможность изменения строки вручную, dir_only - возвращает только каталог,
     save_dialog - возвращает только файл для сохранения, filter - фильтр типа файлов, initial_filter - то же,
     save_dir - запоминание каталога, в который заходим, on_button_clicked_callback - слот.
+    last_dir - открытие с указанного места, по умолчанию открытый прошлый каталог "settings.read_last_dir()"
     """
 
     def __init__(self, icon_name, color="Black", caption=None, read_only=True, dir_only=False, save_dialog=False,

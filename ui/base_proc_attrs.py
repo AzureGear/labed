@@ -18,11 +18,7 @@ color_train = UI_COLORS.get("train_color")
 color_val = UI_COLORS.get("val_color")
 color_test = UI_COLORS.get("test_color")
 
-
-# TODO: сделать кнопку "Добавлять все объекты из выбранной группы"
 # TODO: добавить инструмент назначения Разметчика
-# TODO: добавить описание проекта, добавить его в сам проект SAMA_handler
-# TODO: Сделать фрейм общей статистики отдельно справа, сделать кнопку сбросить данные.
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -413,12 +409,15 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     def set_image_data_model(self, data):
         """Создание и установка модели в таблице фильтрата, по исходным данным, настройка ui таблицы"""
-        # TODO: сортировку TableView
         if len(data) < 1:
             self.image_table.setModel(AzTableModel())
         else:
             model_sorting = AzTableModel(data, self.image_headers)  # модель для данных фильтрата
-            self.image_table.setModel(model_sorting)
+            proxyModel = QtCore.QSortFilterProxyModel()  # используем для включения сортировки
+            proxyModel.setSourceModel(model_sorting)
+            self.image_table.setModel(proxyModel)
+            self.image_table.setSortingEnabled(True)
+            self.image_table.sortByColumn(1, QtCore.Qt.SortOrder.AscendingOrder)
 
         # настраиваем отображение
         if self.image_table.model().columnCount() > 0:  # для столбцов
@@ -744,29 +743,42 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             sel_rows = self.get_selected_rows(wid.table_view, 0)  # для удаления - 1 столбец
             return sender, sel_rows
 
-    def transfer_data(self, source, target, data, use_group=False):
-        """Перенос данных и обновление виджетов"""
-        if use_group:  # необходимо переместить всю группу объектов
-            pattern = r"^([^_]+)_([^_]+)"  # TODO: сделать библиотеку паттернов в конфиге, например
-            import re
-            unique_groups = set()
-            for image in data:
-                match = re.search(pattern, image)  # ищем имя объекта
-                if match:
-                    unique_groups.add(match.group(0))
+    def get_rows_by_group(self, data, source):
+        import re
+        # сначала определяем таблицу
+        source_table = None
+        if source == "unsort":
+            source_table = self.image_table
+            target_column = 1  # значащий столбец таблицы
+        else:
+            for wid in self.sort_tables:
+                if source == wid.sort_type:
+                    source_table = wid.table_view
+                    target_column = 0  # значащий столбец таблицы
 
-            filtered_rows = set()  # новый список изображений выбранных по значению групп
-            for group in unique_groups:
-                proxy_model = QtCore.QSortFilterProxyModel()  # используем фильтрующую модель
-                proxy_model.setSourceModel(self.image_table.model())
-                proxy_model.setFilterKeyColumn(0)  # фильтруем по первому столбцу
-                proxy_model.setFilterFixedString(group)  # фильтруем строки со значением группы (usa_66, ...)
-                # добавляем все найденные строки в set()
-                for row in range(proxy_model.rowCount()):
-                    index = proxy_model.index(row, 1)  # получаем индекс (!!!№!№! для будет 0)
-                    filtered_rows.add(index.data(QtCore.Qt.ItemDataRole.DisplayRole))
-                print("sel_rows:", filtered_rows)
-            return
+        pattern = helper.PATTERNS.get("double_underscore")
+        unique_groups = set()  # набор групп
+        for image in data:
+            match = re.search(pattern, image)  # ищем имя объекта
+            if match:
+                unique_groups.add(match.group(0))
+
+        filtered_rows = set()  # новый список изображений выбранных по значению групп
+        for group in unique_groups:
+            proxy_model = QtCore.QSortFilterProxyModel()  # используем фильтрующую модель
+            proxy_model.setSourceModel(source_table.model())  # self.image_table.model()
+            proxy_model.setFilterKeyColumn(0)  # фильтруем по первому столбцу
+            proxy_model.setFilterFixedString(group)  # фильтруем строки со значением группы (usa_66, ...)
+            # добавляем все найденные строки в set()
+            for row in range(proxy_model.rowCount()):
+                index = proxy_model.index(row, target_column)  # получаем индекс в зависимости от таблицы
+                filtered_rows.add(index.data(QtCore.Qt.ItemDataRole.DisplayRole))
+        return filtered_rows
+
+    def transfer_data(self, source, target, data, use_group=False):
+        """Перенос данных и обновление виджетов; source, target = 'unsort', 'train', 'val' или 'test' """
+        if use_group:  # необходимо переместить всю группу объектов
+            data = self.get_rows_by_group(data, source)
         self.sort_data.move_rows_by_images_names(source, target, data, use_group)  # переносим объекты
         self.update_sort_data_tables()  # обновляем таблицы сортировки train/val
         self.table_image_filter_changed()  # обновляем таблицу фильтрата
@@ -803,12 +815,17 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         Групповое удаление из сортировочной таблицы и в классе DatasetSortHandler. Перемещение удаленных строк
         в table_image.
         """
+        sender, sel_rows = self.identify_sender_get_rows(check_out=True)  # получаем отправителя и строки
+        if sel_rows:
+            self.transfer_data(sender, "unsort", sel_rows, use_group=True)
 
     def update_sort_data_tables(self):
         """Заполнение таблиц сортировки данными сортировщика DatasetSortHandler"""
         for wid in self.sort_tables:  # устанавливаем последовательно для каждой таблицы
             # нам нужны данные [[data1], [data2], ...], а не [data1, data2, ...]
-            wid.model.setData([[item] for item in self.sort_data.get_images_names(wid.sort_type)])
+            wid.core_model.setData([[item] for item in self.sort_data.get_images_names(wid.sort_type)])
+            wid.table_view.sortByColumn(0, QtCore.Qt.SortOrder.AscendingOrder)  # сортируем по возрастанию
+
             wid.align_rows_and_cols()  # выровняем строки и столбцы
         self.set_sort_data_statistic()
 
@@ -846,18 +863,33 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         helper.save(self.sort_file, self.sort_data.data)
         self.signal_message.emit(self.tr(f"Train-val sorting project saved to: '{self.sort_file}'"))
 
+    def check_sort_project(self, sort_data) -> bool:
+        """Проверка соответствия проекта сортировки *.sort текущему проекту разметки *.sama"""
+        if not self.sama_data:
+            return False
+        project_labels = self.sama_data.get_labels()
+        for label in sort_data.get_rows_labels_headers():
+            if label not in project_labels:
+                return False
+        return True
+
     def load_sort_project(self, path):
         """Загрузка проекта сортировки датасета"""
-        # TODO: проверку файла, сообщения для пользователя
         sort_data = DatasetSortHandler()  # создаем объект сортировщика
         sort_data.load_from_file(path)  # заполняем его данными
+        if not self.check_sort_project(sort_data):
+            self.signal_message.emit(
+                self.tr(f"The selected sorting project is not associated with the current labeling project: '{path}.'"))
+            return
 
         if sort_data.is_correct_file:  # если всё хорошо, то...
             self.unload_sort_file(True)  # ...сначала выгружаем (если был загружен) старый проект
             self.sort_file = path
             self.sort_data = sort_data
             self.settings.write_sort_file_input(path)  # записываем удачный файл для последующего автооткрытия
-            self.ti_tb_sort_open.setText(path)
+            self.ti_tb_sort_open.setText(path)  # ставит текст в ui
+            for wid in self.sort_tables:  # инициализируем модели при первой загрузке
+                wid.init_sort_models()
             self.update_sort_data_tables()  # заполняем таблицы
             self.signal_message.emit(self.tr(f"Train-val sorting project load: {path}"))
         else:
@@ -875,7 +907,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             self.ti_tb_sort_open.clear()
             # выгружаем все таблицы
             for wid in self.sort_tables:
-                wid.model.setData(None)
+                wid.table_view.setModel(None)
             self.table_statistic.setModel(None)
 
     def smart_sort(self):
@@ -941,11 +973,11 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             src_jpg = os.path.join(input_dir, filename)
             dst_jpg = os.path.join(output_jpg_dir, filename)
 
-            try:
+            try:  # перемещение
                 shutil.move(src_txt, dst_txt)
                 shutil.move(src_jpg, dst_jpg)
                 good_counts += 1
-            except FileNotFoundError:
+            except FileNotFoundError:  # счетчик не перемещенных файлов
                 bad_counts += 1
         return [good_counts, bad_counts]
 

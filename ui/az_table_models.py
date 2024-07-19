@@ -266,9 +266,9 @@ class AzTableAttributes(QtWidgets.QTableWidget):
 class AzSortTable(QtWidgets.QWidget):
     """Testestet"""
 
-    def __init__(self, color, sort_type="train", parent=None, row_h=16, table_headers=["no_data"]):
+    def __init__(self, color, sort_type="train", parent=None, row_h=16, table_headers=["Images"]):
         super().__init__(parent)
-
+        self.table_headers = table_headers
         self.row_h = row_h  # высота строк по умолчанию
         self.sort_type = sort_type  # строковое значение типа таблицы
         # Выбираем заголовок
@@ -285,16 +285,16 @@ class AzSortTable(QtWidgets.QWidget):
                                             icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
         # добавление группы объектов
         self.ti_tb_sort_add_group_to = new_button(self, "tb", sort_type, "glyph_add_multi", color=color,
-                                            tooltip=self.tr(f"Add group to {sort_type}"),
-                                            icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
+                                                  tooltip=self.tr(f"Add group to {sort_type}"),
+                                                  icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
         # удаление
         self.ti_tb_sort_remove_from = new_button(self, "tb", sort_type, "glyph_delete4", color=color,
                                                  tooltip=self.tr(f"Remove selected images from {sort_type}"),
                                                  icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
 
         self.ti_tb_sort_remove_group_from = new_button(self, "tb", sort_type, "glyph_delete_multi", color=color,
-                                                 tooltip=self.tr(f"Remove group from {sort_type}"),
-                                                 icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
+                                                       tooltip=self.tr(f"Remove group from {sort_type}"),
+                                                       icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
 
         # создаем таблицу QTableView
         self.table_view = QtWidgets.QTableView()
@@ -319,16 +319,21 @@ class AzSortTable(QtWidgets.QWidget):
         layout.addWidget(self.table_view, 1)  # делаем доминантным
         self.setLayout(layout)
 
-        # Создаем модель данных
-        self.model = AzSimpleModel([["aaa"], ["bbb"]], table_headers)  # изначально с тестовыми данными
-
-        # Устанавливаем модель данных для QTableView
-        self.table_view.setModel(self.model)
+        # Создаем базовую модель данных в которую помещаем исходные данные
+        self.init_sort_models(self.table_headers, [])
 
         # Разрешаем выделение строк
         self.table_view.setSelectionBehavior(QtWidgets.QTableView.SelectionBehavior.SelectRows)
         self.table_view.setSelectionMode(QtWidgets.QTableView.SelectionMode.MultiSelection)
         self.align_rows_and_cols()  # высота строк и ширина столбцов единообразна
+
+    def init_sort_models(self, headers=["Images"], data=[["aaa"], ["bbb"]]):
+        self.core_model = AzSimpleModel(data, headers)  # с тестовыми данными
+        self.model = QtCore.QSortFilterProxyModel()  # создаём второстепенную модель, которая позволяет сортировку
+        self.model.setSourceModel(self.core_model)
+        # Устанавливаем модель данных для QTableView
+        self.table_view.setModel(self.model)
+        self.table_view.setSortingEnabled(True)  # включаем сортировку
 
     def align_rows_and_cols(self, resize=QtWidgets.QHeaderView.ResizeMode.Stretch):
         """Выравнивание всех строк и столбцов таблицы исходя из данных модели."""
@@ -365,6 +370,9 @@ class AzSortTable(QtWidgets.QWidget):
 # ----------------------------------------------------------------------------------------------------------------------
 
 class AzSimpleModel(QtCore.QAbstractTableModel):
+    """Перезагруженный абстрактный класс для взаимодействия с QTableView. Поддерживает только обновление данных целиком
+    через 'setData' и сортировку"""
+
     def __init__(self, data=None, headers=None):
         super().__init__()
         if headers is None:
