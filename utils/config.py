@@ -61,6 +61,7 @@ UI_AZ_SLICE_MANUAL = {
     "files_dock": [True, False, True, False, False, False]
 }
 
+
 UI_AZ_MNIST_DIGITS_SIZE = 24
 
 UI_AZ_PROC_ATTR_ICON_SIZE = 24  # размер иконок вкладки Обработка-Атрибуты на главной таблице
@@ -79,6 +80,4 @@ ALPHA = 230  # степень прозрачности заливки у мет�
 UI_OUTPUT_TYPES = ["SAMA.json"]  # типы выходных данных
 UI_INPUT_TYPES = ["LabelMe.json", "SAMA.json"]
 
-UI_READ_LINES = 3  # количество читаемых строк в проектах *.json для предпросмотра
-
-# (dark) c:\venvs\lab-ed\Lib\site-packages>python -m qdarktheme.widget_gallery
+UI_READ_LINES = 3  # количество загружаемых строк в проектах *.json для предпросмотра

@@ -2,117 +2,25 @@
 
 
 # ----------------------------------------------------------------------------------------------------------------------
+from PyQt5 import QtCore, QtGui, QtWidgets
 
-from PyQt5 import QtWidgets, QtGui, QtCore
-import sys
-from ui import AzSortTable
-
-
-class MyApp(QtWidgets.QWidget):
+class MyWindow(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
-        self.initUI()
-        self.setStyleSheet("QWidget { border: 1px solid black; }")  # проверка отображения виджетов
 
-    def initUI(self):
-        layout = QtWidgets.QVBoxLayout(self)
+        self.combo_box = QtWidgets.QComboBox(self)
+        self.combo_box.setGeometry(50, 50, 200, 30)
 
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
+        # Установить валидатор для ввода только цифр
+        self.combo_box.setValidator(QtGui.QIntValidator())
 
-        h_lay = QtWidgets.QHBoxLayout()
-        h_lay2 = QtWidgets.QHBoxLayout()
+        # Добавить элементы в QComboBox
+        self.combo_box.addItems(["1", "2", "3", "4", "5"])
 
-        self.pol = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
-
-
-
-        for i in range(3):
-            button = QtWidgets.QPushButton(f"Button {i + 1}", self)
-            h_lay.addWidget(button)
-        self.tab1 = MySortTable("red", "train", self)
-        self.tab2 = AzSortTable("blue", "val", self)
-        delegate = MyDelegate(self.tab2)
-        self.tab2.table_view.setItemDelegateForRow(0, delegate)
-        self.button = QtWidgets.QPushButton(self)
-        self.tab1.setSizePolicy(self.pol)
-        self.tab2.setSizePolicy(self.pol)
-        self.button.setSizePolicy(self.pol)
-
-        layout.addLayout(h_lay)
-
-        h_lay2.addWidget(self.tab1)
-        self.tab1.setContentsMargins(0, 0, 0, 0)
-
-        h_lay2.addWidget(self.tab2)
-        h_lay2.addWidget(self.button)
-
-        layout.addLayout(h_lay2)
-
-        h_lay2.setContentsMargins(-1, -1, -1, -1)
-        h_lay2.setSpacing(0)
-        self.setLayout(layout)
-
-class MyDelegate(QtWidgets.QStyledItemDelegate):
-    def initStyleOption(self, option, index):
-        super().initStyleOption(option, index)
-        if "aaa" in index.data():
-            option.font.setColor(QtGui.QColor("red"))
-
-class MySortTable(QtWidgets.QWidget):
-    """Testestet"""
-
-    def __init__(self, color, sort_type="train", parent=None, row_h=16, table_headers=["no_data"]):
-        from ui import new_button
-        from utils import config
-        super().__init__(parent)
-        self.row_h = row_h  # высота строк по умолчанию
-        self.sort_type = sort_type  # строковое значение типа таблицы
-        # Выбираем заголовок
-        if sort_type == "train":
-            self.ti_label = QtWidgets.QLabel(self.tr("Train table:"))
-        elif sort_type == "val":
-            self.ti_label = QtWidgets.QLabel(self.tr("Val table:"))
-        elif sort_type == "test":
-            self.ti_label = QtWidgets.QLabel(self.tr("Test table:"))
-
-        # инструменты
-        self.ti_tb_sort_add_to = new_button(self, "tb", sort_type, "glyph_add2", color=color,
-                                            tooltip=self.tr(f"Add to {sort_type}"),
-                                            icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
-        self.ti_tb_sort_remove_from = new_button(self, "tb", sort_type, "glyph_delete2", color=color,
-                                                 tooltip=self.tr(f"Remove selected rows from {sort_type}"),
-                                                 icon_size=config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
-
-        # создаем таблицу QTableView
-        self.table_view = QtWidgets.QTableView()
-
-        spacer = QtWidgets.QWidget()
-        spacer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)  # горизонтальный спейсер
-
-        h_lay = QtWidgets.QHBoxLayout()
-        h_lay.addWidget(self.ti_label)
-        h_lay.addWidget(self.ti_tb_sort_add_to)
-        h_lay.addWidget(spacer)
-        h_lay.addWidget(self.ti_tb_sort_remove_from)
-        h_lay.setSpacing(0)
-
-        # итоговая настройка компоновки
-        layout = QtWidgets.QVBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
-        layout.addLayout(h_lay)
-        layout.addWidget(self.table_view, 1)  # делаем доминантным
-        self.setLayout(layout)
-
-
-if __name__ == "__main__":
-    app = QtWidgets.QApplication(sys.argv)
-
-    ex = MyApp()
-    ex.show()
-
-    sys.exit(app.exec_())
+app = QtWidgets.QApplication([])
+window = MyWindow()
+window.show()
+app.exec_()
 
 # ----------------------------------------------------------------------------------------------------------------------
 # change_color = "#238b45"

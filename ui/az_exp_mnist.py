@@ -1,5 +1,6 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtCore import pyqtProperty
+from ui import new_text, new_cbx
 from utils import AppSettings, helper, config
 import matplotlib.pyplot as plt
 import numpy as np
@@ -19,6 +20,24 @@ class PageMNIST(QtWidgets.QWidget):
         super(PageMNIST, self).__init__(parent)
         self.name = "MNIST"
         self.settings = AppSettings()
+        self.setup_ui()  # настройка интерфейса
+        self.setStyleSheet("QWidget { border: 1px solid yellow; }")  # проверка отображения виджетов
+        self.update_font_color()  # изменение цвета шрифта в зависимости от темы
+
+        # поток QThread
+        self.mnist_worker = MNISTWorker()  # экземпляр потока
+
+        self.mnist_worker.started.connect(self.mnist_on_started)  # начало работы
+        self.mnist_worker.finished.connect(self.mnist_on_finished)  # завершение работы
+        # сигнал mnist_worker'a о текущих действиях
+        self.mnist_worker.signal_message.connect(self.mnist_on_change, QtCore.Qt.ConnectionType.QueuedConnection)
+
+        # Соединения
+        self.draw28x28.signal_draw.connect(self.preview_show)
+        self.tempPB.clicked.connect(self.on_clicked)  # TODO: delete
+        self.signal_info.connect(self.add_message_info)
+
+    def setup_ui(self):
         layout = QtWidgets.QVBoxLayout(self)  # пусть будет итоговым компоновщиком
 
         self.draw28x28 = AzCanvas()  # холст для рисования
@@ -35,8 +54,8 @@ class PageMNIST(QtWidgets.QWidget):
         self.info.setReadOnly(True)
 
         # Устанавливаем разметку для виджетов на вкладке
-        self.gb_draw = QtWidgets.QGroupBox("Draw")
-        self.gb_preview = QtWidgets.QGroupBox("Preview")
+        self.gb_draw = QtWidgets.QGroupBox(self.tr("Draw"))
+        self.gb_preview = QtWidgets.QGroupBox(self.tr("Preview"))
         for group, widget in ((self.gb_draw, self.draw28x28),
                               (self.gb_preview, self.preview)):
             group.setAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter)
@@ -81,16 +100,32 @@ class PageMNIST(QtWidgets.QWidget):
 
         self.tempPB = QtWidgets.QPushButton("Temp")
 
+        # настройки датасета
+        self.platform_label = new_text(self.tr("Platform:"))
+        self.cbx_platform = new_cbx(self, ["numpy", "tensorflow"])
+        self.epochs_label = new_text(self.tr("Epoch:"))
+        self.cbx_epochs = new_cbx(self, ["1", "2", "3", "4", "5", "10", "20"], True, QtGui.QIntValidator(1, 30))
+        self.activ_func_label = new_text(self.tr("Activation function:"))
+        self.cbx_activ_func = new_cbx(self, ["ReLU"])
+        self.number_of_layers_label = new_text(self.tr("Layers number:"))
+        self.cbx_number_of_layers = new_cbx(self, ["1", "2", "3", "4", "5", "10"], True, QtGui.QIntValidator(1, 30))
+        self.using_dataset_label = new_text(self.tr("MNIST usage, %:"))
+        self.cbx_using_dataset = new_cbx(self, ["5", "10", "15", "20", "25", "30", "35", "50", "75", "100"], True,
+                                         QtGui.QIntValidator(1, 100))
+        self.settings_labels = [self.platform_label, self.epochs_label, self.activ_func_label,
+                                self.number_of_layers_label, self.using_dataset_label]
+        self.settings_widgets = [self.cbx_platform, self.cbx_epochs, self.cbx_activ_func, self.cbx_number_of_layers,
+                                 self.cbx_using_dataset]
         grid_layout = QtWidgets.QGridLayout()
-        self.platform_label = QtWidgets.QLabel(self.tr("Platform"))
+        grid_layout.setSpacing(10) # настраиваем расстояние между элементами ui "исходных параметров"
+        # заполняем парами
+        for i, (label, widget) in enumerate(zip(self.settings_labels, self.settings_widgets)):
+            grid_layout.addWidget(label, 0, i)
+            grid_layout.addWidget(widget, 1, i)
 
-        self.epoch_label = QtWidgets.QLabel(self.tr("Epoch"))
+        self.gb_settings = QtWidgets.QGroupBox(self.tr("Input settings"))
 
-        self.activ_func_label = QtWidgets.QLabel(self.tr("Activation function"))
-
-        self.number_of_layers_label = QtWidgets.QLabel(self.tr("Layers number"))
-
-        self.using_dataset_label = QtWidgets.QLabel(self.tr("Percentage of usage"))
+        self.gb_settings.setLayout(grid_layout)
 
         # Итоговая сборка
         v_layout = QtWidgets.QVBoxLayout()
@@ -98,28 +133,22 @@ class PageMNIST(QtWidgets.QWidget):
         v_layout.addLayout(h_layout2)  # и результат расчёта
         h_layout3 = QtWidgets.QHBoxLayout()
         h_layout3.addLayout(v_layout)
-        h_layout3.addWidget(self.info)
+        h_layout3.addWidget(self.info, 1)  # делаем вывод максимальным
+        layout.addWidget(self.gb_settings)
         layout.addLayout(h_layout3)
         layout.addWidget(self.tempPB)
         layout.addStretch(1)
 
-        # Изменение цвета шрифта в зависимости от темы
-        self.update_font_color()
-        # Соединения
-        self.draw28x28.signal_draw.connect(self.preview_show)
-        self.tempPB.clicked.connect(self.on_clicked)  # TODO: delete
-        self.signal_info.connect(self.add_message_info)
-
-        # поток QThread
-        self.mnist_worker = MNISTWorker()  # экземпляр потока
-        self.mnist_worker.started.connect(self.mnist_on_started)  # начало работы
-        self.mnist_worker.finished.connect(self.mnist_on_finished)  # завершение работы
-        # сигнал mnist_worker'a о текущих действиях
-        self.mnist_worker.signal_message.connect(self.mnist_on_change, QtCore.Qt.ConnectionType.QueuedConnection)
-
     @QtCore.pyqtSlot()
     def on_clicked(self):
         self.tempPB.setDisabled(True)  # Делаем кнопку неактивной
+        settings = {'platform': self.cbx_platform.currentText(),
+                    'activ_funct': self.cbx_activ_func.currentText(),
+                    'dataset_using': self.cbx_using_dataset.currentText(),
+                    'epochs': self.cbx_epochs.currentText(),
+                    'cbx_number_of_layers': self.cbx_number_of_layers.currentText()
+                    }
+        self.mnist_worker.init_data(**settings)  # инициализируем настройки
         self.mnist_worker.start()  # Запускаем поток
 
     @QtCore.pyqtSlot()
@@ -139,7 +168,7 @@ class PageMNIST(QtWidgets.QWidget):
     def add_message_info(self, message):  # передача информации в лог
         current_time = datetime.now().time().strftime("%H:%M:%S")
         message = current_time + ": " + message
-        self.info.setPlainText(self.info.toPlainText() + message + "\n")
+        self.info.setPlainText(message + "\n" + self.info.toPlainText())
 
     def update_font_color(self):
         if self.palette().color(QtGui.QPalette.Window).lightness() > 128:
@@ -176,11 +205,14 @@ class PageMNIST(QtWidgets.QWidget):
         return QtCore.QCoreApplication.translate("PageMNIST", text)
 
     def translate_ui(self):
-        pass
-        # self.draw28x28.setToolTip(self.tr('Left click to draw, right click to clear'))
-        # self.gb_draw.setToolTip(self.tr('Left click to draw, right click to clear'))
-        # self.gb_draw.setTitle(self.tr('Draw'))
-        # self.gb_preview.setTitle(self.tr('Preview'))
+        self.platform_label.setText(self.tr("Platform:"))
+        self.epochs_label.setText(self.tr("Epoch:"))
+        self.activ_func_label.setText(self.tr("Activation function:"))
+        self.number_of_layers_label.setText(self.tr("Layers number:"))
+        self.using_dataset_label.setText(self.tr("Dataset usage, %:"))
+        self.gb_settings.setTitle(self.tr("Input settings"))
+        self.gb_draw.setTitle(self.tr('Draw'))
+        self.gb_preview.setTitle(self.tr('Preview'))
 
 
 class AzCanvas(QtWidgets.QLabel):
@@ -384,57 +416,70 @@ class RoundProgressbar(QtWidgets.QWidget):
 
 
 class MNISTWorker(QtCore.QThread):
+    """Поток обучения, загрузка данных персептрона MNIST"""
     signal_message = QtCore.pyqtSignal(str)
 
     def __init__(self, parent=None):
         super(MNISTWorker, self).__init__()
-        #QtCore.QThread.__init__(self, parent)
+        # QtCore.QThread.__init__(self, parent)
         self.settings = AppSettings()
 
+    def init_data(self, **settings):
+        # инициализация начальных параметров через словарь
+        self.params = settings
+
     def run(self):
-        self.signal_message.emit("Приступаю к загрузке")
-        images, labels = load_dataset(self.settings.read_dataset_mnist())
+        self.signal_message.emit(self.tr("Приступаю к загрузке данных"))
+        images, labels = self.load_dataset(self.settings.read_dataset_mnist())
         if images is None:
             self.signal_message.emit(self.tr("MNIST file not found, check for source data."))
             return
-        weights_input_to_hidden = np.random.uniform(-0.5, 0.5, (20, 784))
-        weights_hidden_to_output = np.random.uniform(-0.5, 0.5, (10, 20))
-        bias_input_to_hidden = np.zeros((20, 1))
-        bias_hidden_to_output = np.zeros((10, 1))
+        # слои следуют: 1 (исходный), 2 (скрытый), 3 (скрытый), ..., выходной слой
+        # инициализируем случайные веса второго слоя, 20 строк х 28*28 (784) столбцов
+        weights_layer_2 = np.random.uniform(-0.5, 0.5, (20, 784))
+        weights_layer_3 = np.random.uniform(-0.5, 0.5, (10, 20))  # веса третьего (выходного) слоя
+        bias_layer_2 = np.zeros((20, 1))  # смещение для второго слоя, инициализируем 20 строк х 1 столбец нулей
+        bias_layer_3 = np.zeros((10, 1))  # смещения для третьего (выходного) слоя
 
-        epochs = 3
+        epochs = int(self.params["epochs"])
         e_loss = 0
-        e_correct = 0
-        learning_rate = 0.01
+        e_correct = 0  # коррекция ошибки
+        learning_rate = 0.01  # скорость обучения
 
         for epoch in range(epochs):
             self.signal_message.emit(f"Epoch #{epoch}")
 
             for image, label in zip(images, labels):
-                image = np.reshape(image, (-1, 1))
-                label = np.reshape(label, (-1, 1))
+                image = np.reshape(image, (-1, 1))  # преобразование массивов исходных данных в [784, 1]
+                label = np.reshape(label, (-1, 1))  # [10, 1]
 
-                # Forward propagation (to hidden layer)
-                hidden_raw = bias_input_to_hidden + weights_input_to_hidden @ image
-                hidden = 1 / (1 + np.exp(-hidden_raw))  # sigmoid
+                # 1. Прямое распространение (к скрытому слою)
+                # смещение + веса * данные изображения
+                # мы перемножаем [20x784] на [784x1] и получаем [20x1]
+                hidden_raw = bias_layer_2 + weights_layer_2 @ image  # [20, 1]
+                hidden = 1 / (1 + np.exp(-hidden_raw))  # функция активации: сигмоидная [20, 1]
 
-                # Forward propagation (to output layer)
-                output_raw = bias_hidden_to_output + weights_hidden_to_output @ hidden
-                output = 1 / (1 + np.exp(-output_raw))
+                # прямое распространение (к выходному слою)
+                # мы перемножаем [10, 20] на [20, 1] и получаем [10, 1]
+                output_raw = bias_layer_3 + weights_layer_3 @ hidden  # [10, 1]
+                output = 1 / (1 + np.exp(-output_raw))  # [10, 1]
 
-                # Loss / Error calculation
+                # 2. Расчет потерь/ошибок, используем MSE (СКО)
                 e_loss += 1 / len(output) * np.sum((output - label) ** 2, axis=0)
                 e_correct += int(np.argmax(output) == np.argmax(label))
 
-                # Backpropagation (output layer)
-                delta_output = output - label
-                weights_hidden_to_output += -learning_rate * delta_output @ np.transpose(hidden)
-                bias_hidden_to_output += -learning_rate * delta_output
+                # 3. Обратное распространение ошибки (выходной уровень).
+                # delta = [10, 1] - [10, 1]
+                delta_output = output - label  # дельта = разница между результатом и контрольным значением
+                # изменяем веса выходного слоя [10, 20]
+                weights_layer_3 += -learning_rate * delta_output @ np.transpose(hidden)
+                # изменяем смещения выходного слоя [10, 1]
+                bias_layer_3 += -learning_rate * delta_output
 
-                # Backpropagation (hidden layer)
-                delta_hidden = np.transpose(weights_hidden_to_output) @ delta_output * (hidden * (1 - hidden))
-                weights_input_to_hidden += -learning_rate * delta_hidden @ np.transpose(image)
-                bias_input_to_hidden += -learning_rate * delta_hidden
+                # Обратное распространение ошибки (скрытый слой)
+                delta_hidden = np.transpose(weights_layer_3) @ delta_output * (hidden * (1 - hidden))
+                weights_layer_2 += -learning_rate * delta_hidden @ np.transpose(image)
+                bias_layer_2 += -learning_rate * delta_hidden
 
             # DONE
 
@@ -444,6 +489,7 @@ class MNISTWorker(QtCore.QThread):
             e_loss = 0
             e_correct = 0
 
+        # self.signal_message.emit(f"output: {output}")
         return
         # CHECK CUSTOM
         test_image = plt.imread("custom.jpg", format="jpeg")
@@ -459,36 +505,53 @@ class MNISTWorker(QtCore.QThread):
         image = np.reshape(test_image, (-1, 1))
 
         # Forward propagation (to hidden layer)
-        hidden_raw = bias_input_to_hidden + weights_input_to_hidden @ image
+        hidden_raw = bias_layer_2 + weights_layer_2 @ image
         hidden = 1 / (1 + np.exp(-hidden_raw))  # sigmoid
         # Forward propagation (to output layer)
-        output_raw = bias_hidden_to_output + weights_hidden_to_output @ hidden
+        output_raw = bias_layer_3 + weights_layer_3 @ hidden
         output = 1 / (1 + np.exp(-output_raw))
 
         # plt.imshow(test_image.reshape(28, 28), cmap="Greys")
         # plt.title(f"NN suggests the CUSTOM number is: {output.argmax()}")
         # plt.show()
 
+    def load_dataset(self, path):
+        """
+        Загрузить датасет MNIST.
+        x_train - изображения в формате grayscale
+        y_train - соответствующая изображению цифра
+        """
+        if not helper.check_file(path):
+            return None, None
 
-def load_dataset(path):
-    """Загрузить датасет MNIST"""
-    if not helper.check_file(path):
-        return None, None
+        with np.load(path) as file:
+            x_train = file['x_train'].astype("float32") / 255  # конвертация из RGB в Unit RGB
+            # преобразование массива из (60000, 28, 28) в формат (60000, 784)
+            x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1] * x_train.shape[2]))
 
-    with np.load(path) as file:
-        # конвертация из RGB в Unit RGB
-        x_train = file['x_train'].astype("float32") / 255
+            using_percent = int(self.params["dataset_using"])  # считываем ограничение датасета
+            num_rows = int(x_train.shape[0] * using_percent / 100)
+            # набираем случайных индексов
+            sel_inx = np.random.choice(x_train.shape[0], num_rows, replace=False)  # следим, чтобы не было повторов
+            # формируем итоговый набор данных изображений
+            x_train = x_train[sel_inx]
 
-        # преобразование массива из (60000, 28, 28) в формат (60000, 784)
-        x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1] * x_train.shape[2]))
+            # выходные данные
+            y_train = file['y_train']
+            y_train = y_train[sel_inx]  # ограничиваем набор датасета при 100% = 60000
+            # выходные 1-х матрицы в формате по 10 классов цифр [[0000001000][0100000000]...[0000000010]]]
+            y_train = np.eye(10)[y_train]
 
-        # выходные данные
-        y_train = file['y_train']
+            # plt.figure(figsize=(10, 5))
+            # for i in range(4):
+            #     plt.subplot(1, 4, i + 1)
+            #     plt.imshow(selected_rows[i], cmap='gray')
+            #     plt.title(f"Label: {y_train[i]}")
+            #     plt.axis('off')
+            # plt.tight_layout()
+            # plt.show()
 
-        # 60000 выходных 1-х матриц в формате по 10 классов цифр [[0000001000][0100000000]...[0000000010]]]
-        y_train = np.eye(10)[y_train]
-
-        return x_train, y_train
+            return x_train, y_train
 
 
 def pixelate_rgb(img, window):

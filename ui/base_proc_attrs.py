@@ -19,7 +19,7 @@ color_val = UI_COLORS.get("val_color")
 color_test = UI_COLORS.get("test_color")
 
 # TODO: добавить инструмент назначения Разметчика
-
+# TODO: рассчитать баланс датасета
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -342,6 +342,15 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         splitter.setContentsMargins(5, 5, 5, 5)  # и только главный виджет будет иметь отступы
         return splitter
 
+    def setup_log(self):
+        """ Настройка интерфейса для лога """
+        self.log = QtWidgets.QTextEdit(self)  # лог, для вывода сообщений.
+        self.log.setReadOnly(True)
+        self.bottom_dock = QtWidgets.QDockWidget()  # контейнер для информации о логе
+        self.bottom_dock.setWidget(self.log)  # устанавливаем в контейнер QLabel
+        self.bottom_dock.setWindowTitle("Log")
+        self.addDockWidget(QtCore.Qt.DockWidgetArea.BottomDockWidgetArea, self.bottom_dock)
+
     @QtCore.pyqtSlot(str)
     def forward_signal(self, message):  # перенаправление сигналов
         self.signal_message.emit(message)
@@ -364,21 +373,36 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             else:
                 self.project_description.setStyleSheet("background-color: indigo;")
 
+    def toggle_log(self):
+        if self.btn_log_and_status.isChecked():
+            self.bottom_dock.setHidden(False)
+        else:
+            self.bottom_dock.setHidden(True)
+
+    def log_clear(self):
+        self.log.clear()
+
+    def log_change_data(self, message):
+        self.change_log_icon("red")
+        current_time = datetime.now().time().strftime("%H:%M:%S")
+        message = current_time + ": " + message
+        self.log.setPlainText(self.log.toPlainText() + message + "\n")
+
+    def change_log_icon(self, color):
+        if color == "red":
+            icon = "circle_red"
+        elif color == "green":
+            icon = "circle_green"
+        else:
+            icon = "circle_grey"
+        self.btn_log_and_status.setIcon(new_icon(icon))
+
     def save(self):
         self.save_and_reload(self.current_file, self.tr(f"Project was saved and reload: {self.current_file}"))
 
     def save_and_reload(self, file, message):
         self.sama_data.save(file)  # сохранение данных и перезагрузка данных
         self.load_project(file, message)
-
-    def setup_log(self):
-        """ Настройка интерфейса для лога """
-        self.log = QtWidgets.QTextEdit(self)  # лог, для вывода сообщений.
-        self.log.setReadOnly(True)
-        self.bottom_dock = QtWidgets.QDockWidget()  # контейнер для информации о логе
-        self.bottom_dock.setWidget(self.log)  # устанавливаем в контейнер QLabel
-        self.bottom_dock.setWindowTitle("Log")
-        self.addDockWidget(QtCore.Qt.DockWidgetArea.BottomDockWidgetArea, self.bottom_dock)
 
     def image_table_clear_selection(self):
         # сброс выделения с таблицы фильтрата image_table
@@ -429,6 +453,17 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             for row in range(self.image_table.model().rowCount()):  # выравниваем высоту
                 self.image_table.setRowHeight(row, ROW_H)
 
+    def load_image_data_model(self):
+        """Первичное заполнение таблицы фильтрата данными"""
+        # Данные - массив [["object1", "image_name1", "label1, "item1"][...]]
+
+        if self.original_image_data is None:
+            data = self.sama_data.get_model_data()
+            self.original_image_data = data
+
+        self.fill_image_data_filters()  # заполняем параметрами для сортировки (фильтрами)
+        self.set_image_data_model(data)  # загружаем и устанавливаем модель
+
     def table_image_filter_changed(self):
         """Загрузка данных в таблицу фильтрата при изменении фильтров. Если включен режим сортировки, то также
          проверяется наличие объектов в таблицах Train/Val через класс DatasetSortHandler"""
@@ -442,17 +477,6 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             exclusions = list(self.sort_data.get_images_names_train_val_test())  # недопустимые для вывода данные
             # фильтруем данные с учетом недопустимых элементов
             data = [item for item in data if item[1] not in exclusions]
-        self.set_image_data_model(data)  # загружаем и устанавливаем модель
-
-    def load_image_data_model(self):
-        """Первичное заполнение таблицы фильтрата данными"""
-        # Данные - массив [["object1", "image_name1", "label1, "item1"][...]]
-
-        if self.original_image_data is None:
-            data = self.sama_data.get_model_data()
-            self.original_image_data = data
-
-        self.fill_image_data_filters()  # заполняем параметрами для сортировки (фильтрами)
         self.set_image_data_model(data)  # загружаем и устанавливаем модель
 
     def fill_image_data_filters(self):
@@ -490,40 +514,6 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                     (label_name is None or row[2] == label_name)]
         return filtered
 
-    def toggle_log(self):
-        if self.btn_log_and_status.isChecked():
-            self.bottom_dock.setHidden(False)
-        else:
-            self.bottom_dock.setHidden(True)
-
-    def log_clear(self):
-        self.log.clear()
-
-    def log_change_data(self, message):
-        self.change_log_icon("red")
-        current_time = datetime.now().time().strftime("%H:%M:%S")
-        message = current_time + ": " + message
-        self.log.setPlainText(self.log.toPlainText() + message + "\n")
-
-    def change_log_icon(self, color):
-        if color == "red":
-            icon = "circle_red"
-        elif color == "green":
-            icon = "circle_green"
-        else:
-            icon = "circle_grey"
-        self.btn_log_and_status.setIcon(new_icon(icon))
-
-    def attr_actions_disable(self, message):  # сброс всех форм при загрузке, а также отключение инструментов
-        self.current_file = None
-        self.toggle_tool_buttons(False)
-        self.clear_dataset_info()
-        self.table_widget.clear_table()
-        self.image_table.setModel(None)
-        self.ti_cbx_sel_class.clear()
-        self.ti_cbx_sel_obj.clear()
-        self.signal_message.emit(message)
-
     def clear_dataset_info(self):
         self.common_data = [["-", "-", "-", "-"]]
         model = AzTableModel(self.common_data, self.common_headers, no_rows_captions=True)
@@ -537,6 +527,16 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             button.setEnabled(flag)
         for item in self.special_tools:
             item.setEnabled(flag)
+
+    def attr_actions_disable(self, message):  # сброс всех форм при загрузке, а также отключение инструментов
+        self.current_file = None
+        self.toggle_tool_buttons(False)
+        self.clear_dataset_info()
+        self.table_widget.clear_table()
+        self.image_table.setModel(None)
+        self.ti_cbx_sel_class.clear()
+        self.ti_cbx_sel_obj.clear()
+        self.signal_message.emit(message)
 
     def attr_load_projects_data(self):
         if len(self.file_json.text()) < 5:  # недостойно внимания
@@ -626,37 +626,6 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             if save_via_qtextstream(self.table_widget, file, [7, 8]):
                 self.signal_message.emit(self.tr(f"Table data export to: {file}"))
 
-    def load_project(self, filename, message):  # загрузка проекта
-        self.sama_data = DatasetSAMAHandler()
-        self.unload_sort_file()  # выгружаем файлы сортировки, если они были загружены
-        self.sama_data.load(filename)
-        self.log_clear()
-        self.toggle_descr()  # настраиваем ui описания проекта
-        if not self.sama_data.is_correct_file:
-            self.attr_actions_disable(
-                self.tr("Selected file isn't correct, or haven't data"))
-            # Выбранный файл не является корректным либо не содержит необходимых данных
-            self.file_json.clear()
-            self.change_log_icon("grey")
-            return
-
-        # Все загружено и всё корректно, поэтому записываем его в реестр и начинаем процедуру загрузки
-        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)
-        self.file_json.setText(filename)
-        if self.sama_data.get_project_description() is not None:  # загрузка описания проекта
-            self.project_description.setText(self.sama_data.get_project_description())
-        self.current_file = filename
-        self.settings.write_attributes_input(filename)
-        self.toggle_tool_buttons(True)
-        self.load_dataset_info()  # загружаем общее инфо о датасете
-        self.table_widget.load_table_data(self.sama_data)  # обновляем данные для таблицы
-        self.original_image_data = None  # очищаем данные с исходными значениями
-        self.load_image_data_model()  # загружаем таблицу изображений данные для таблицы
-        self.log_change_data(message)
-        self.change_log_icon("green")
-        self.signal_message.emit(message)
-        QtWidgets.QApplication.restoreOverrideCursor()
-
     def load_dataset_info(self):  # общая информация о датасете
         self.common_data.clear()
 
@@ -690,6 +659,37 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.common_table.setModel(model)
         for i in range(self.common_table.model().columnCount()):
             self.common_table.horizontalHeader().setSectionResizeMode(i, QtWidgets.QHeaderView.ResizeMode.Stretch)
+
+    def load_project(self, filename, message):  # загрузка проекта
+        self.sama_data = DatasetSAMAHandler()
+        self.unload_sort_file()  # выгружаем файлы сортировки, если они были загружены
+        self.sama_data.load(filename)
+        self.log_clear()
+        self.toggle_descr()  # настраиваем ui описания проекта
+        if not self.sama_data.is_correct_file:
+            self.attr_actions_disable(
+                self.tr("Selected file isn't correct, or haven't data"))
+            # Выбранный файл не является корректным либо не содержит необходимых данных
+            self.file_json.clear()
+            self.change_log_icon("grey")
+            return
+
+        # Все загружено и всё корректно, поэтому записываем его в реестр и начинаем процедуру загрузки
+        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)
+        self.file_json.setText(filename)
+        if self.sama_data.get_project_description() is not None:  # загрузка описания проекта
+            self.project_description.setText(self.sama_data.get_project_description())
+        self.current_file = filename
+        self.settings.write_attributes_input(filename)
+        self.toggle_tool_buttons(True)
+        self.load_dataset_info()  # загружаем общее инфо о датасете
+        self.table_widget.load_table_data(self.sama_data)  # обновляем данные для таблицы
+        self.original_image_data = None  # очищаем данные с исходными значениями
+        self.load_image_data_model()  # загружаем таблицу изображений данные для таблицы
+        self.log_change_data(message)
+        self.change_log_icon("green")
+        self.signal_message.emit(message)
+        QtWidgets.QApplication.restoreOverrideCursor()
 
     def toggle_descr(self):
         self.project_description.clear()  # очищаем текст

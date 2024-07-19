@@ -333,6 +333,18 @@ def new_button(parent, obj="pb", text=None, icon=None, color=None, slot=None, ch
 
 
 # ----------------------------------------------------------------------------------------------------------------------
+def new_cbx(parent, items=None, edit=False, valid=None):
+    """Упрощенная настройка QComboBox: items - список объектов; edit - возможность редактировать, valid - валидатор"""
+    cbx = QtWidgets.QComboBox(parent)
+    cbx.setEditable(edit)
+    if items:
+        cbx.addItems(items)
+    if valid:
+        cbx.setValidator(valid)
+    return cbx
+
+
+# ----------------------------------------------------------------------------------------------------------------------
 def labelValidator():
     return QtGui.QRegExpValidator(QtCore.QRegExp(r"^[^ \t].+"), None)
     # regexp = QtCore.QRegExp(r'^[[:ascii:]]+$')  # проверка имени файла на символы
