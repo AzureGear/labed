@@ -149,6 +149,23 @@ class PageMNIST(QtWidgets.QWidget):
                     'cbx_number_of_layers': self.cbx_number_of_layers.currentText()
                     }
         self.mnist_worker.init_data(**settings)  # инициализируем настройки
+
+        with np.load(self.settings.read_dataset_mnist()) as file:
+            # x_train: яркость 1 для ячейки, где есть контур цифры, а 0 для пустого значения
+            x_train = file['x_train']  # конвертация из RGB в Unit RGB
+            tra = x_train[0]
+            y_train = file['y_train']
+        plt.figure(figsize=(10, 5))
+        for i in range(4):
+            plt.subplot(1, 4, i + 1)
+            plt.imshow(x_train[i], cmap='gray')
+            plt.title(f"Label: {y_train[i]}")
+            plt.axis('off')
+        plt.tight_layout()
+        plt.show()
+        return
+
+
         self.mnist_worker.start()  # Запускаем поток
 
     @QtCore.pyqtSlot()
@@ -424,9 +441,9 @@ class MNISTWorker(QtCore.QThread):
         # QtCore.QThread.__init__(self, parent)
         self.settings = AppSettings()
 
-    def init_data(self, **settings):
+    def init_data(self, **params):
         # инициализация начальных параметров через словарь
-        self.params = settings
+        self.params = params
 
     def run(self):
         self.signal_message.emit(self.tr("Приступаю к загрузке данных"))
@@ -445,6 +462,7 @@ class MNISTWorker(QtCore.QThread):
         e_loss = 0
         e_correct = 0  # коррекция ошибки
         learning_rate = 0.01  # скорость обучения
+
 
         for epoch in range(epochs):
             self.signal_message.emit(f"Epoch #{epoch}")
@@ -517,14 +535,15 @@ class MNISTWorker(QtCore.QThread):
 
     def load_dataset(self, path):
         """
-        Загрузить датасет MNIST.
-        x_train - изображения в формате grayscale
-        y_train - соответствующая изображению цифра
+        Загрузить датасет MNIST:
+        x_train - изображения в формате: яркость 255 для ячейки, где есть контур цифры; 0 для пустого значения
+        y_train - соответствующая изображению цифра в формате int
         """
         if not helper.check_file(path):
             return None, None
 
         with np.load(path) as file:
+            # преобразуем яркость 1 для ячейки, где есть контур цифры; 0 для пустого значения
             x_train = file['x_train'].astype("float32") / 255  # конвертация из RGB в Unit RGB
             # преобразование массива из (60000, 28, 28) в формат (60000, 784)
             x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1] * x_train.shape[2]))
@@ -541,15 +560,6 @@ class MNISTWorker(QtCore.QThread):
             y_train = y_train[sel_inx]  # ограничиваем набор датасета при 100% = 60000
             # выходные 1-х матрицы в формате по 10 классов цифр [[0000001000][0100000000]...[0000000010]]]
             y_train = np.eye(10)[y_train]
-
-            # plt.figure(figsize=(10, 5))
-            # for i in range(4):
-            #     plt.subplot(1, 4, i + 1)
-            #     plt.imshow(selected_rows[i], cmap='gray')
-            #     plt.title(f"Label: {y_train[i]}")
-            #     plt.axis('off')
-            # plt.tight_layout()
-            # plt.show()
 
             return x_train, y_train
 
