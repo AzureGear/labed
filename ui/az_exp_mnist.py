@@ -1,3 +1,5 @@
+import random
+
 from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtCore import pyqtProperty
 from ui import new_text, new_cbx
@@ -21,7 +23,7 @@ class PageMNIST(QtWidgets.QWidget):
         self.name = "MNIST"
         self.settings = AppSettings()
         self.setup_ui()  # настройка интерфейса
-        self.setStyleSheet("QWidget { border: 1px solid yellow; }")  # проверка отображения виджетов
+        # self.setStyleSheet("QWidget { border: 1px solid yellow; }")  # проверка отображения виджетов
         self.update_font_color()  # изменение цвета шрифта в зависимости от темы
 
         # поток QThread
@@ -112,6 +114,7 @@ class PageMNIST(QtWidgets.QWidget):
         self.using_dataset_label = new_text(self.tr("MNIST usage, %:"))
         self.cbx_using_dataset = new_cbx(self, ["5", "10", "15", "20", "25", "30", "35", "50", "75", "100"], True,
                                          QtGui.QIntValidator(1, 100))
+        self.chk_use_random_data = QtWidgets.QCheckBox(self.tr("Shuffle data from MNIST"))
         self.settings_labels = [self.platform_label, self.epochs_label, self.activ_func_label,
                                 self.number_of_layers_label, self.using_dataset_label]
         self.settings_widgets = [self.cbx_platform, self.cbx_epochs, self.cbx_activ_func, self.cbx_number_of_layers,
@@ -122,6 +125,7 @@ class PageMNIST(QtWidgets.QWidget):
         for i, (label, widget) in enumerate(zip(self.settings_labels, self.settings_widgets)):
             grid_layout.addWidget(label, 0, i)
             grid_layout.addWidget(widget, 1, i)
+        grid_layout.addWidget(self.chk_use_random_data, 2, 0, 1, 2)
 
         self.gb_settings = QtWidgets.QGroupBox(self.tr("Input settings"))
 
@@ -146,10 +150,13 @@ class PageMNIST(QtWidgets.QWidget):
                     'activ_funct': self.cbx_activ_func.currentText(),
                     'dataset_using': self.cbx_using_dataset.currentText(),
                     'epochs': self.cbx_epochs.currentText(),
-                    'cbx_number_of_layers': self.cbx_number_of_layers.currentText()
+                    'number_of_layers': self.cbx_number_of_layers.currentText(),
+                    'shuffle_data': self.chk_use_random_data.isChecked()
                     }
         self.mnist_worker.init_data(**settings)  # инициализируем настройки
+        self.mnist_worker.start()  # Запускаем поток
 
+    def show_data(self):
         with np.load(self.settings.read_dataset_mnist()) as file:
             # x_train: яркость 1 для ячейки, где есть контур цифры, а 0 для пустого значения
             x_train = file['x_train']  # конвертация из RGB в Unit RGB
@@ -163,10 +170,6 @@ class PageMNIST(QtWidgets.QWidget):
             plt.axis('off')
         plt.tight_layout()
         plt.show()
-        return
-
-
-        self.mnist_worker.start()  # Запускаем поток
 
     @QtCore.pyqtSlot()
     def mnist_on_started(self):  # Вызывается при запуске потока
@@ -508,16 +511,18 @@ class MNISTWorker(QtCore.QThread):
             e_correct = 0
 
         # self.signal_message.emit(f"output: {output}")
-        return
+        # TODO: use_not_in_set! цикл.
+        test_image = random.choice(images)
+
         # CHECK CUSTOM
-        test_image = plt.imread("custom.jpg", format="jpeg")
+        # test_image = plt.imread("custom.jpg", format="jpeg")
 
         # Grayscale + Unit RGB + inverse colors
-        gray = lambda rgb: np.dot(rgb[..., :3], [0.299, 0.587, 0.114])
-        test_image = 1 - (gray(test_image).astype("float32") / 255)
+        # gray = lambda rgb: np.dot(rgb[..., :3], [0.299, 0.587, 0.114])
+        # test_image = 1 - (gray(test_image).astype("float32") / 255)
 
-        # Reshape
-        test_image = np.reshape(test_image, (test_image.shape[0] * test_image.shape[1]))
+        # Reshape custom
+        # test_image = np.reshape(test_image, (test_image.shape[0] * test_image.shape[1]))
 
         # Predict
         image = np.reshape(test_image, (-1, 1))
@@ -529,6 +534,7 @@ class MNISTWorker(QtCore.QThread):
         output_raw = bias_layer_3 + weights_layer_3 @ hidden
         output = 1 / (1 + np.exp(-output_raw))
 
+        print(output.argmax())
         # plt.imshow(test_image.reshape(28, 28), cmap="Greys")
         # plt.title(f"NN suggests the CUSTOM number is: {output.argmax()}")
         # plt.show()
@@ -550,8 +556,13 @@ class MNISTWorker(QtCore.QThread):
 
             using_percent = int(self.params["dataset_using"])  # считываем ограничение датасета
             num_rows = int(x_train.shape[0] * using_percent / 100)
-            # набираем случайных индексов
-            sel_inx = np.random.choice(x_train.shape[0], num_rows, replace=False)  # следим, чтобы не было повторов
+            # определяем флаг "случайных" данных
+            if self.params["shuffle_data"]:
+                # набираем случайных индексов
+                sel_inx = np.random.choice(x_train.shape[0], num_rows, replace=False)  # следим, чтобы не было повторов
+            else:
+                sel_inx = np.arange(0, num_rows)
+            print(sel_inx)
             # формируем итоговый набор данных изображений
             x_train = x_train[sel_inx]
 
