@@ -2,25 +2,6 @@
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-from PyQt5 import QtCore, QtGui, QtWidgets
-
-class MyWindow(QtWidgets.QWidget):
-    def __init__(self):
-        super().__init__()
-
-        self.combo_box = QtWidgets.QComboBox(self)
-        self.combo_box.setGeometry(50, 50, 200, 30)
-
-        # Установить валидатор для ввода только цифр
-        self.combo_box.setValidator(QtGui.QIntValidator())
-
-        # Добавить элементы в QComboBox
-        self.combo_box.addItems(["1", "2", "3", "4", "5"])
-
-app = QtWidgets.QApplication([])
-window = MyWindow()
-window.show()
-app.exec_()
 
 # ----------------------------------------------------------------------------------------------------------------------
 # change_color = "#238b45"

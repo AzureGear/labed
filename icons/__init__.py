@@ -37,7 +37,9 @@
 # glyph_add2: Bharat Icons
 # glyph_add_multi: me & HideMaru
 # glyph_toggle_cols: me & Yogi Aprelliyanto
-
+# glyph_smart_process: zero_wing
+# glyph_clear: LAFS
+# glyph_data_graph: Mohamed Mbarki
 
 
 # glyph_add_image: Pixel perfect
@@ -58,7 +60,8 @@
 # glyph_point_remove: Pixel perfect
 # glyph_point_universal: me & Pixel perfect
 # glyph_clear_selection: Pixel perfect
-# glyph_smart_process: zero_wing
+# glyph_grid: Pixel perfect
+
 
 # glyph_upload: KP Arts
 # glyph_add: KP Arts

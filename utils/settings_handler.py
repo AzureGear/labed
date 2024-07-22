@@ -74,11 +74,11 @@ class AppSettings:
 
     def read_load_sub_dir(self):
         """Загружать ли подкаталоги, когда загружаешь каталог [r]"""
-        return self.settings.value('common/with_sub_dirs', False)
+        return self.settings.value('common/with_sub_dirs', False, type=bool)
 
-    def write_load_sub_dir(self, b):
+    def write_load_sub_dir(self, flag):
         """Загружать ли подкаталоги, когда загружаешь каталог [w]"""
-        self.settings.setValue('common/with_sub_dirs', b)
+        self.settings.setValue('common/with_sub_dirs', flag)
 
     def read_default_output_dir(self):
         """Директория по умолчанию для выходных данных [r]"""
@@ -151,3 +151,43 @@ class AppSettings:
     def write_sort_file_input(self, path):
         """Файл сортировки train-val-test для страницы атрибутов [w]"""
         self.settings.setValue('attributes/sort_file', path)
+
+    def read_mnist_epochs(self):
+        """Количество эпох для вкладки Эксперименты - MNIST [r]"""
+        return self.settings.value('experiments/mnist_epochs', '3')
+
+    def write_mnist_epochs(self, epoch):
+        """Количество эпох для вкладки Эксперименты - MNIST [w]"""
+        self.settings.setValue('experiments/mnist_epochs', epoch)
+
+    def read_mnist_learning_rate(self):
+        """Скорость обучения для вкладки Эксперименты - MNIST [r]"""
+        return self.settings.value('experiments/mnist_learning_rate', '0.01')
+
+    def write_mnist_learning_rate(self, rate):
+        """Скорость обучения для вкладки Эксперименты - MNIST [w]"""
+        self.settings.setValue('experiments/mnist_learning_rate', rate)
+
+    def read_mnist_dataset_using(self):
+        """Объем используемого датасета в процентах вкладки Эксперименты - MNIST [r]"""
+        return self.settings.value('experiments/mnist_dataset_using', '50')
+
+    def write_mnist_dataset_using(self, percent):
+        """Объем используемого датасета в процентах вкладки Эксперименты - MNIST [w]"""
+        self.settings.setValue('experiments/mnist_dataset_using', percent)
+
+    def read_mnist_shuffle_dataset(self):
+        """Флаг перемешивание датасета для вкладки Эксперименты - MNIST [r]"""
+        return self.settings.value('experiments/mnist_shuffle_dataset', False, type=bool)
+
+    def write_mnist_shuffle_dataset(self, flag):
+        """Флаг перемешивание датасета для вкладки Эксперименты - MNIST [w]"""
+        self.settings.setValue('experiments/mnist_shuffle_dataset', flag)
+
+    def read_mnist_activ_func(self):
+        """Функция активации для вкладки Эксперименты - MNIST [r]"""
+        return self.settings.value('experiments/mnist_activ_func', "ReLU")
+
+    def write_mnist_activ_func(self, value):
+        """Функция активации для датасета для вкладки Эксперименты - MNIST [w]"""
+        self.settings.setValue('experiments/mnist_activ_func', value)

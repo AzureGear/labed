@@ -61,8 +61,9 @@ UI_AZ_SLICE_MANUAL = {
     "files_dock": [True, False, True, False, False, False]
 }
 
-
-UI_AZ_MNIST_DIGITS_SIZE = 24
+# az_exp_mnist.py
+UI_AZ_MNIST_ICON_PANEL = 22  # размер иконок для панели инструментов
+UI_AZ_MNIST_DIGITS_SIZE = 24  # размер цифр для вкладки MNIST
 
 UI_AZ_PROC_ATTR_ICON_SIZE = 24  # размер иконок вкладки Обработка-Атрибуты на главной таблице
 UI_AZ_PROC_ATTR_IM_ICON_SIZE = 22  # размер иконок виджета таблицы фильтрата
