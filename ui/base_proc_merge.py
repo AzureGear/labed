@@ -115,25 +115,20 @@ class TabMergeUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     @QtCore.pyqtSlot()
     def merge_selection_files_change(self):  # загрузка данных *.json в предпросмотр
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)  # ставим курсор ожидание
-        try:
-            if self.merge_files_list.count() > 0:  # количество объектов больше 0
-                if self.merge_files_list.currentItem() is not None:
-                    file = self.merge_files_list.currentItem().text()  # считываем текущую строку
-                    if os.path.exists(file):
-                        with open(file, "r") as f:
-                            data = [file + ":\n\n"]  # лист для данных из файла
-                            for i in range(0, int(UI_READ_LINES)):  # читаем только первые несколько строк...
-                                data.append(f.readline())  # ...поскольку файлы могут быть большими
-                            data.append("...")
-                            self.merge_label.setText(("".join(data)))  # объединяем лист в строку
-                            self.merge_label.setAlignment(
-                                QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)  # выравниваем надпись
-        except Exception as e:
-            raise e
-            print("Error {}".format(e.args[0]))
-        finally:
-            QtWidgets.QApplication.restoreOverrideCursor()
-            self.merge_toggle_instruments()
+        if self.merge_files_list.count() > 0:  # количество объектов больше 0
+            if self.merge_files_list.currentItem() is not None:
+                file = self.merge_files_list.currentItem().text()  # считываем текущую строку
+                if os.path.exists(file):
+                    with open(file, "r") as f:
+                        data = [file + ":\n\n"]  # лист для данных из файла
+                        for i in range(0, int(UI_READ_LINES)):  # читаем только первые несколько строк...
+                            data.append(f.readline())  # ...поскольку файлы могут быть большими
+                        data.append("...")
+                        self.merge_label.setText(("".join(data)))  # объединяем лист в строку
+                        self.merge_label.setAlignment(
+                            QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)  # выравниваем надпись
+        QtWidgets.QApplication.restoreOverrideCursor()
+        self.merge_toggle_instruments()
 
     def merge_toggle_instruments(self):  # включает/отключает инструменты
         # сначала всё отключим по умолчанию
@@ -146,7 +141,7 @@ class TabMergeUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             self.merge_actions[3].setEnabled(True)  # включаем кнопку "выделить всё"
         if len(self.merge_files_list.selectedItems()) > 0:  # имеются выбранные файлы
             self.merge_actions[1].setEnabled(True)  # включаем кнопку "удалить выбранные"
-            if len(self.merge_files_list.selectedItems()) > 1:  # выбрано более 2х файлов
+            if len(self.merge_files_list.selectedItems()) > 1:  # выбрано более двух файлов
                 self.merge_actions[4].setEnabled(True)
 
     def merge_add_files(self):
@@ -208,7 +203,7 @@ class TabMergeUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                     self.signal_message.emit(f"Файлы объединены с ошибками ({merge} ошибок): '{new_name}'")
                 else:
                     self.signal_message.emit(
-                        f"Ошибка при объединении данных. Проверьте исходные файлы либо указаннаые параметры конвертации.'")
+                     f"Ошибка при объединении данных. Проверьте исходные файлы либо указанные параметры конвертации.'")
 
         except Exception as e:
             raise e

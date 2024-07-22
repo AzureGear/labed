@@ -62,7 +62,7 @@ UI_AZ_SLICE_MANUAL = {
 }
 
 # az_exp_mnist.py
-UI_AZ_MNIST_ICON_PANEL = 22  # размер иконок для панели инструментов
+UI_AZ_MNIST_ICON_PANEL = 24  # размер иконок для панели инструментов
 UI_AZ_MNIST_DIGITS_SIZE = 24  # размер цифр для вкладки MNIST
 
 UI_AZ_PROC_ATTR_ICON_SIZE = 24  # размер иконок вкладки Обработка-Атрибуты на главной таблице

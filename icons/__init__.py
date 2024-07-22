@@ -40,7 +40,7 @@
 # glyph_smart_process: zero_wing
 # glyph_clear: LAFS
 # glyph_data_graph: Mohamed Mbarki
-
+# glyph_train: me & Cuputo
 
 # glyph_add_image: Pixel perfect
 # glyph_crop: me & Pixel perfect

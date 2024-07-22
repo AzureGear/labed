@@ -6,11 +6,13 @@ from ui import new_text, new_cbx, new_button
 from utils import AppSettings, helper, config
 import matplotlib.pyplot as plt
 import numpy as np
+from ui.az_math import *
 from datetime import datetime
 
 the_color = config.UI_COLORS.get("experiments_color")
 
 
+# ----------------------------------------------------------------------------------------------------------------------
 class PageMNIST(QtWidgets.QWidget):
     """
     Виджет типа страницы QTabWidget для работы с MNIST
@@ -65,10 +67,16 @@ class PageMNIST(QtWidgets.QWidget):
         self.slider_brush_size.setValue(5)
         self.slider_brush_size.valueChanged[int].connect(self.draw_change_brush_size)
         self.draw_brush_info = new_text(self, "5", alignment="c")
+        # переключить сетку
+        self.tb_toggle_grid = new_button(self, "tb", self.tr("Toggle grid"), "glyph_grid", the_color,
+                                         self.draw_toggle_grid, True, True, tooltip=self.tr("Toggle grid"))
 
         brush_size_lay = QtWidgets.QVBoxLayout()
+        slider_lay = QtWidgets.QHBoxLayout()
+        slider_lay.addWidget(self.slider_brush_size)
         brush_size_lay.addWidget(self.draw_brush_info)
-        brush_size_lay.addWidget(self.slider_brush_size)
+        brush_size_lay.addLayout(slider_lay)
+        brush_size_lay.addWidget(self.tb_toggle_grid)
 
         # Устанавливаем разметку для виджетов на вкладке
         self.gb_draw = QtWidgets.QGroupBox(self.tr("Draw"))
@@ -82,14 +90,11 @@ class PageMNIST(QtWidgets.QWidget):
 
         panel_lay = QtWidgets.QVBoxLayout()  # панель для работы с датасетом
         # инструменты: запустить обучение
-        self.tb_start_train = new_button(self, "tb", self.tr("Start training"), "glyph_gear", the_color,
+        self.tb_start_train = new_button(self, "tb", self.tr("Start training"), "glyph_train", the_color,
                                          self.start_training, False, False, tooltip=self.tr("Start training"))
         # инструменты: загрузить случайное изображение
         self.tb_get_random = new_button(self, "tb", self.tr("Load random image"), "glyph_dice", the_color,
                                         self.get_random_image, False, False, tooltip=self.tr("Load random image"))
-        # инструменты: переключить сетку
-        self.tb_toggle_grid = new_button(self, "tb", self.tr("Toggle grid"), "glyph_grid", the_color,
-                                         self.draw_toggle_grid, True, True, tooltip=self.tr("Toggle grid"))
         # инструменты: очистить лог
         self.tb_clear_log = new_button(self, "tb", self.tr("Clear log"), "glyph_clear", the_color,
                                        lambda: self.info.clear(), tooltip=self.tr("Clear log"))
@@ -97,10 +102,11 @@ class PageMNIST(QtWidgets.QWidget):
         self.tb_use_model = new_button(self, "tb", self.tr("Use model"), "glyph_data_graph", the_color,
                                        self.use_model, tooltip=self.tr("Use model for current image"))
 
-        tools = [self.tb_use_model, self.tb_get_random, self.tb_clear_log, self.tb_toggle_grid, self.tb_start_train]
+        tools = [self.tb_use_model, self.tb_get_random, self.tb_clear_log, self.tb_start_train]
         for tool in tools:
             panel_lay.addWidget(tool)
             tool.setIconSize(QtCore.QSize(config.UI_AZ_MNIST_ICON_PANEL, config.UI_AZ_MNIST_ICON_PANEL))
+        panel_lay.addStretch(1)
 
         h_layout = QtWidgets.QHBoxLayout()
         h_layout.addWidget(self.gb_draw)
@@ -147,7 +153,8 @@ class PageMNIST(QtWidgets.QWidget):
         self.epochs_label = new_text(self.tr("Epoch:"))
         self.cbx_epochs = new_cbx(self, ["1", "2", "3", "4", "5", "10", "20"], True, QtGui.QIntValidator(1, 30))
         self.activ_func_label = new_text(self.tr("Activation function:"))
-        self.cbx_activ_func = new_cbx(self, ["ReLU"])
+        self.cbx_activ_func = new_cbx(self, ["sigmoid", "ReLU", "linear", "binary step", "leaky ReLU",
+                                             "exponential linear unit", "Tanh"])
         self.number_of_layers_label = new_text(self.tr("Layers number:"))
         self.cbx_number_of_layers = new_cbx(self, ["1", "2", "3", "4", "5", "10"], True, QtGui.QIntValidator(1, 30))
         self.using_dataset_label = new_text(self.tr("MNIST usage, %:"))
@@ -205,7 +212,6 @@ class PageMNIST(QtWidgets.QWidget):
         pixmap = QtGui.QPixmap.fromImage(q_img)
         self.preview_show_mnist(pixmap)  # отправляем на отрисовку
 
-
     def set_digit(self):
         """Установка значений цифры и её вероятности"""
         for i, dig in enumerate(self.digits):
@@ -246,9 +252,8 @@ class PageMNIST(QtWidgets.QWidget):
                     "learning_rate": self.cbx_learning_rate.currentText(),
                     "nn_type": self.cbx_nn_type.currentText()
                     }
-
         self.store_settings()  # запоминаем выбранные настройки
-
+        self.add_message_info("\n", False)
         if self.cbx_nn_type.currentText() == "perceptron":  # тип НС "персептрон"
             self.tb_start_train.setDisabled(True)  # Делаем кнопку неактивной
             self.mnist_worker.init_data(**settings)  # инициализируем настройки
@@ -259,11 +264,11 @@ class PageMNIST(QtWidgets.QWidget):
 
     @QtCore.pyqtSlot()
     def mnist_on_started(self):  # Вызывается при запуске потока
-        self.signal_info.emit("---- Запуск обучения ----")
+        self.signal_info.emit(self.tr("---------- Training start ----------"))
 
     @QtCore.pyqtSlot()
     def mnist_on_finished(self):  # Вызывается при завершении потока
-        self.signal_info.emit(self.tr("Model training complete"))
+        self.signal_info.emit(self.tr("----- Model training complete -----"))
         self.tb_start_train.setDisabled(False)  # Делаем кнопку активной
 
     @QtCore.pyqtSlot(str)
@@ -271,9 +276,11 @@ class PageMNIST(QtWidgets.QWidget):
         self.signal_info.emit(s)
 
     @QtCore.pyqtSlot(str)
-    def add_message_info(self, message):  # передача информации в лог
-        current_time = datetime.now().time().strftime("%H:%M:%S")
-        message = current_time + ": " + message
+    def add_message_info(self, message, show_time=True):  # передача информации в лог
+        current_time = datetime.now().time().strftime("%H:%M:%S") + ": "
+        if not show_time:
+            current_time = ""
+        message = current_time + message
         self.info.setPlainText(message + "\n" + self.info.toPlainText())
 
     def update_font_color(self):
@@ -362,6 +369,7 @@ class PageMNIST(QtWidgets.QWidget):
         self.gb_preview.setTitle(self.tr('Preview'))
 
 
+# ----------------------------------------------------------------------------------------------------------------------
 class AzCanvas(QtWidgets.QLabel):
     """
     Холст рисования цифр, для распознавания при работе MNIST
@@ -423,6 +431,7 @@ class AzCanvas(QtWidgets.QLabel):
         self.update()
 
 
+# ----------------------------------------------------------------------------------------------------------------------
 class RoundProgressbar(QtWidgets.QWidget):
     def __init__(
             self,
@@ -571,10 +580,12 @@ class RoundProgressbar(QtWidgets.QWidget):
     fill_background_circle = pyqtProperty(bool, get_fill_bg_circle, set_fill_bg_circle)
 
 
+# ----------------------------------------------------------------------------------------------------------------------
 class MNISTHandler(QtWidgets.QWidget):
     """
     Виджет для хранения и отображения текущей модели (обученной НС) MNIST
     """
+
     def __init__(self, parent=None):
         super(MNISTHandler, self).__init__(parent)
         test = QtWidgets.QPushButton("Test")
@@ -583,10 +594,11 @@ class MNISTHandler(QtWidgets.QWidget):
         self.setLayout(finish_lay)
         self.model = None
 
-        self.tb_status = new_button()
+        # self.tb_status = new_button()
         self.label_status = new_text(self.tr("Model not loaded"))
 
 
+# ----------------------------------------------------------------------------------------------------------------------
 class MNISTWorker(QtCore.QThread):
     """Поток обучения, загрузка данных персептрона MNIST"""
     signal_message = QtCore.pyqtSignal(str)
@@ -619,8 +631,6 @@ class MNISTWorker(QtCore.QThread):
         learning_rate = float(self.params["learning_rate"])  # скорость обучения
 
         for epoch in range(epochs):
-            self.signal_message.emit(self.tr(f"Epoch #{epoch}"))
-
             for image, label in zip(images, labels):
                 image = np.reshape(image, (-1, 1))  # преобразование массивов исходных данных в [784, 1]
                 label = np.reshape(label, (-1, 1))  # [10, 1]
@@ -629,7 +639,7 @@ class MNISTWorker(QtCore.QThread):
                 # смещение + веса * данные изображения
                 # мы перемножаем [20x784] на [784x1] и получаем [20x1]
                 hidden_raw = bias_layer_2 + weights_layer_2 @ image  # [20, 1]
-                hidden = 1 / (1 + np.exp(-hidden_raw))  # функция активации: сигмоидная [20, 1]
+                hidden = 1 / (1 + np.exp(-hidden_raw))  # функция активации: сигмовидная [20, 1]
 
                 # прямое распространение (к выходному слою)
                 # мы перемножаем [10, 20] на [20, 1] и получаем [10, 1]
@@ -655,9 +665,9 @@ class MNISTWorker(QtCore.QThread):
 
             # DONE
 
-            # print some debug info between epochs
-            self.signal_message.emit(f"Loss: {round((e_loss[0] / images.shape[0]) * 100, 3)}%")
-            self.signal_message.emit(f"Accuracy: {round((e_correct / images.shape[0]) * 100, 3)}%")
+            self.signal_message.emit(
+                self.tr(f"Epoch {epoch + 1}: loss {round((e_loss[0] / images.shape[0]) * 100, 2)}%; "
+                        f"accuracy: {round((e_correct / images.shape[0]) * 100, 2)}%"))
             e_loss = 0
             e_correct = 0
 
@@ -692,6 +702,7 @@ class MNISTWorker(QtCore.QThread):
         # plt.show()
 
 
+# ----------------------------------------------------------------------------------------------------------------------
 def load_image_from_dataset(path, shuffle=True):
     """
     Статическая функция, возвращает одно изображение MNIST
@@ -713,6 +724,7 @@ def load_image_from_dataset(path, shuffle=True):
         #     return array[index]
 
 
+# ----------------------------------------------------------------------------------------------------------------------
 def load_dataset(path, using_percent=100, shuffle=False):
     """
     Статическая функция загрузки датасета MNIST, возвращает перечень изображений и значений для них:
@@ -751,6 +763,7 @@ def load_dataset(path, using_percent=100, shuffle=False):
         return x_train, y_train
 
 
+# ----------------------------------------------------------------------------------------------------------------------
 def pixelate_rgb(img, window):
     """Пикселизация изображения"""
     n, m, _ = img.shape
@@ -774,7 +787,7 @@ def pixelate_bin(img, window, threshold):
 
 
 def convert_to_grey():
-    # convert image to grayscale
+    # конвертация изображения в оттенки серого
     img = np.dot(plt.imread('test.png'), [0.299, 0.587, 0.114])
 
     fig, ax = plt.subplots(1, 3, figsize=(15, 10))
