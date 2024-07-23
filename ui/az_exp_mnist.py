@@ -227,8 +227,11 @@ class PageMNIST(QtWidgets.QWidget):
     def set_digits(self, result):
         """Установка значений цифры и её вероятности"""
         for i, dig in enumerate(self.digits):
-            self.digits[i].set_value(result[i*100])
-            self.digits_chance[i].setText(f"{round(result[i],0)}%")
+            self.digits[i].set_value(result[i])
+            if result[i] < 0.5:
+                self.digits_chance[i].setText("-")
+            else:
+                self.digits_chance[i].setText(f"{round(result[i])}%")
 
     def clear_digits(self):
         """Очистка значений цифр и их вероятностей"""
@@ -246,22 +249,6 @@ class PageMNIST(QtWidgets.QWidget):
     def use_model(self):
         """Обработать изображение с помощью текущей модели и установить значения в виджетах"""
         self.set_digits(self.mnist_handler.use_model(self.current_img))
-        
-
-    def show_data(self):  # TODO: del
-        with np.load(self.settings.read_dataset_mnist()) as file:
-            # x_train: яркость 1 для ячейки, где есть контур цифры, а 0 для пустого значения
-            x_train = file['x_train']
-            tra = x_train[0]
-            y_train = file['y_train']
-        plt.figure(figsize=(10, 5))
-        for i in range(4):
-            plt.subplot(1, 4, i + 1)
-            plt.imshow(x_train[i], cmap='gray')
-            plt.title(f"Label: {y_train[i]}")
-            plt.axis('off')
-        plt.tight_layout()
-        plt.show()
 
     @QtCore.pyqtSlot(str)
     def toggle_use_model(self, msg):
@@ -674,9 +661,10 @@ class MNISTHandler(QtWidgets.QWidget):
         current_layer = image
         for bias, weights, activ_func in zip(bias_list, weights_list, activ_funcs_list):
             layer = bias + weights @ current_layer
-            result = get_activ_func(activ_func, layer)
-            current_layer = result
-        return current_layer
+            activ_layer = get_activ_func(activ_func, layer)
+            current_layer = activ_layer
+        result = [elem[0] * 100 for elem in current_layer]  # формируем результаты
+        return result
         # image = np.reshape(test_image, (-1, 1))
         #
         # # Forward propagation (to hidden layer)
@@ -753,6 +741,7 @@ class MNISTWorker(QtCore.QThread):
         e_correct = 0  # коррекция ошибки
         learning_rate = float(self.params["learning_rate"])  # скорость обучения
 
+        # TODO: вывести параметры с которыми запускается нейросеть
         for epoch in range(epochs):
             for image, label in zip(images, labels):
                 image = np.reshape(image, (-1, 1))  # преобразование массивов исходных данных в [784, 1]
