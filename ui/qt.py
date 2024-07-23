@@ -483,8 +483,31 @@ def save_via_qtextstream(table_data, path, exclude_columns: list = None):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
+def set_margins_recursive(widget, left, top, right, bottom, spacing):
+    # устанавливаем значения setContentsMargins для текущего объекта...
+    if isinstance(widget, (QtWidgets.QLayout, QtWidgets.QVBoxLayout, QtWidgets.QHBoxLayout, QtWidgets.QGridLayout)):
+        widget.setContentsMargins(left, top, right, bottom)
+        if hasattr(widget, 'setSpacing'):
+            widget.setSpacing(spacing)
+        for i in range(widget.layout().count()):  # ...и запускаем рекурсию
+            child = widget.itemAt(i).widget()
+            if child is not None:
+                set_margins_recursive(child, left, top, right, bottom, spacing)
 
-def set_widgets_and_layouts_margins(widget, left, top, right, bottom):
+    elif isinstance(widget, (QtWidgets.QWidget, QtWidgets.QGroupBox)):
+        widget.setContentsMargins(left, top, right, bottom)
+        if hasattr(widget, 'setSpacing'):
+            widget.setSpacing(spacing)
+        layout = widget.layout()
+        if layout:
+            layout.setContentsMargins(left, top, right, bottom)
+            for i in range(layout.count()):
+                item = layout.itemAt(i)
+                if item is not None:
+                    set_margins_recursive(item, left, top, right, bottom, spacing)
+
+
+def set_widgets_and_layouts_margins2(widget, left, top, right, bottom):
     """Установка всем виджетам и компоновщикам отступов. Работает рекурсивно"""
     if isinstance(widget, QtWidgets.QWidget):  # наш тип виджет
         layout = widget.layout()
@@ -492,13 +515,13 @@ def set_widgets_and_layouts_margins(widget, left, top, right, bottom):
             layout.setContentsMargins(left, top, right, bottom)
             for i in range(widget.layout().count()):
                 # запускаем рекурсию
-                set_widgets_and_layouts_margins(widget.layout().itemAt(i).widget(), left, top, right, bottom)
+                set_widgets_and_layouts_margins2(widget.layout().itemAt(i).widget(), left, top, right, bottom)
     elif isinstance(widget, QtWidgets.QLayout):  # наш тип Layout
         for i in range(widget.count()):
-            set_widgets_and_layouts_margins(widget.itemAt(i).widget(), left, top, right, bottom)  # запускаем рекурсию
+            set_widgets_and_layouts_margins2(widget.itemAt(i).widget(), left, top, right, bottom)  # запускаем рекурсию
     elif isinstance(widget, QtWidgets.QSplitter):  # наш тип разделитель
         for i in range(widget.count()):
-            set_widgets_and_layouts_margins(widget.itemAt(i).widget(), left, top, right, bottom)  # запускаем рекурсию
+            set_widgets_and_layouts_margins2(widget.itemAt(i).widget(), left, top, right, bottom)  # запускаем рекурсию
 
 
 # ----------------------------------------------------------------------------------------------------------------------

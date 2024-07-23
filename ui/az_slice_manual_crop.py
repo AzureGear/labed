@@ -25,7 +25,7 @@ class AzManualSlice(QtWidgets.QMainWindow):
     signal_crop = QtCore.pyqtSignal(int)  # изменение значения кадрирования
 
     def __init__(self, parent=None):
-        super().__init__()
+        super().__init__(parent)
         self.settings = AppSettings()  # настройки программы
         # по правилам pep8
         self.crop_options = dict()  # словарь параметров кадрирования
@@ -45,7 +45,7 @@ class AzManualSlice(QtWidgets.QMainWindow):
         self.setup_files_widget()  # Настраиваем правую область: файлы
 
         # перечень файлов текущего проекта
-        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.files_dock)
+        self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, self.files_dock)
 
         # панель инструментов
         self.addToolBar(self.slice_toolbar)
@@ -164,9 +164,8 @@ class AzManualSlice(QtWidgets.QMainWindow):
             new_act(self, "Move", "glyph_point_move", the_color, self.point_move, True),  # передвинуть метку
             new_act(self, "Delete", "glyph_point_remove", the_color, self.point_delete, True),  # удалить метку
             new_act(self, "Universal", "glyph_point_universal", the_color, self.point_universal, True),  # универсальный
-            new_act(self, "Change crop size", "glyph_resize", the_color, self.change_crop_size),
-            # сменить размер кадрирования
-            new_act(self, "Slice", "glyph_slice", the_color, self.manual_slice_exec))  # разрезать снимки
+            new_act(self, "Change crop size", "glyph_resize", the_color, self.change_crop_size),  # размер кадрирования
+            new_act(self, "Crop project data", "glyph_slice", the_color, self.manual_slice_exec))  # разрезать снимки
 
     def fit_image(self):  # отобразить изображение целиком
         self.image_widget.fitInView(self.image_widget.pixmap_item, QtCore.Qt.KeepAspectRatio)
@@ -194,7 +193,8 @@ class AzManualSlice(QtWidgets.QMainWindow):
         """Универсальный инструмент: правой кнопкой добавить, левой - переместить, shift+click - удалить"""
         self.set_action_from_state(ViewState.point_universal, "Universal")
 
-    def create_blank_file(self):  # создать новый пустой проект РК
+    def create_blank_file(self):
+        """Создать новый пустой проект РК"""
         data = dict()
         data["filename"] = self.input_file.FullNameJsonFile
         data["path_to_images"] = self.input_file.DataDict["path_to_images"]
@@ -459,7 +459,7 @@ class AzManualSlice(QtWidgets.QMainWindow):
         self.slice_actions[8].setText(self.tr('Delete'))
         self.slice_actions[9].setText(self.tr('Universal'))
         self.slice_actions[10].setText(self.tr('Change crop size'))
-        self.slice_actions[11].setText(self.tr('Slice'))
+        self.slice_actions[11].setText(self.tr('Crop project data'))
 
 
 if __name__ == '__main__':

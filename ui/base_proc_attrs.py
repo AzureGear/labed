@@ -6,7 +6,7 @@ from utils.sama_project_handler import DatasetSAMAHandler
 from utils.az_dataset_sort_handler import DatasetSortHandler
 from ui import new_act, new_button, new_icon, coloring_icon, new_text, new_label_icon, AzButtonLineEdit, \
     az_file_dialog
-from ui import save_via_qtextstream, setup_dock_widgets, set_widgets_and_layouts_margins
+from ui import save_via_qtextstream, setup_dock_widgets
 from ui import AzSortTable, AzTableModel, AzTableAttributes
 import os
 import shutil
@@ -337,9 +337,6 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)
         splitter.addWidget(container_left)
         splitter.addWidget(container_right)
-
-        set_widgets_and_layouts_margins(splitter, 0, 0, 0, 0)
-        splitter.setContentsMargins(5, 5, 5, 5)  # и только главный виджет будет иметь отступы
         return splitter
 
     def setup_log(self):

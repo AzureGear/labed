@@ -14,7 +14,8 @@ from .qt import new_text
 from .qt import new_cbx
 from .qt import save_via_qtextstream
 from .qt import labelValidator
-from .qt import set_widgets_and_layouts_margins
+from .qt import set_widgets_and_layouts_margins2
+from .qt import set_margins_recursive
 from .qt import set_widgets_visible
 
 from .az_table_models import AzTableModel

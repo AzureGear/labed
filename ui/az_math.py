@@ -4,6 +4,19 @@ import numpy as np
 """Функции активации"""
 
 
+def get_activ_func(name, x):
+    """Автоматизированное использование функции активации через словарь. Доступно 7 функций. Может быть расширен."""
+    activation_functions = {
+        "sigmoid": activ_func_sigmoid,
+        "ReLU": activ_func_relu,
+        "linear": activ_func_linear,
+        "binary step": activ_func_binary_step,
+        "leaky ReLU": activ_func_leaky_relu,
+        "exponential linear unit": activ_func_elu,
+        "Tanh": activ_func_tanh}
+    return activation_functions[name](x)
+
+
 def activ_func_linear(x):
     """Линейная функция активации"""
     return x

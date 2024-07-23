@@ -1,5 +1,5 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
-from ui import new_act, new_button, set_widgets_and_layouts_margins, AzInputDialog, az_custom_dialog
+from ui import new_act, new_button, AzInputDialog, az_custom_dialog
 from utils import config, DatasetSAMAHandler
 import copy
 
@@ -406,13 +406,6 @@ class AzSimpleModel(QtCore.QAbstractTableModel):
         else:
             return 0
 
-    # def headerData(self, section, orientation, role=QtCore.Qt.ItemDataRole.DisplayRole):
-    #     if role == QtCore.Qt.ItemDataRole.DisplayRole and orientation == QtCore.Qt.Orientation.Horizontal:
-    #         if section < len(self._headers):
-    #             return self._headers[section]
-    #         else:
-    #             return ""
-
     def headerData(self, section, orientation, role=QtCore.Qt.ItemDataRole.DisplayRole):
         if role != QtCore.Qt.ItemDataRole.DisplayRole:
             return None
@@ -466,14 +459,17 @@ class AzTableModel(QtCore.QAbstractTableModel):
         if role != QtCore.Qt.ItemDataRole.DisplayRole:
             return None
         if role == QtCore.Qt.ItemDataRole.DisplayRole:
-            if orientation == QtCore.Qt.Orientation.Horizontal:
-                if section < len(self._header_data):
-                    return self._header_data[section]
-                else:
-                    return ""
             if orientation == QtCore.Qt.Orientation.Vertical:
                 if self._vertical_data:
                     return str(self._vertical_data[section])
+            if orientation == QtCore.Qt.Orientation.Horizontal:
+                if not self._header_data:
+                    return None
+                if section < len(self._header_data):
+                    return self._header_data[section]
+                else:
+                    return None
+        # не отображать заголовков у строк
         if self._no_rows_captions:
             return None
         else:
