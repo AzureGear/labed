@@ -152,6 +152,14 @@ class AppSettings:
         """Файл сортировки train-val-test для страницы атрибутов [w]"""
         self.settings.setValue('attributes/sort_file', path)
 
+    def read_mnist_model_file(self):
+        """Путь к обученной модели - MNIST [r]"""
+        return self.settings.value('experiments/mnist_model_file', "")
+
+    def write_mnist_model_file(self, path):
+        """Путь к обученной модели - MNIST [w]"""
+        self.settings.setValue('experiments/mnist_model_file', path)
+
     def read_mnist_epochs(self):
         """Количество эпох для вкладки Эксперименты - MNIST [r]"""
         return self.settings.value('experiments/mnist_epochs', '3')

@@ -1,14 +1,12 @@
-import random
-import time
-
 from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtCore import pyqtProperty
 from ui import new_text, new_cbx, new_button, new_icon, AzTableModel
 from utils import AppSettings, helper, config
-import matplotlib.pyplot as plt
-import numpy as np
-from ui.az_math import *
 from datetime import datetime
+from ui.az_math import *
+import numpy as np
+import random
+import os
 
 the_color = config.UI_COLORS.get("experiments_color")
 ROW_H = 16
@@ -68,10 +66,10 @@ class PageMNIST(QtWidgets.QWidget):
         # слайдер изменения толщины кисти рисования
         self.slider_brush_size = QtWidgets.QSlider(QtCore.Qt.Orientation.Vertical, self)
         self.slider_brush_size.setMinimum(1)
-        self.slider_brush_size.setMaximum(15)
-        self.slider_brush_size.setValue(5)
+        self.slider_brush_size.setMaximum(20)
+        self.slider_brush_size.setValue(7)
         self.slider_brush_size.valueChanged[int].connect(self.draw_change_brush_size)
-        self.draw_brush_info = new_text(self, "5", alignment="c")
+        self.draw_brush_info = new_text(self, str(self.slider_brush_size.value()), alignment="c")
         # переключить сетку
         self.tb_toggle_grid = new_button(self, "tb", self.tr("Toggle grid"), "glyph_grid", the_color,
                                          self.draw_toggle_grid, True, True, tooltip=self.tr("Toggle grid"))
@@ -259,7 +257,8 @@ class PageMNIST(QtWidgets.QWidget):
 
     def start_training(self):
         """Запуск на обучение НС"""
-        settings = {"nn_type": self.cbx_nn_type.currentText(),
+        settings = {"uniq_id": helper.generate_random_name(),
+                    "nn_type": self.cbx_nn_type.currentText(),
                     "platform": self.cbx_platform.currentText(),
                     "accuracy": "-",
                     "loss": "-",
@@ -360,7 +359,7 @@ class PageMNIST(QtWidgets.QWidget):
                                     QtCore.Qt.TransformationMode.FastTransformation)  # ...и разжимаем
         # записываем изображение в память
         to_mass = pixelated.scaled(28, 28, QtCore.Qt.AspectRatioMode.KeepAspectRatio,
-                                            QtCore.Qt.TransformationMode.FastTransformation)
+                                   QtCore.Qt.TransformationMode.FastTransformation)
         self.current_img = self.convert_pixmap_to_numpy(to_mass)
 
         if self.preview_show_grid:  # определяем необходимость отрисовки сетки
@@ -423,12 +422,12 @@ class AzCanvas(QtWidgets.QLabel):
         self.draw = False  # рисование
         self.last_x, self.last_y = None, None  # координаты точки рисования
         self.pen_color = QtCore.Qt.GlobalColor.black
-        self.pen_size = 5
+        self.pen_size = 7
 
     def set_pen_size(self, size):
         """Смена толщины кисти для рисования"""
-        if size > 15:
-            size = 15
+        if size > 30:
+            size = 30
         elif size < 1:
             size = 1
         self.pen_size = size
@@ -628,19 +627,44 @@ class MNISTHandler(QtWidgets.QWidget):
 
     def __init__(self, parent=None):
         super(MNISTHandler, self).__init__(parent)
+        self.settings = AppSettings()
         self.model_params = None  # параметры модели
         self.model_data = None  # данные модели
 
         self.label_status = new_text(self.tr("Model not loaded"))
         self.btn_status = new_button(self, "tb", icon="circle_grey", color=None, icon_size=16,
                                      tooltip=self.tr("Model status"))
+        self.tb_save = new_button(self, "tb", self.tr("Save current model"), "glyph_save2", the_color, self.save_model,
+                                  icon_size=config.UI_AZ_MNIST_ICON_PANEL, tooltip=self.tr("Save current model"))
+        self.tb_load = new_button(self, "tb", self.tr("Load last saved model"), "glyph_folder_recent", the_color,
+                                  self.load_model, icon_size=config.UI_AZ_MNIST_ICON_PANEL,
+                                  tooltip=self.tr("Load last saved model"))
         self.table_params = QtWidgets.QTableView()
         hlayout = QtWidgets.QHBoxLayout()
         hlayout.addWidget(self.btn_status)
         hlayout.addWidget(self.label_status)
+        hlayout.addWidget(self.tb_save)
+        hlayout.addWidget(self.tb_load)
         finish_lay = QtWidgets.QVBoxLayout(self)
         finish_lay.addLayout(hlayout)
         finish_lay.addWidget(self.table_params)
+
+    def save_model(self):
+        # проверяем есть ли каталог с MNIST?
+        if os.path.exists(os.path.dirname(self.settings.read_dataset_mnist())):
+            # тогда сохраняем модель там
+            new_name = os.path.join(os.path.dirname(self.settings.read_dataset_mnist()), self.model_params["uniq_id"])
+
+        else:
+
+
+            data = (self.params, self.model_data)
+            helper.save(new_name, {"tuple": data})
+
+        self.settings.read_mnist_model_file()
+
+    def load_model(self):
+        pass
 
     @QtCore.pyqtSlot(tuple)
     def set_model(self, data):
@@ -878,6 +902,7 @@ def load_dataset(path, using_percent=100, shuffle=False):
         # выходные данные
         y_train = file['y_train']
         y_train = y_train[sel_inx]  # ограничиваем набор датасета при 100% = 60000
+        #                                                           6          1     ...      8
         # выходные 1-х матрицы в формате по 10 классов цифр [[0000001000][0100000000]...[0000000010]]]
         y_train = np.eye(10)[y_train]
 

@@ -1,16 +1,27 @@
 # Общие вспомогательные функции Azura.
+import random
 import re
 import os
 import ujson
+import string
 
 PATTERNS = {"double_underscore": r"^([^_]+)_([^_]+)"} # общие паттерны поиска
 
 
 # ----------------------------------------------------------------------------------------------------------------------
+def generate_random_name(length=5, letters=True, digits=True):
+    """Генерация случайных имен, определенной длинны. С помощью флагов можно указать генерацию только цифр/букв"""
+    letters = string.ascii_letters if letters else ''
+    digits = string.digits if digits else ''
+    symbols = letters + digits
+    if not letters:
+        return None
+
+    random_name = ''.join(random.choice(symbols) for _ in range(length))
+    return random_name
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-
 def natural_order(val):
     """Естественная сортировка"""
     return [int(text) if text.isdigit() else text.lower() for text in re.split('(\d+)', val)]
