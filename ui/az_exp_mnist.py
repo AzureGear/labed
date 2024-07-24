@@ -1,6 +1,6 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtCore import pyqtProperty
-from ui import new_text, new_cbx, new_button, new_icon, AzTableModel
+from ui import new_text, new_cbx, new_button, new_icon, AzTableModel, az_file_dialog
 from utils import AppSettings, helper, config
 from datetime import datetime
 from ui.az_math import *
@@ -43,7 +43,6 @@ class PageMNIST(QtWidgets.QWidget):
         self.mnist_handler.signal_mnist_handler.connect(self.toggle_use_model)
         # сигналы интерфейса
         self.draw28x28.signal_draw.connect(self.preview_show_draw)
-        self.tempPB.clicked.connect(self.on_clicked)  # TODO: delete
         self.signal_info.connect(self.add_message_info)  # передача сообщения в лог
 
     def setup_ui(self):
@@ -161,6 +160,9 @@ class PageMNIST(QtWidgets.QWidget):
                                              "exponential linear unit", "Tanh"])
         self.number_of_layers_label = new_text(self.tr("Layers number:"))
         self.cbx_number_of_layers = new_cbx(self, ["1", "2", "3", "4", "5", "10"], True, QtGui.QIntValidator(1, 30))
+        self.cbx_number_of_layers.setCurrentText("2")
+        self.cbx_number_of_layers.setEnabled(False)  # TODO: добавить возможность расширять слой
+
         self.using_dataset_label = new_text(self.tr("MNIST usage, %:"))
         self.cbx_using_dataset = new_cbx(self, ["1", "5", "10", "15", "20", "25", "50", "75", "100"], True,
                                          QtGui.QIntValidator(1, 100))
@@ -180,8 +182,6 @@ class PageMNIST(QtWidgets.QWidget):
             grid_layout.addWidget(label, 0, i)
             grid_layout.addWidget(widget, 1, i)
         grid_layout.addWidget(self.chk_use_random_data, 2, 0, 1, 2)
-
-        self.tempPB = QtWidgets.QPushButton("Temp")
 
         self.gb_settings = QtWidgets.QGroupBox(self.tr("Input settings"))
         self.gb_settings.setLayout(grid_layout)
@@ -208,8 +208,6 @@ class PageMNIST(QtWidgets.QWidget):
         h_layout3.addWidget(self.info, 1)  # делаем вывод максимальным
         layout.addWidget(self.gb_settings)
         layout.addLayout(h_layout3)
-        layout.addWidget(self.tempPB)
-        layout.addStretch(1)
 
     def get_random_image(self):
         img = load_image_from_dataset(self.settings.read_dataset_mnist())  # извлекаем случайное изображение из датасета
@@ -225,11 +223,18 @@ class PageMNIST(QtWidgets.QWidget):
     def set_digits(self, result):
         """Установка значений цифры и её вероятности"""
         for i, dig in enumerate(self.digits):
+            self.digits[i].set_base_color(QtGui.QColor(128, 128, 128))  # ставим всем обычный цвет
             self.digits[i].set_value(result[i])
             if result[i] < 0.5:
                 self.digits_chance[i].setText("-")
             else:
                 self.digits_chance[i].setText(f"{round(result[i])}%")
+        if self.settings.read_ui_theme() == "light":  # в зависимости от текущей темы выбираем цвет
+            current_color = QtGui.QColor("black")
+        else:
+            current_color = QtGui.QColor("white")
+        # для цифры с максимальной величиной устанавливаем яркий цвет шрифта
+        self.digits[np.argmax(result)].set_base_color(QtGui.QColor(current_color))
 
     def clear_digits(self):
         """Очистка значений цифр и их вероятностей"""
@@ -237,21 +242,19 @@ class PageMNIST(QtWidgets.QWidget):
             self.digits[i].set_value(0)
             self.digits_chance[i].setText("-")
 
-    @QtCore.pyqtSlot()
-    def on_clicked(self):
-        for i, dig in enumerate(self.digits):
-            self.digits[i].set_value(100)
-            self.digits_chance[i].setText("99%")
-        pass
-
     def use_model(self):
         """Обработать изображение с помощью текущей модели и установить значения в виджетах"""
         self.set_digits(self.mnist_handler.use_model(self.current_img))
 
     @QtCore.pyqtSlot(str)
     def toggle_use_model(self, msg):
+        """Обработка событий модели"""
         if msg == "model_is_set":
             self.tb_use_model.setEnabled(True)
+        elif msg == "model_is_saved":
+            self.signal_info.emit(self.tr(f"Model saved: {self.mnist_handler.model_params['uniq_id']}"))
+        elif msg == "model_was_load":
+            self.signal_info.emit(self.tr(f"Model loaded: {self.mnist_handler.model_params['uniq_id']}"))
         else:
             self.tb_use_model.setEnabled(False)
 
@@ -272,7 +275,7 @@ class PageMNIST(QtWidgets.QWidget):
         self.store_settings()  # запоминаем выбранные настройки
         self.add_message_info("\n", False)
         if self.cbx_nn_type.currentText() == "perceptron":  # тип НС "персептрон"
-            self.tb_start_train.setDisabled(True)  # Делаем кнопку неактивной
+            self.tb_start_train.setEnabled(False)  # Делаем кнопку неактивной
             self.mnist_worker.init_data(**settings)  # инициализируем настройки
             self.mnist_worker.start()  # Запускаем поток
         elif self.cbx_nn_type == "CNN":  # тип "сверточная" НС
@@ -282,11 +285,14 @@ class PageMNIST(QtWidgets.QWidget):
     @QtCore.pyqtSlot()
     def mnist_on_started(self):  # Вызывается при запуске потока
         self.signal_info.emit(self.tr("---------- Training start ----------"))
+        self.mnist_handler.change_icon("red")  # меняем иконку, сигнализируя, что идет процесс и...
+        self.mnist_handler.tb_load.setEnabled(False)  # ...отключаем возможность загружать сохранённую модель
 
     @QtCore.pyqtSlot()
     def mnist_on_finished(self):  # Вызывается при завершении потока
         self.signal_info.emit(self.tr("----- Model training complete -----"))
-        self.tb_start_train.setDisabled(False)  # Делаем кнопку активной
+        self.tb_start_train.setEnabled(True)  # Делаем кнопку сохранения активной
+        self.mnist_handler.tb_load.setEnabled(True)
 
     @QtCore.pyqtSlot(str)
     def mnist_on_change(self, s):
@@ -309,7 +315,8 @@ class PageMNIST(QtWidgets.QWidget):
             # print("dark")
 
     @QtCore.pyqtSlot(int)
-    def draw_change_brush_size(self, val):  # изменение размера кисти
+    def draw_change_brush_size(self, val):
+        """Изменение размера кисти"""
         self.draw_brush_info.setText(str(val))
         self.draw28x28.set_pen_size(val)
 
@@ -319,6 +326,7 @@ class PageMNIST(QtWidgets.QWidget):
 
     @staticmethod
     def print_grid(pixmap):
+        """Отрисовка сетки"""
         # увеличиваем на 1 пиксель, чтобы сетка была ровной
         new_pixmap = QtGui.QPixmap(pixmap.width() + 1, pixmap.height() + 1)
         painter = QtGui.QPainter(new_pixmap)
@@ -332,13 +340,12 @@ class PageMNIST(QtWidgets.QWidget):
         painter.end()
         return new_pixmap
 
-    def convert_pixmap_to_numpy(self, pixmap):
+    @staticmethod
+    def convert_pixmap_to_numpy(pixmap):
+        """Конвертация из картинки QPixmap (оттенки серого) в один столбец (массив numpy[-1, 1])"""
         image = pixmap.toImage()
-        width = image.width()
-        height = image.height()
-
-        # создаём пустой массив
-        array = np.empty((height, width), dtype=np.float32)
+        width, height = image.height(), image.width()  # ширина и высота
+        array = np.empty((height, width), dtype=np.float32)  # создаём пустой массив
 
         # заполняем пустой массив значениями
         for y in range(height):
@@ -346,21 +353,18 @@ class PageMNIST(QtWidgets.QWidget):
                 # хотя нас ведь серый, поэтому можно использовать любой цвет, через QColor
                 gray_value = QtGui.qGray(image.pixel(x, y))
                 array[y, x] = (255 - gray_value) / 255  # инвертируем значения и переводим UnitRGB
-
-        # x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1] * x_train.shape[2]))
-
         array = np.reshape(array, (-1, 1))
-        return None
+        return array
 
     def preview_show_draw(self, pixmap):  # пикселизация нарисованного объекта
         the28x28 = pixmap.scaled(28, 28, QtCore.Qt.AspectRatioMode.KeepAspectRatio,
                                  QtCore.Qt.TransformationMode.SmoothTransformation)  # сжимаем...
         pixelated = the28x28.scaled(28 * 5, 28 * 5, QtCore.Qt.AspectRatioMode.IgnoreAspectRatio,
                                     QtCore.Qt.TransformationMode.FastTransformation)  # ...и разжимаем
-        # записываем изображение в память
+        # снова преобразуем к 28х28
         to_mass = pixelated.scaled(28, 28, QtCore.Qt.AspectRatioMode.KeepAspectRatio,
                                    QtCore.Qt.TransformationMode.FastTransformation)
-        self.current_img = self.convert_pixmap_to_numpy(to_mass)
+        self.current_img = self.convert_pixmap_to_numpy(to_mass)  # записываем изображение в память
 
         if self.preview_show_grid:  # определяем необходимость отрисовки сетки
             pixelated = self.print_grid(pixelated)
@@ -523,7 +527,7 @@ class RoundProgressbar(QtWidgets.QWidget):
         painter.drawArc(self._thickness, self._thickness, self._circular_size, self._circular_size, self._a * 16,
                         self._alen * 16)
 
-        # az_realization
+        # ------------- az_realization -------------
         digit_str = str(self._digit)
         font = QtGui.QFont('Tahoma', self._digit_size)  # Lucida Console,
         metrics = QtGui.QFontMetrics(font)
@@ -533,7 +537,7 @@ class RoundProgressbar(QtWidgets.QWidget):
         painter.setPen(self._base_color)
         painter.drawText(x, y, digit_str)
         # painter.drawText(self.rect(), QtCore.Qt.AlignCenter, str(self._digit))
-
+        # ------------- end az_realization -------------
         painter.end()
 
     def resizeEvent(self, event):
@@ -543,6 +547,10 @@ class RoundProgressbar(QtWidgets.QWidget):
 
     def get_value(self):
         return self._value
+
+    def set_base_color(self, color: QtGui.QColor):
+        self._base_color = color
+        self.update()
 
     @QtCore.pyqtSlot(int)
     def set_value(self, value: int):
@@ -635,9 +643,9 @@ class MNISTHandler(QtWidgets.QWidget):
         self.btn_status = new_button(self, "tb", icon="circle_grey", color=None, icon_size=16,
                                      tooltip=self.tr("Model status"))
         self.tb_save = new_button(self, "tb", self.tr("Save current model"), "glyph_save2", the_color, self.save_model,
-                                  icon_size=config.UI_AZ_MNIST_ICON_PANEL, tooltip=self.tr("Save current model"))
+                                  icon_size=16, tooltip=self.tr("Save current model"))
         self.tb_load = new_button(self, "tb", self.tr("Load last saved model"), "glyph_folder_recent", the_color,
-                                  self.load_model, icon_size=config.UI_AZ_MNIST_ICON_PANEL,
+                                  self.load_model, icon_size=16,
                                   tooltip=self.tr("Load last saved model"))
         self.table_params = QtWidgets.QTableView()
         hlayout = QtWidgets.QHBoxLayout()
@@ -648,23 +656,37 @@ class MNISTHandler(QtWidgets.QWidget):
         finish_lay = QtWidgets.QVBoxLayout(self)
         finish_lay.addLayout(hlayout)
         finish_lay.addWidget(self.table_params)
+        self.tb_save.setEnabled(False)  # отключаем модель, сохранять пока нечего
 
     def save_model(self):
-        # проверяем есть ли каталог с MNIST?
-        if os.path.exists(os.path.dirname(self.settings.read_dataset_mnist())):
+        """Сохранение модели со случайным именем из 5 символов, по умолчанию в каталоге с MNIST, в виде словаря"""
+        if os.path.exists(os.path.dirname(self.settings.read_dataset_mnist())):  # проверяем есть ли каталог с MNIST?
             # тогда сохраняем модель там
             new_name = os.path.join(os.path.dirname(self.settings.read_dataset_mnist()), self.model_params["uniq_id"])
 
-        else:
+        else:  # иначе вызываем диалог
+            new_name = az_file_dialog(self, self.tr("Select dir to save model"), self.settings.read_last_dir(),
+                                      dir_only=True)
+            if not new_name:  # нажата кнопка "Отмена"
+                return
+            new_name = os.path.join(new_name, self.model_params["uniq_id"] + ".pkl")
 
-
-            data = (self.params, self.model_data)
-            helper.save(new_name, {"tuple": data})
-
-        self.settings.read_mnist_model_file()
+        helper.save_pickle(new_name, {"params": self.model_params, "model_data": self.model_data})  # сохраняем
+        self.settings.write_mnist_model_file(new_name)  # запоминаем
+        self.signal_mnist_handler.emit("model_is_saved")  # сообщаем, что модель сохранена
 
     def load_model(self):
-        pass
+        """Загрузка сохранённой модели"""
+        if os.path.exists(self.settings.read_mnist_model_file()):  # сначала смотрим, есть ли сохраненные?
+            data = helper.load_pickle(self.settings.read_mnist_model_file())  # загружаем данные
+        else:
+            sel_file = az_file_dialog(self, self.tr("Load MNIST model *.pkl"), self.settings.read_last_dir(),
+                                      dir_only=False, filter="Pickle (*.pkl)", initial_filter="pickle (*.pkl)")
+            if not helper.check_files(sel_file):  # нажали "Отмена"
+                return
+            data = helper.load_pickle(sel_file[0])
+        self.set_model((data["params"], data["model_data"]))  # устанавливаем модель
+        self.signal_mnist_handler.emit("model_was_load")
 
     @QtCore.pyqtSlot(tuple)
     def set_model(self, data):
@@ -672,10 +694,9 @@ class MNISTHandler(QtWidgets.QWidget):
         Данные модели это {"data":(bias_layer1, weights_layer1, activ_func1), (bias_layer2, ...), ... }"""
         self.model_params, self.model_data = data
         self.set_table_data()  # настраиваем отображение параметров модели в таблице
-        # self.model = {"bias":bias_list, weights_list, activ_list}
-        # TODO: какая-то проверка модели, если всё ок то
         now = datetime.now().strftime("%H:%M:%S")
         self.change_status(self.tr(f"Model was set at {now}"), "green", "model_is_set")
+        self.tb_save.setEnabled(True)
 
     def use_model(self, image_data):
         """Использование обученной модели для определения данных. Входные данные image_data - изображение переведенное
@@ -689,14 +710,6 @@ class MNISTHandler(QtWidgets.QWidget):
             current_layer = activ_layer
         result = [elem[0] * 100 for elem in current_layer]  # формируем результаты
         return result
-        # image = np.reshape(test_image, (-1, 1))
-        #
-        # # Forward propagation (to hidden layer)
-        # hidden_raw = bias_layer_1 + weights_layer_1 @ image
-        # hidden = 1 / (1 + np.exp(-hidden_raw))  # sigmoid
-        # # Forward propagation (to output layer)
-        # output_raw = bias_layer_2 + weights_layer_2 @ hidden
-        # output = 1 / (1 + np.exp(-output_raw))
 
     def set_table_data(self):
         """Настраиваем таблицу"""
@@ -765,7 +778,17 @@ class MNISTWorker(QtCore.QThread):
         e_correct = 0  # коррекция ошибки
         learning_rate = float(self.params["learning_rate"])  # скорость обучения
 
-        # TODO: вывести параметры с которыми запускается нейросеть
+        info = self.tr(f"type: {self.params['nn_type']}; "
+                       f"epochs: {self.params['epochs']}; "
+                       f"activation: {activ_func}; "
+                       f"layers: {self.params['number_of_layers']}; "
+                       f"shuffle mnist: {self.params['shuffle_data']}; "
+                       f"learning rate: {self.params['learning_rate']}; "
+                       f"dataset limit: {self.params['dataset_using']}%; "
+                       f"platform: {self.params['platform']}; "
+                       f"unique id: {self.params['uniq_id']}")
+
+        self.signal_message.emit(self.tr(f"Training settings: {info}"))
         for epoch in range(epochs):
             for image, label in zip(images, labels):
                 image = np.reshape(image, (-1, 1))  # преобразование массивов исходных данных в [784, 1]
@@ -804,10 +827,9 @@ class MNISTWorker(QtCore.QThread):
                 acc = round((e_correct / images.shape[0]) * 100, 2)
                 self.params["loss"] = str(loss) + "%"
                 self.params["accuracy"] = str(acc) + "%"
-            # DONE
+            # Обучение завершено
 
             self.signal_message.emit(self.tr(f"Epoch {epoch + 1}: loss {loss}%; accuracy: {acc}%"))
-
             e_loss = 0
             e_correct = 0
 
@@ -815,36 +837,7 @@ class MNISTWorker(QtCore.QThread):
         # структура данных: ({словарь параметров}, {данные обученной модели})
         data = (self.params,
                 {"data": [(bias_layer_1, weights_layer_1, activ_func), (bias_layer_2, weights_layer_2, activ_func)]})
-        self.signal_model.emit(data)
-        return
-        # self.signal_message.emit(f"output: {output}")
-
-        # TODO: use_not_in_set! цикл.
-        test_image = random.choice(images)
-
-        # CHECK CUSTOM
-        # test_image = plt.imread("custom.jpg", format="jpeg")
-
-        # Grayscale + Unit RGB + inverse colors
-        # gray = lambda rgb: np.dot(rgb[..., :3], [0.299, 0.587, 0.114])
-        # test_image = 1 - (gray(test_image).astype("float32") / 255)
-
-        # Reshape custom
-        # test_image = np.reshape(test_image, (test_image.shape[0] * test_image.shape[1]))
-        # Predict
-        image = np.reshape(test_image, (-1, 1))
-
-        # Forward propagation (to hidden layer)
-        hidden_raw = bias_layer_1 + weights_layer_1 @ image
-        hidden = 1 / (1 + np.exp(-hidden_raw))  # sigmoid
-        # Forward propagation (to output layer)
-        output_raw = bias_layer_2 + weights_layer_2 @ hidden
-        output = 1 / (1 + np.exp(-output_raw))
-
-        print(output.argmax())
-        # plt.imshow(test_image.reshape(28, 28), cmap="Greys")
-        # plt.title(f"NN suggests the CUSTOM number is: {output.argmax()}")
-        # plt.show()
+        self.signal_model.emit(data)  # отправляем модель
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -986,7 +979,3 @@ if __name__ == "__main__":
     w = PageMNIST()
     w.show()
     app.exec()
-
-# with np.load(self.settings.read_dataset_mnist()) as file:
-#     img = file['x_train'][0]
-# # конвертируем в формат numpy

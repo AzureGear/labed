@@ -4,8 +4,13 @@ import re
 import os
 import ujson
 import string
+import pickle
 
-PATTERNS = {"double_underscore": r"^([^_]+)_([^_]+)"} # общие паттерны поиска
+# общие паттерны поиска
+PATTERNS = {"double_underscore": r"^([^_]+)_([^_]+)",
+            "one_underscore":"\d+(?=_(?!_))", # число, после которого идет подчёркивание с чем угодно
+            "any_number": "\d", # любое число
+            "any_letter": "\w"} # любая буква
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -25,6 +30,22 @@ def generate_random_name(length=5, letters=True, digits=True):
 def natural_order(val):
     """Естественная сортировка"""
     return [int(text) if text.isdigit() else text.lower() for text in re.split('(\d+)', val)]
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+def save_pickle(file_path, data):
+    """Сохранение данных (data) словаря в файл json (json_path) с использованием модуля pickle. Запись проводится в
+    бинарном режиме."""
+    with open(file_path, "wb") as f:
+        pickle.dump(data, f)
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+def load_pickle(file_path):
+    """Загрузка данных типа json с поддержкой pickle из файла (file_path). Загрузка проводится в бинарном режиме."""
+    with open(file_path, "rb") as file:
+        data = pickle.load(file)
+        return data
 
 
 # ----------------------------------------------------------------------------------------------------------------------
