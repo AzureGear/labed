@@ -65,6 +65,10 @@ UI_AZ_SLICE_MANUAL = {
 UI_AZ_MNIST_ICON_PANEL = 24  # размер иконок для панели инструментов
 UI_AZ_MNIST_DIGITS_SIZE = 24  # размер цифр для вкладки MNIST
 
+# base_proc_merge.py
+UI_AZ_PROC_MERGE_ICON_PANEL = 30  # размер иконок панели инструментов вкладки Merge
+
+# base_proc_attrs.py
 UI_AZ_PROC_ATTR_ICON_SIZE = 24  # размер иконок вкладки Обработка-Атрибуты на главной таблице
 UI_AZ_PROC_ATTR_IM_ICON_SIZE = 22  # размер иконок виджета таблицы фильтрата
 

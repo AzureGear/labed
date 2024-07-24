@@ -28,7 +28,6 @@ class PageMNIST(QtWidgets.QWidget):
         self.setup_ui()  # настройка интерфейса
         self.restore_last_saved_settings()  # восстановление сохранённых настроек
         # self.setStyleSheet("QWidget { border: 1px solid yellow; }")  # проверка отображения виджетов
-        self.update_font_color()  # изменение цвета шрифта в зависимости от темы
         self.clear_digits()
 
         # поток для расчета нейронной сети QThread
@@ -148,43 +147,18 @@ class PageMNIST(QtWidgets.QWidget):
                 h_layout2.addWidget(line)
         h_layout2.addStretch(1)
 
-        # настройки датасета
-        self.platform_label = new_text(self.tr("Platform:"))
-        self.cbx_platform = new_cbx(self, ["numpy", "tensorflow"])
-        self.nn_type_label = new_text(self.tr("Neural network type:"))
-        self.cbx_nn_type = new_cbx(self, ["perceptron", "CNN"])
-        self.epochs_label = new_text(self.tr("Epoch:"))
-        self.cbx_epochs = new_cbx(self, ["1", "2", "3", "4", "5", "10", "20"], True, QtGui.QIntValidator(1, 30))
-        self.activ_func_label = new_text(self.tr("Activation function:"))
-        self.cbx_activ_func = new_cbx(self, ["sigmoid", "ReLU", "linear", "binary step", "leaky ReLU",
-                                             "exponential linear unit", "Tanh"])
-        self.number_of_layers_label = new_text(self.tr("Layers number:"))
-        self.cbx_number_of_layers = new_cbx(self, ["1", "2", "3", "4", "5", "10"], True, QtGui.QIntValidator(1, 30))
-        self.cbx_number_of_layers.setCurrentText("2")
-        self.cbx_number_of_layers.setEnabled(False)  # TODO: добавить возможность расширять слой
-
-        self.using_dataset_label = new_text(self.tr("MNIST usage, %:"))
-        self.cbx_using_dataset = new_cbx(self, ["1", "5", "10", "15", "20", "25", "50", "75", "100"], True,
-                                         QtGui.QIntValidator(1, 100))
-        self.chk_use_random_data = QtWidgets.QCheckBox(self.tr("Shuffle data from MNIST"))
-        self.learning_rate_label = new_text(self, self.tr("Learning rate"))
-        self.cbx_learning_rate = new_cbx(self, ["0.01", "0.005", "0.001", "0.1", "0.5"], True,
-                                         QtGui.QDoubleValidator(0.0001, 1.0, 4))
-
-        self.settings_labels = [self.platform_label, self.nn_type_label, self.epochs_label, self.activ_func_label,
-                                self.number_of_layers_label, self.using_dataset_label, self.learning_rate_label]
-        self.settings_widgets = [self.cbx_platform, self.cbx_nn_type, self.cbx_epochs, self.cbx_activ_func,
-                                 self.cbx_number_of_layers, self.cbx_using_dataset, self.cbx_learning_rate]
-        grid_layout = QtWidgets.QGridLayout()
-        grid_layout.setSpacing(10)  # настраиваем расстояние между элементами ui "исходных параметров"
-        # заполняем парами
-        for i, (label, widget) in enumerate(zip(self.settings_labels, self.settings_widgets)):
-            grid_layout.addWidget(label, 0, i)
-            grid_layout.addWidget(widget, 1, i)
-        grid_layout.addWidget(self.chk_use_random_data, 2, 0, 1, 2)
-
         self.gb_settings = QtWidgets.QGroupBox(self.tr("Input settings"))
-        self.gb_settings.setLayout(grid_layout)
+        self.toolbox = QtWidgets.QToolBox()
+        container_perceptron = QtWidgets.QWidget()
+        container_perceptron.setLayout(self.ui_perceptron())
+        container_perceptron.setWindowTitle("Perceptron")
+        container_cnn = QtWidgets.QWidget()
+
+        self.toolbox.addItem(container_perceptron, "Perceptron")
+        self.toolbox.addItem(container_cnn, "Convolutional neural network")
+        lay = QtWidgets.QVBoxLayout()
+        lay.addWidget(self.toolbox)
+        self.gb_settings.setLayout(lay)
 
         # Handler текущей модели MNIST
         self.mnist_handler = MNISTHandler(self)
@@ -207,7 +181,41 @@ class PageMNIST(QtWidgets.QWidget):
         h_layout3.addWidget(self.gb_model)
         h_layout3.addWidget(self.info, 1)  # делаем вывод максимальным
         layout.addWidget(self.gb_settings)
-        layout.addLayout(h_layout3)
+        layout.addLayout(h_layout3, 1)
+
+    def ui_perceptron(self):
+        self.platform_label = new_text(self.tr("Platform:"))
+        self.cbx_platform = new_cbx(self, ["numpy", "keras", "tensorflow"])
+        self.epochs_label = new_text(self.tr("Epoch:"))
+        self.cbx_epochs = new_cbx(self, ["1", "2", "3", "4", "5", "10", "20"], True, QtGui.QIntValidator(1, 30))
+        self.activ_func_label = new_text(self.tr("Activation function:"))
+        self.cbx_activ_func = new_cbx(self, ["sigmoid", "ReLU", "linear", "binary step", "leaky ReLU",
+                                             "exponential linear unit", "Tanh"])
+        self.number_of_layers_label = new_text(self.tr("Layers number:"))
+        self.cbx_number_of_layers = new_cbx(self, ["1", "2", "3", "4", "5", "10"], True, QtGui.QIntValidator(1, 30))
+        self.cbx_number_of_layers.setCurrentText("2")
+        self.cbx_number_of_layers.setEnabled(False)  # TODO: добавить возможность расширять количество слоёв
+
+        self.using_dataset_label = new_text(self.tr("MNIST usage, %:"))
+        self.cbx_using_dataset = new_cbx(self, ["1", "5", "10", "15", "20", "25", "50", "75", "100"], True,
+                                         QtGui.QIntValidator(1, 100))
+        self.chk_use_random_data = QtWidgets.QCheckBox(self.tr("Shuffle data from MNIST"))
+        self.learning_rate_label = new_text(self, self.tr("Learning rate"))
+        self.cbx_learning_rate = new_cbx(self, ["0.01", "0.005", "0.001", "0.1", "0.5"], True,
+                                         QtGui.QDoubleValidator(0.0001, 1.0, 4))
+
+        self.settings_labels = [self.platform_label, self.epochs_label, self.activ_func_label,
+                                self.number_of_layers_label, self.using_dataset_label, self.learning_rate_label]
+        self.settings_widgets = [self.cbx_platform, self.cbx_epochs, self.cbx_activ_func,
+                                 self.cbx_number_of_layers, self.cbx_using_dataset, self.cbx_learning_rate]
+        grid_layout = QtWidgets.QGridLayout()
+        grid_layout.setSpacing(10)  # настраиваем расстояние между элементами ui "исходных параметров"
+        # заполняем парами
+        for i, (label, widget) in enumerate(zip(self.settings_labels, self.settings_widgets)):
+            grid_layout.addWidget(label, 0, i)
+            grid_layout.addWidget(widget, 1, i)
+        grid_layout.addWidget(self.chk_use_random_data, 2, 0, 1, 2)
+        return grid_layout
 
     def get_random_image(self):
         img = load_image_from_dataset(self.settings.read_dataset_mnist())  # извлекаем случайное изображение из датасета
@@ -230,9 +238,9 @@ class PageMNIST(QtWidgets.QWidget):
             else:
                 self.digits_chance[i].setText(f"{round(result[i])}%")
         if self.settings.read_ui_theme() == "light":  # в зависимости от текущей темы выбираем цвет
-            current_color = QtGui.QColor("black")
+            current_color = the_color
         else:
-            current_color = QtGui.QColor("white")
+            current_color = the_color
         # для цифры с максимальной величиной устанавливаем яркий цвет шрифта
         self.digits[np.argmax(result)].set_base_color(QtGui.QColor(current_color))
 
@@ -261,7 +269,7 @@ class PageMNIST(QtWidgets.QWidget):
     def start_training(self):
         """Запуск на обучение НС"""
         settings = {"uniq_id": helper.generate_random_name(),
-                    "nn_type": self.cbx_nn_type.currentText(),
+                    "nn_type": self.toolbox.itemText(self.toolbox.currentIndex()),
                     "platform": self.cbx_platform.currentText(),
                     "accuracy": "-",
                     "loss": "-",
@@ -274,12 +282,13 @@ class PageMNIST(QtWidgets.QWidget):
                     }
         self.store_settings()  # запоминаем выбранные настройки
         self.add_message_info("\n", False)
-        if self.cbx_nn_type.currentText() == "perceptron":  # тип НС "персептрон"
+
+        if self.toolbox.itemText(self.toolbox.currentIndex()) == "Perceptron":  # тип НС "перцептрон"
             self.tb_start_train.setEnabled(False)  # Делаем кнопку неактивной
             self.mnist_worker.init_data(**settings)  # инициализируем настройки
             self.mnist_worker.start()  # Запускаем поток
-        elif self.cbx_nn_type == "CNN":  # тип "сверточная" НС
-            self.signal_message.emit(self.tr("Not ready yet..."))
+        elif self.toolbox.currentWidget().windowTitle() == "Convolutional neural network":  # тип CNN
+            self.signal_message.emit(self.tr("Not ready yet..."))  # TODO: CNN
             return
 
     @QtCore.pyqtSlot()
@@ -305,14 +314,6 @@ class PageMNIST(QtWidgets.QWidget):
             current_time = ""
         message = current_time + message
         self.info.setPlainText(message + "\n" + self.info.toPlainText())
-
-    def update_font_color(self):
-        if self.palette().color(QtGui.QPalette.Window).lightness() > 128:
-            pass
-            # print("light")
-        else:
-            pass
-            # print("dark")
 
     @QtCore.pyqtSlot(int)
     def draw_change_brush_size(self, val):
@@ -430,10 +431,7 @@ class AzCanvas(QtWidgets.QLabel):
 
     def set_pen_size(self, size):
         """Смена толщины кисти для рисования"""
-        if size > 30:
-            size = 30
-        elif size < 1:
-            size = 1
+        size = min(max(size, 1), 30)
         self.pen_size = size
 
     def mousePressEvent(self, event):
@@ -841,10 +839,11 @@ class MNISTWorker(QtCore.QThread):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-def load_image_from_dataset(path, shuffle=True):
+def load_image_from_dataset(path, shuffle=True, index=0):
     """
     Статическая функция, возвращает одно изображение MNIST
-    Параметры: path - путь к файлу *.npz; shuffle - использование данных в случайном порядке;
+    Параметры: path - путь к файлу *.npz; shuffle - использование данных в случайном порядке; index - для выбора
+    конкретного изображения. Изображение возвращается в формате 28*28 точек с яркостью от 0 до 255
     """
     if not helper.check_file(path):
         return None
@@ -852,24 +851,19 @@ def load_image_from_dataset(path, shuffle=True):
         if shuffle:
             return random.choice(file['x_train'])
         else:
-            return file['x_train'][0]
-
-        # def get_random_element(array):
-        #     random_index = np.random.choice(len(array))
-        #     return array[random_index]
-        #
-        # def get_specific_element(array, index):
-        #     return array[index]
+            index = min(max(index, 0), 60000)  # ограничиваем
+            return file['x_train'][index]
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-def load_dataset(path, using_percent=100, shuffle=False):
+def load_dataset(path, using_percent=100, shuffle=False, task="classification"):
     """
-    Статическая функция загрузки датасета MNIST, возвращает перечень изображений и значений для них:
+    Загрузка датасета MNIST, возвращает перечень изображений и значений для них:
     x_train - изображения в формате: яркость 255 для ячейки, где есть контур цифры; 0 для пустого значения
     y_train - соответствующая изображению цифра в формате int.
     Параметры: path - путь к файлу *.npz; using_percent - объем используемого датасета;
     shuffle - использование данных в случайном порядке
+    task - формат возвращаемых данных: "classification" для перцептрона; "detection" для CNN
     """
     if not helper.check_file(path):
         return None, None
@@ -903,75 +897,6 @@ def load_dataset(path, using_percent=100, shuffle=False):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-
-
-# def test():
-#     import numpy as np
-#     import matplotlib.pyplot as plt
-#
-#     import utils
-#
-#     images, labels = utils.load_dataset()
-#
-#     w_i_h = np.random.uniform(-0.5, 0.5, (20, 784))
-#     w_h_o = np.random.uniform(-0.5, 0.5, (10, 20))
-#     b_i_h = np.zeros((20, 1))
-#     b_h_o = np.zeros((10, 1))
-#
-#     learn_rate = 0.01
-#     nr_correct = 0
-#     loss = 0
-#     epochs = 3
-#     for epoch in range(epochs):
-#         for img, l in zip(images, labels):
-#             img = np.reshape(img, (-1, 1))
-#             l = np.reshape(l, (-1, 1))
-#
-#             # Forward propagation input -> hidden
-#             h_pre = b_i_h + w_i_h @ img
-#             h = 1 / (1 + np.exp(-h_pre))
-#             # Forward propagation hidden -> output
-#             o_pre = b_h_o + w_h_o @ h
-#             o = 1 / (1 + np.exp(-o_pre))
-#
-#             # Cost / Error calculation
-#             loss += 1 / len(o) * np.sum((o - l) ** 2, axis=0)
-#             nr_correct += int(np.argmax(o) == np.argmax(l))
-#
-#             # Backpropagation output -> hidden (cost function derivative)
-#             delta_o = o - l
-#             w_h_o += -learn_rate * delta_o @ np.transpose(h)
-#             b_h_o += -learn_rate * delta_o
-#             # Backpropagation hidden -> input (activation function derivative)
-#             delta_h = np.transpose(w_h_o) @ delta_o * (h * (1 - h))
-#             w_i_h += -learn_rate * delta_h @ np.transpose(img)
-#             b_i_h += -learn_rate * delta_h
-#
-#         # Show accuracy for this epoch
-#         print(f"Loss: {round((loss[0] / images.shape[0]) * 100, 2)}%")
-#         print(f"Acc: {round((nr_correct / images.shape[0]) * 100, 2)}%")
-#         nr_correct = 0
-#         loss = 0
-#
-#     exit(0)
-#
-#     # Show results
-#     while True:
-#         index = int(input("Enter a number (0 - 59999): "))
-#         img = images[index]
-#         plt.imshow(img.reshape(28, 28), cmap="Greys")
-#
-#         img.shape += (1,)
-#         # Forward propagation input -> hidden
-#         h_pre = b_i_h + w_i_h @ img.reshape(784, 1)
-#         h = 1 / (1 + np.exp(-h_pre))
-#         # Forward propagation hidden -> output
-#         o_pre = b_h_o + w_h_o @ h
-#         o = 1 / (1 + np.exp(-o_pre))
-#
-#         plt.title(f"Subscribe if its a {o.argmax()} :)")
-#         plt.show()
-
 if __name__ == "__main__":
     import sys
 

@@ -275,10 +275,7 @@ class AzManualSlice(QtWidgets.QMainWindow):
         info = "Текущий размер окна сканирования: " + str(self.current_scan_size) + "\nВведите новое значение:"
         size, done = QtWidgets.QInputDialog.getInt(self, "Смена сканирующего разрешения", info, self.current_scan_size)
         if done:
-            if size > 8000:
-                size = 8000
-            elif size < 16:
-                size = 16
+            size = min(max(size, 16), 8000)
             if size != self.current_scan_size:
                 self.set_crop_data(size)
                 self.signal_crop.emit(size)  # сигнал об изменении размера кадрирования

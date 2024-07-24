@@ -446,10 +446,7 @@ class AzTableModel(QtCore.QAbstractTableModel):
 
     def setData(self, index, value, role):
         if role == QtCore.Qt.ItemDataRole.EditRole:
-            if value > 95:  # если есть возможность редактирования
-                value = 95
-            elif value < 0:
-                value = 0
+            value = min(max(value, 0), 95)  # если есть возможность редактирования
             self._data[index.row()][index.column()] = value
             self.dataChanged.emit(index, index, [role])
             return True
