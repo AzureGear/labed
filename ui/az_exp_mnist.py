@@ -27,7 +27,7 @@ class PageMNIST(QtWidgets.QWidget):
         self.current_img = None  # текущее изображение (без коррекции и пиксельной сетки)
         self.setup_ui()  # настройка интерфейса
         self.restore_last_saved_settings()  # восстановление сохранённых настроек
-        # self.setStyleSheet("QWidget { border: 1px solid yellow; }")  # проверка отображения виджетов
+        # self.setStyleSheet("QWidget { border: 1px solid red; }")  # проверка отображения виджетов
         self.clear_digits()
 
         # поток для расчета нейронной сети QThread
@@ -104,13 +104,13 @@ class PageMNIST(QtWidgets.QWidget):
                                        self.use_model, tooltip=self.tr("Use model for current image"))
 
         tools = [self.tb_use_model, self.tb_get_random, self.tb_clear_log, self.tb_start_train]
-        self.tb_use_model.setEnabled(False)  # по умолчанию отключаем, т.к. никакой модели не загружено
+        self.tb_use_model.setEnabled(False)  # По умолчанию отключаем, т.к. никакой модели не загружено
         for tool in tools:
             panel_lay.addWidget(tool)
             tool.setIconSize(QtCore.QSize(config.UI_AZ_MNIST_ICON_PANEL, config.UI_AZ_MNIST_ICON_PANEL))
         panel_lay.addStretch(1)
 
-        h_layout = QtWidgets.QHBoxLayout()
+        h_layout = QtWidgets.QHBoxLayout()  # компоновщик рисования, предпросмотра и инструментов
         h_layout.addWidget(self.gb_draw)
         h_layout.addLayout(brush_size_lay)
         h_layout.addWidget(self.gb_preview)
@@ -148,23 +148,20 @@ class PageMNIST(QtWidgets.QWidget):
         h_layout2.addStretch(1)
 
         self.gb_settings = QtWidgets.QGroupBox(self.tr("Input settings"))
-        self.toolbox = QtWidgets.QToolBox()
-        container_perceptron = QtWidgets.QWidget()
-        container_perceptron.setLayout(self.ui_perceptron())
-        container_perceptron.setWindowTitle("Perceptron")
-        container_cnn = QtWidgets.QWidget()
+        self.tab_inputs = QtWidgets.QTabWidget()
+        tab_perceptron = QtWidgets.QWidget()
+        tab_perceptron.setLayout(self.ui_perceptron())
+        tab_cnn = QtWidgets.QWidget()
 
-        self.toolbox.addItem(container_perceptron, "Perceptron")
-        self.toolbox.addItem(container_cnn, "Convolutional neural network")
+        self.tab_inputs.addTab(tab_perceptron, "Perceptron")
+        self.tab_inputs.addTab(tab_cnn, "Convolutional neural network")
         lay = QtWidgets.QVBoxLayout()
-        lay.addWidget(self.toolbox)
+        lay.addWidget(self.tab_inputs)
         self.gb_settings.setLayout(lay)
 
         # Handler текущей модели MNIST
         self.mnist_handler = MNISTHandler(self)
         lay_handler = QtWidgets.QVBoxLayout()
-        # lay_handler.setContentsMargins(0,0,0,0)
-        # lay_handler.setSpacing(0)
         lay_handler.addWidget(self.mnist_handler)
         self.gb_model = QtWidgets.QGroupBox(self.tr("Model"))
         self.gb_model.setLayout(lay_handler)
@@ -193,8 +190,9 @@ class PageMNIST(QtWidgets.QWidget):
                                              "exponential linear unit", "Tanh"])
         self.number_of_layers_label = new_text(self.tr("Layers number:"))
         self.cbx_number_of_layers = new_cbx(self, ["1", "2", "3", "4", "5", "10"], True, QtGui.QIntValidator(1, 30))
-        self.cbx_number_of_layers.setCurrentText("2")
-        self.cbx_number_of_layers.setEnabled(False)  # TODO: добавить возможность расширять количество слоёв
+        self.cbx_number_of_layers.setCurrentText("2")  # имеется в виду количество скрытых слоёв
+        self.cbx_number_of_layers.setToolTip(self.tr("The input layer is ignored. If one layer is specified, it will "
+                                                     "also be the output layer (784x10)."))
 
         self.using_dataset_label = new_text(self.tr("MNIST usage, %:"))
         self.cbx_using_dataset = new_cbx(self, ["1", "5", "10", "15", "20", "25", "50", "75", "100"], True,
@@ -203,18 +201,25 @@ class PageMNIST(QtWidgets.QWidget):
         self.learning_rate_label = new_text(self, self.tr("Learning rate"))
         self.cbx_learning_rate = new_cbx(self, ["0.01", "0.005", "0.001", "0.1", "0.5"], True,
                                          QtGui.QDoubleValidator(0.0001, 1.0, 4))
+        self.layers_settings_label = new_text(self, self.tr("Layer formation settings"))
+        self.cbx_layers_settings = new_cbx(self, ["min", "equally"])
 
         self.settings_labels = [self.platform_label, self.epochs_label, self.activ_func_label,
-                                self.number_of_layers_label, self.using_dataset_label, self.learning_rate_label]
-        self.settings_widgets = [self.cbx_platform, self.cbx_epochs, self.cbx_activ_func,
-                                 self.cbx_number_of_layers, self.cbx_using_dataset, self.cbx_learning_rate]
+                                self.number_of_layers_label, self.learning_rate_label, self.using_dataset_label,
+                                self.layers_settings_label]
+        self.settings_widgets = [self.cbx_platform, self.cbx_epochs, self.cbx_activ_func, self.cbx_number_of_layers,
+                                 self.cbx_learning_rate, self.cbx_using_dataset,self.cbx_layers_settings]
+
         grid_layout = QtWidgets.QGridLayout()
-        grid_layout.setSpacing(10)  # настраиваем расстояние между элементами ui "исходных параметров"
         # заполняем парами
         for i, (label, widget) in enumerate(zip(self.settings_labels, self.settings_widgets)):
             grid_layout.addWidget(label, 0, i)
             grid_layout.addWidget(widget, 1, i)
-        grid_layout.addWidget(self.chk_use_random_data, 2, 0, 1, 2)
+        grid_layout.addWidget(self.chk_use_random_data, 0, grid_layout.columnCount())
+
+        grid_layout.setSpacing(0)  # настраиваем расстояние между элементами ui "исходных параметров"
+        grid_layout.setHorizontalSpacing(10)
+        grid_layout.setContentsMargins(0, 0, 0, 0)
         return grid_layout
 
     def get_random_image(self):
@@ -242,7 +247,7 @@ class PageMNIST(QtWidgets.QWidget):
         else:
             current_color = the_color
         # для цифры с максимальной величиной устанавливаем яркий цвет шрифта
-        self.digits[np.argmax(result)].set_base_color(QtGui.QColor(current_color))
+        self.digits[int(np.argmax(result))].set_base_color(QtGui.QColor(current_color))
 
     def clear_digits(self):
         """Очистка значений цифр и их вероятностей"""
@@ -269,7 +274,7 @@ class PageMNIST(QtWidgets.QWidget):
     def start_training(self):
         """Запуск на обучение НС"""
         settings = {"uniq_id": helper.generate_random_name(),
-                    "nn_type": self.toolbox.itemText(self.toolbox.currentIndex()),
+                    "nn_type": self.tab_inputs.tabText(self.tab_inputs.currentIndex()),
                     "platform": self.cbx_platform.currentText(),
                     "accuracy": "-",
                     "loss": "-",
@@ -283,11 +288,11 @@ class PageMNIST(QtWidgets.QWidget):
         self.store_settings()  # запоминаем выбранные настройки
         self.add_message_info("\n", False)
 
-        if self.toolbox.itemText(self.toolbox.currentIndex()) == "Perceptron":  # тип НС "перцептрон"
+        if self.tab_inputs.tabText(self.tab_inputs.currentIndex()) == "Perceptron":  # тип НС "перцептрон"
             self.tb_start_train.setEnabled(False)  # Делаем кнопку неактивной
             self.mnist_worker.init_data(**settings)  # инициализируем настройки
             self.mnist_worker.start()  # Запускаем поток
-        elif self.toolbox.currentWidget().windowTitle() == "Convolutional neural network":  # тип CNN
+        elif self.tab_inputs.tabText(self.tab_inputs.currentIndex()) == "Convolutional neural network":  # тип CNN
             self.signal_message.emit(self.tr("Not ready yet..."))  # TODO: CNN
             return
 
@@ -422,7 +427,7 @@ class AzCanvas(QtWidgets.QLabel):
     def __init__(self):
         super().__init__()
         pixmap = QtGui.QPixmap(140, 140)  # кратно 28 в пять раз
-        self.clear(pixmap)
+        self.clear_canvas(pixmap)
         self.setPixmap(pixmap)
         self.draw = False  # рисование
         self.last_x, self.last_y = None, None  # координаты точки рисования
@@ -435,7 +440,7 @@ class AzCanvas(QtWidgets.QLabel):
         self.pen_size = size
 
     def mousePressEvent(self, event):
-        if event.button() == QtCore.Qt.LeftButton:  # Ставим добро на рисование
+        if event.button() == QtCore.Qt.MouseButton.LeftButton:  # Ставим добро на рисование
             self.draw = True
 
     def mouseMoveEvent(self, event):  # рисование
@@ -459,14 +464,14 @@ class AzCanvas(QtWidgets.QLabel):
             self.last_y = event.y()
 
     def mouseReleaseEvent(self, event):  # завершение рисунка, а по ПКМ - очистка
-        if event.button() == QtCore.Qt.RightButton:  # Очищаем
-            self.clear(self.pixmap())
+        if event.button() == QtCore.Qt.MouseButton.RightButton:  # Очищаем
+            self.clear_canvas(self.pixmap())
         self.draw = False
         self.last_x = None
         self.last_y = None
         self.signal_draw.emit(self.pixmap())  # отправляем сигнал-картинку
 
-    def clear(self, pixmap):  # очистка холста = по сути заливка всего белым цветом
+    def clear_canvas(self, pixmap):  # очистка холста = по сути заливка всего белым цветом
         pixmap.fill(QtCore.Qt.GlobalColor.white)
         self.update()
 
@@ -760,7 +765,7 @@ class MNISTWorker(QtCore.QThread):
         self.params = params
 
     def run(self):
-        images, labels = load_dataset(self.settings.read_dataset_mnist(), self.params["dataset_using"],
+        images, labels, unused_inx = load_dataset(self.settings.read_dataset_mnist(), self.params["dataset_using"],
                                       self.params["shuffle_data"])
         if images is None:
             self.signal_message.emit(self.tr("MNIST file not found, check for source data."))
@@ -863,7 +868,7 @@ def load_image_from_dataset(path, shuffle=True, index=0):
 # ----------------------------------------------------------------------------------------------------------------------
 def load_dataset(path, using_percent=100, shuffle=False, task="classification"):
     """
-    Загрузка датасета MNIST, возвращает перечень изображений и значений для них:
+    Загрузка датасета MNIST, возвращает перечень изображений, значений для них и перечень неиспользуемых индексов:
     x_train - изображения в формате: яркость 255 для ячейки, где есть контур цифры; 0 для пустого значения
     y_train - соответствующая изображению цифра в формате int.
     Параметры: path - путь к файлу *.npz; using_percent - объем используемого датасета;
@@ -875,6 +880,7 @@ def load_dataset(path, using_percent=100, shuffle=False, task="classification"):
 
     with np.load(path) as file:
         if task == "classification":
+            unused_inx = None  # неиспользуемые индексы
             # преобразуем яркость 1 для ячейки, где есть контур цифры; 0 для пустого значения
             x_train = file['x_train'].astype("float32") / 255  # конвертация из RGB в Unit RGB
             # преобразование массива из (60000, 28, 28) в формат (60000, 784)
@@ -888,6 +894,7 @@ def load_dataset(path, using_percent=100, shuffle=False, task="classification"):
                 sel_inx = np.random.choice(x_train.shape[0], num_rows, replace=False)  # следим, чтобы не было повторов
             else:
                 sel_inx = np.arange(0, num_rows)
+            unused_inx = set(range(x_train.shape[0])) - set(sel_inx)
 
             # формируем итоговый набор данных изображений
             x_train = x_train[sel_inx]
@@ -899,7 +906,7 @@ def load_dataset(path, using_percent=100, shuffle=False, task="classification"):
             # выходные 1-х матрицы в формате по 10 классов цифр [[0000001000][0100000000]...[0000000010]]]
             y_train = np.eye(10)[y_train]
 
-            return x_train, y_train
+            return x_train, y_train, unused_inx
 
 
 # ----------------------------------------------------------------------------------------------------------------------
