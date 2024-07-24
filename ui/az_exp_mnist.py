@@ -374,7 +374,7 @@ class PageMNIST(QtWidgets.QWidget):
         self.update()
 
     def preview_show_mnist(self, pixmap):  # отрисовка объекта из датасета MNIST
-        mnist_img = pixmap.scaled(28 * 5, 28 * 5, QtCore.Qt.IgnoreAspectRatio,
+        mnist_img = pixmap.scaled(28 * 5, 28 * 5, QtCore.Qt.AspectRatioMode.IgnoreAspectRatio,
                                   QtCore.Qt.TransformationMode.FastTransformation)
         if self.preview_show_grid:  # отрисовка сетки
             mnist_img = self.print_grid(mnist_img)
@@ -511,19 +511,21 @@ class RoundProgressbar(QtWidgets.QWidget):
         painter = QtGui.QPainter()
         painter.begin(self)
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
-        painter.setPen(QtGui.QPen(self._bg_circle_color, self._thickness - 1, QtCore.Qt.SolidLine))
+        painter.setPen(QtGui.QPen(self._bg_circle_color, self._thickness - 1, QtCore.Qt.PenStyle.SolidLine))
         if self._fill_bg_circle:
-            painter.setBrush(QtGui.QBrush(self._bg_circle_color, QtCore.Qt.SolidPattern))
+            painter.setBrush(QtGui.QBrush(self._bg_circle_color, QtCore.Qt.BrushStyle.SolidPattern))
         elif not self._fill_bg_circle:
-            painter.setBrush(QtCore.Qt.NoBrush)
+            painter.setBrush(QtCore.Qt.BrushStyle.NoBrush)
         painter.drawEllipse(self._thickness, self._thickness, self._circular_size, self._circular_size)
         if self._round_edge:
-            painter.setPen(QtGui.QPen(self._color, self._thickness, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap))
+            painter.setPen(QtGui.QPen(self._color, self._thickness, QtCore.Qt.PenStyle.SolidLine,
+                                      QtCore.Qt.PenCapStyle.RoundCap))
         elif not self._round_edge:
-            painter.setPen(QtGui.QPen(self._color, self._thickness, QtCore.Qt.SolidLine, QtCore.Qt.FlatCap))
-        painter.setBrush(QtCore.Qt.NoBrush)
-        painter.drawArc(self._thickness, self._thickness, self._circular_size, self._circular_size, self._a * 16,
-                        self._alen * 16)
+            painter.setPen(QtGui.QPen(self._color, self._thickness, QtCore.Qt.PenStyle.SolidLine,
+                                      QtCore.Qt.PenCapStyle.FlatCap))
+        painter.setBrush(QtCore.Qt.BrushStyle.NoBrush)
+        painter.drawArc(self._thickness, self._thickness, self._circular_size, self._circular_size, int(self._a * 16),
+                        int(self._alen * 16))
 
         # ------------- az_realization -------------
         digit_str = str(self._digit)
@@ -743,12 +745,14 @@ class MNISTHandler(QtWidgets.QWidget):
 # ----------------------------------------------------------------------------------------------------------------------
 class MNISTWorker(QtCore.QThread):
     """Поток обучения, загрузка данных персептрона MNIST"""
+    # TODO: добавить время обучения
     signal_message = QtCore.pyqtSignal(str)  # передача сообщения
     signal_model = QtCore.pyqtSignal(tuple)  # сигнал передачи модели
 
     def __init__(self, parent=None):
         super(MNISTWorker, self).__init__()
         # QtCore.QThread.__init__(self, parent)
+        self.params = None
         self.settings = AppSettings()
 
     def init_data(self, **params):
@@ -765,9 +769,11 @@ class MNISTWorker(QtCore.QThread):
         # слои следуют: 1 (исходный), 2 (скрытый), 3 (скрытый), ..., выходной слой
         # инициализируем случайные веса второго слоя, 20 строк х 28*28 (784) столбцов
         weights_layer_1 = np.random.uniform(-0.5, 0.5, (20, 784))
-        weights_layer_2 = np.random.uniform(-0.5, 0.5, (10, 20))  # веса третьего (выходного) слоя
         bias_layer_1 = np.zeros((20, 1))  # смещение для второго слоя, инициализируем 20 строк х 1 столбец нулей
+
+        weights_layer_2 = np.random.uniform(-0.5, 0.5, (10, 20))  # веса третьего (выходного) слоя
         bias_layer_2 = np.zeros((10, 1))  # смещения для третьего (выходного) слоя
+
         # определяем используемую функцию активации
         activ_func = self.params["activ_funct"]
 
@@ -821,13 +827,12 @@ class MNISTWorker(QtCore.QThread):
                 bias_layer_1 += -learning_rate * delta_hidden
 
                 # 4. Расчёт ошибок
-                loss = round((e_loss[0] / images.shape[0]) * 100, 2)
-                acc = round((e_correct / images.shape[0]) * 100, 2)
-                self.params["loss"] = str(loss) + "%"
-                self.params["accuracy"] = str(acc) + "%"
+                self.params["loss"] = str(round((e_loss[0] / images.shape[0]) * 100, 2)) + "%"
+                self.params["accuracy"] = str(round((e_correct / images.shape[0]) * 100, 2)) + "%"
             # Обучение завершено
 
-            self.signal_message.emit(self.tr(f"Epoch {epoch + 1}: loss {loss}%; accuracy: {acc}%"))
+            self.signal_message.emit(self.tr(f"Epoch {epoch + 1}: loss {round((e_loss[0] / images.shape[0]) * 100, 2)}%"
+                                             f"; accuracy: {round((e_correct / images.shape[0]) * 100, 2)}%"))
             e_loss = 0
             e_correct = 0
 
@@ -869,31 +874,32 @@ def load_dataset(path, using_percent=100, shuffle=False, task="classification"):
         return None, None
 
     with np.load(path) as file:
-        # преобразуем яркость 1 для ячейки, где есть контур цифры; 0 для пустого значения
-        x_train = file['x_train'].astype("float32") / 255  # конвертация из RGB в Unit RGB
-        # преобразование массива из (60000, 28, 28) в формат (60000, 784)
-        x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1] * x_train.shape[2]))
+        if task == "classification":
+            # преобразуем яркость 1 для ячейки, где есть контур цифры; 0 для пустого значения
+            x_train = file['x_train'].astype("float32") / 255  # конвертация из RGB в Unit RGB
+            # преобразование массива из (60000, 28, 28) в формат (60000, 784)
+            x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1] * x_train.shape[2]))
 
-        # ограничение датасета: отвечает using_percent (при необходимости)
-        num_rows = int(x_train.shape[0] * int(using_percent) / 100)
-        # определяем флаг "случайных" данных
-        if shuffle:
-            # набираем случайных индексов
-            sel_inx = np.random.choice(x_train.shape[0], num_rows, replace=False)  # следим, чтобы не было повторов
-        else:
-            sel_inx = np.arange(0, num_rows)
+            # ограничение датасета: отвечает using_percent (при необходимости)
+            num_rows = int(x_train.shape[0] * int(using_percent) / 100)
+            # определяем флаг "случайных" данных
+            if shuffle:
+                # набираем случайных индексов
+                sel_inx = np.random.choice(x_train.shape[0], num_rows, replace=False)  # следим, чтобы не было повторов
+            else:
+                sel_inx = np.arange(0, num_rows)
 
-        # формируем итоговый набор данных изображений
-        x_train = x_train[sel_inx]
+            # формируем итоговый набор данных изображений
+            x_train = x_train[sel_inx]
 
-        # выходные данные
-        y_train = file['y_train']
-        y_train = y_train[sel_inx]  # ограничиваем набор датасета при 100% = 60000
-        #                                                           6          1     ...      8
-        # выходные 1-х матрицы в формате по 10 классов цифр [[0000001000][0100000000]...[0000000010]]]
-        y_train = np.eye(10)[y_train]
+            # выходные данные
+            y_train = file['y_train']
+            y_train = y_train[sel_inx]  # ограничиваем набор датасета при 100% = 60000
+            #                                                           6          1     ...      8
+            # выходные 1-х матрицы в формате по 10 классов цифр [[0000001000][0100000000]...[0000000010]]]
+            y_train = np.eye(10)[y_train]
 
-        return x_train, y_train
+            return x_train, y_train
 
 
 # ----------------------------------------------------------------------------------------------------------------------
