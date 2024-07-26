@@ -48,8 +48,6 @@ class ProcessingUI(QtWidgets.QWidget):
             from ui import base_proc_geom
             self.add_tab("geometry", base_proc_geom.TabGeometryUI)
 
-        # self.tab_widget.tab_attribute =
-
         # Активация последней активной с прошлого запуска
         self.tab_widget.setCurrentIndex(self.settings.read_ui_proc_page())
 
@@ -90,11 +88,19 @@ class ProcessingUI(QtWidgets.QWidget):
 
     def translate_ui(self):
         # В самом ProcessingUI основной перевод осуществляется для вкладок, добавленных к нему.
+        names = {"merge": self.tr("Merge"),
+                 "slice": self.tr("Slice"),
+                 "attributes": self.tr("Attributes"),
+                 "geometry": self.tr("Geometry")}
+        tooltips = {"merge": self.tr("Merging and converting markup projects"),
+                    "slice": self.tr("Manual and automatic dataset cropping"),
+                    "attributes": self.tr("View and edit dataset attributes, statistic and train/val/test sorting"),
+                    "geometry": self.tr("Changing the geometry of markup project objects")}
+
         i = 0  # мы же не знаем сколько вкладок разрешено активировать
         for key in config.UI_ENABLE.get("process", {}):  # проходим по всем объектам в нашем файле настроек
             if config.UI_ENABLE["process"][key]:  # если есть флаг True, то...
+                self.tab_widget.setTabText(i, names[key])
+                self.tab_widget.setTabToolTip(i, tooltips[key])
                 getattr(self, f"tab_{key}", None).translate_ui()  # ...запускаем перевод
-                self.tab_widget.setTabText(i, self.tr(getattr(self, f"tab_{key}", None).name))  # перевод заголовков
-                self.tab_widget.setTabToolTip(i, self.tr(getattr(self, f"tab_{key}", None).tool_tip_title))  # подсказок
-                pass
-            i += 1
+                i += 1

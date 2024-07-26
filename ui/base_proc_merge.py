@@ -18,7 +18,6 @@ class TabMergeUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         super(TabMergeUI, self).__init__(parent)
         self.settings = AppSettings()  # настройки программы
         self.name = "Merge"
-        self.tool_tip_title = "Converting and merging datasets projects"
         if color_active:
             self.icon_active = coloring_icon("glyph_merge", color_active)
         if color_inactive:

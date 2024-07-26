@@ -28,5 +28,5 @@ class ExperimentUI(QtWidgets.QWidget):
         return QtCore.QCoreApplication.translate("ExperimentUI", text)
 
     def translate_ui(self):  # переводим текущие тексты и добавленные/вложенные вкладки
-        if self.tab_mnist is not None:
+        if self.tab_mnist:
             self.tab_mnist.translate_ui()

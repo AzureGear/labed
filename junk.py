@@ -1,19 +1,161 @@
-# Пример набора из 50 случайных индексов от 0 до 1000
-import random
+import sys
+from PyQt5.QtWidgets import QApplication, QTableView, QVBoxLayout, QWidget, QComboBox, QLabel, QDialog, QDialogButtonBox, QVBoxLayout
+from PyQt5.QtCore import QAbstractTableModel, Qt, QTranslator
 
-random_indices = set(random.sample(range(1001), 50))
+class MyTableModel(QAbstractTableModel):
+    def __init__(self, data, headers, parent=None):
+        super().__init__(parent)
+        self._data = data
+        self._headers = headers
 
-# Множество всех возможных индексов от 0 до 1000
-all_indices = set(range(1001))
+    def rowCount(self, parent=None):
+        return len(self._data)
 
-# Найдите индексы, которые не находятся в наборе
-missing_indices = all_indices - random_indices
+    def columnCount(self, parent=None):
+        return len(self._headers)
 
-# Преобразуйте множество обратно в список, если это необходимо
-missing_indices_list = list(missing_indices)
+    def data(self, index, role=Qt.DisplayRole):
+        if role == Qt.DisplayRole:
+            return self._data[index.row()][index.column()]
+        return None
 
-print("Набор случайных индексов:", random_indices)
-print("Индексы, которые не находятся в наборе:", missing_indices_list)
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
+        if role == Qt.DisplayRole:
+            if orientation == Qt.Horizontal:
+                return self._headers[section]
+            else:
+                return str(section + 1)
+        return None
+
+class TableWidget(QWidget):
+    def __init__(self, data, headers, parent=None):
+        super().__init__(parent)
+        self.model = MyTableModel(data, headers)
+        self.view = QTableView()
+        self.view.setModel(self.model)
+        layout = QVBoxLayout()
+        layout.addWidget(self.view)
+        self.setLayout(layout)
+
+class LanguageDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(QApplication.translate("LanguageDialog", "Select Language"))
+        layout = QVBoxLayout()
+        self.languageComboBox = QComboBox()
+        self.languageComboBox.addItems([QApplication.translate("LanguageDialog", "English"),
+                                        QApplication.translate("LanguageDialog", "Russian")])
+        layout.addWidget(QLabel(QApplication.translate("LanguageDialog", "Select Language:")))
+        layout.addWidget(self.languageComboBox)
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttonBox.accepted.connect(self.accept)
+        buttonBox.rejected.connect(self.reject)
+        layout.addWidget(buttonBox)
+        self.setLayout(layout)
+
+class MainWindow(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.translator = QTranslator()
+        self.initUI()
+
+    def initUI(self):
+        layout = QVBoxLayout()
+
+        # Пример данных для первой таблицы
+        data1 = [
+            [1, 'John', 'Doe'],
+            [2, 'Jane', 'Smith'],
+            [3, 'Alice', 'Johnson']
+        ]
+
+        # Заголовки для первой таблицы
+        headers1 = [
+            QApplication.translate("MyTableModel", "ID"),
+            QApplication.translate("MyTableModel", "First Name"),
+            QApplication.translate("MyTableModel", "Last Name")
+        ]
+
+        # Пример данных для второй таблицы
+        data2 = [
+            [4, 'Bob', 'Brown'],
+            [5, 'Charlie', 'Green'],
+            [6, 'David', 'White']
+        ]
+
+        # Заголовки для второй таблицы
+        headers2 = [
+            QApplication.translate("MyTableModel", "ID"),
+            QApplication.translate("MyTableModel", "First Name"),
+            QApplication.translate("MyTableModel", "Last Name")
+        ]
+
+        tableWidget1 = TableWidget(data1, headers1)
+        tableWidget2 = TableWidget(data2, headers2)
+
+        layout.addWidget(tableWidget1)
+        layout.addWidget(tableWidget2)
+
+        self.setLayout(layout)
+
+        # Добавляем комбобокс для выбора языка
+        languageButton = QComboBox()
+        languageButton.addItems([QApplication.translate("MainWindow", "English"),
+                                 QApplication.translate("MainWindow", "Russian")])
+        languageButton.currentIndexChanged.connect(self.changeLanguage)
+        layout.addWidget(languageButton)
+
+    def changeLanguage(self, index):
+        if index == 0:
+            self.translator.load("d:/data_prj/labed/test_trans/english.qm")
+        elif index == 1:
+            self.translator.load("d:/data_prj/labed/test_trans/russian.qm")
+        QApplication.instance().installTranslator(self.translator)
+        self.updateUI()
+
+    def updateUI(self):
+        # Обновляем заголовки таблиц
+        for widget in self.findChildren(TableWidget):
+            widget.model.layoutChanged.emit()
+
+TESTING_MODE = True  # на этапе отладки желательно держать включённым
+log_file_name = 'labed.log'  # имя файла ведения лога при ошибках
+
+
+# TODO: сделать загрузку предустановленных датасетов self.tb_load_preset.addActions
+# TODO: сделать сброс всех настроек по нажатию изменению настроек в файле settings.ini Reset = True
+# TODO: сделать корректные переводы текстов для диалогов
+# TODO: сделать прогресс бар типа паровозика с вагончиками, со всплывающими фактами, типа "Факт №291: У акул зубы
+#  обновляются всю жизнь. И поезда разные выезжают.
+# TODO: Учесть в объединении еще и раздел Descr
+
+# Ловчий ошибок
+import datetime
+import traceback
+def excepthook_catcher(t, v, tb):
+    with open(log_file_name, 'w') as file:
+        file.write("\n-------------- Errors log --------------\n")
+        file.write("Timecode: %s\n" % datetime.now().strftime("%Y.%m.%d  %H:%M:%S"))
+        traceback.print_exception(t, v, tb, file=file)
+
+# Стандартная инициализация
+if __name__ == '__main__':
+    try:  # открываем, если имеется, в противном случае создаем новый файл
+        file = open(log_file_name, 'a+')
+    except IOError:
+        file = open(log_file_name, 'w+')
+    if TESTING_MODE:
+        sys.excepthook = excepthook_catcher  # включение логирования
+    app = QApplication(sys.argv)
+    # Установите переводчик по умолчанию
+    translator = QTranslator()
+    translator.load("d:/data_prj/labed/test_trans/russian.qm")
+    app.installTranslator(translator)
+
+    w = MainWindow()
+    w.show()
+    sys.exit(app.exec_())
+
 # ----------------------------------------------------------------------------------------------------------------------
 # from ui.az_exp_mnist import *
 # img = load_image_from_dataset(False)

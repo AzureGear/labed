@@ -18,7 +18,7 @@ class TabGeometryUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         super(TabGeometryUI, self).__init__(parent)
         self.settings = AppSettings()  # настройки программы
         self.name = "Geometry"
-        self.tool_tip_title ="Geometry of labeling"
+
         if color_active:
             self.icon_active = coloring_icon("glyph_geometry", color_active)
         if color_inactive:
@@ -40,6 +40,7 @@ class TabGeometryUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
 if __name__ == "__main__":
     import sys
+
     app = QtWidgets.QApplication(sys.argv)
     w = TabGeometryUI()
     w.show()

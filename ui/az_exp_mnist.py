@@ -18,6 +18,7 @@ class PageMNIST(QtWidgets.QWidget):
     Виджет типа страницы QTabWidget для работы с MNIST
     """
     signal_message = QtCore.pyqtSignal(str)  # сигнал передачи сообщения родительскому виджету
+    inner_signal = QtCore.pyqtSignal(str)  # внутренний сигнал
     signal_info = QtCore.pyqtSignal(str)  # сигнал для вывода сообщения в self.info
 
     def __init__(self, parent=None):
@@ -37,7 +38,7 @@ class PageMNIST(QtWidgets.QWidget):
         self.mnist_worker.started.connect(self.mnist_on_started)  # начало работы mnist worker
         self.mnist_worker.finished.connect(self.mnist_on_finished)  # завершение работы mnist worker
         # сигнал mnist_worker'a о текущих действиях
-        self.mnist_worker.signal_message.connect(self.mnist_on_change, QtCore.Qt.ConnectionType.QueuedConnection)
+        self.mnist_worker.inner_signal.connect(self.mnist_on_change, QtCore.Qt.ConnectionType.QueuedConnection)
         self.mnist_worker.signal_model.connect(self.mnist_handler.set_model)
         self.mnist_handler.signal_mnist_handler.connect(self.toggle_use_model)
         # сигналы интерфейса
@@ -49,6 +50,7 @@ class PageMNIST(QtWidgets.QWidget):
 
         self.info = QtWidgets.QTextEdit(self)  # лог отображения информации
         self.info.setReadOnly(True)
+        self.info.setFont(QtGui.QFont("Consolas", 10))
 
         self.draw28x28 = AzCanvas()  # холст для рисования
         self.draw28x28.setFixedSize(143, 143)
@@ -149,12 +151,14 @@ class PageMNIST(QtWidgets.QWidget):
 
         self.gb_settings = QtWidgets.QGroupBox(self.tr("Input settings"))
         self.tab_inputs = QtWidgets.QTabWidget()
+        self.tab_inputs.setStyleSheet("QTabBar::tab { width: 200px; }")
+
         tab_perceptron = QtWidgets.QWidget()
         tab_perceptron.setLayout(self.ui_perceptron())
         tab_cnn = QtWidgets.QWidget()
 
-        self.tab_inputs.addTab(tab_perceptron, "Perceptron")
-        self.tab_inputs.addTab(tab_cnn, "Convolutional neural network")
+        self.tab_inputs.addTab(tab_perceptron, "Perceptron...")
+        self.tab_inputs.addTab(tab_cnn, "Convolutional neural network...")
         lay = QtWidgets.QVBoxLayout()
         lay.addWidget(self.tab_inputs)
         self.gb_settings.setLayout(lay)
@@ -168,6 +172,10 @@ class PageMNIST(QtWidgets.QWidget):
         from ui import set_margins_recursive
         set_margins_recursive(self.gb_model, 0, 0, 0, 0, 0)
 
+        self.gb_result = QtWidgets.QGroupBox(self.tr("Results"))  # результаты
+        lay_result = self.ui_result()
+        self.gb_result.setLayout(lay_result)
+
         # Итоговая сборка
         v_layout = QtWidgets.QVBoxLayout()
         v_layout.addLayout(h_layout)  # компонуем рисовальщика, предпросмотр
@@ -178,7 +186,47 @@ class PageMNIST(QtWidgets.QWidget):
         h_layout3.addWidget(self.gb_model)
         h_layout3.addWidget(self.info, 1)  # делаем вывод максимальным
         layout.addWidget(self.gb_settings)
-        layout.addLayout(h_layout3, 1)
+        layout.addLayout(h_layout3)
+        layout.addWidget(self.gb_result, 1)
+
+    def ui_result(self):
+        h_lay = QtWidgets.QHBoxLayout()
+        self.tb_add_and_test_model = new_button(self, "tb", self.tr("Test model and add to table"), "glyph_add2",
+                                                the_color, self.add_and_test_model,
+                                                tooltip=self.tr("Test model and add to table"))
+        self.headers_results = [self.tr("Type"),
+                                self.tr("Platform"),
+                                self.tr("Unique id"),
+                                self.tr("Epochs"),
+                                self.tr("Layers"),
+                                self.tr("layers splitting"),
+                                self.tr("Learning rate"),
+                                self.tr("Activate function"),
+                                self.tr("Dataset using"),
+                                self.tr("Shuffle data"),
+                                self.tr("Loss for training"),
+                                self.tr("Accuracy for training"),
+                                self.tr("Accuracy for test"),
+                                self.tr("Unique id")]
+        self.table_results = QtWidgets.QTableView()
+        self.model_results = AzTableModel([["", "", "", "", "", "", "", "", "", "", "", "", "", ""]],
+                                          self.headers_results)
+        self.table_results.setModel(self.model_results)
+        self.adjust_table_results()
+        h_lay.addWidget(self.tb_add_and_test_model)
+        v_lay = QtWidgets.QVBoxLayout()
+        v_lay.addLayout(h_lay)
+        v_lay.addWidget(self.table_results)
+        return v_lay
+
+    def adjust_table_results(self):
+        if self.model_results.columnCount() > 0:  # для столбцов
+            header = self.table_results.horizontalHeader()
+            for col in range(self.model_results.columnCount()):
+                header.setSectionResizeMode(col, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
+        if self.model_results.rowCount() > 0:  # для строк
+            for row in range(self.model_results.rowCount()):  # выравниваем высоту
+                self.table_results.setRowHeight(row, 16)
 
     def ui_perceptron(self):
         self.platform_label = new_text(self.tr("Platform:"))
@@ -186,29 +234,29 @@ class PageMNIST(QtWidgets.QWidget):
         self.epochs_label = new_text(self.tr("Epoch:"))
         self.cbx_epochs = new_cbx(self, ["1", "2", "3", "4", "5", "10", "20"], True, QtGui.QIntValidator(1, 30))
         self.activ_func_label = new_text(self.tr("Activation function:"))
-        self.cbx_activ_func = new_cbx(self, ["sigmoid", "ReLU", "linear", "binary step", "leaky ReLU",
-                                             "exponential linear unit", "Tanh"])
+        # перечень функций в словаре формируем автоматически
+        self.cbx_activ_func = new_cbx(self, activation_functions.keys())
         self.number_of_layers_label = new_text(self.tr("Layers number:"))
         self.cbx_number_of_layers = new_cbx(self, ["1", "2", "3", "4", "5", "10"], True, QtGui.QIntValidator(1, 30))
         self.cbx_number_of_layers.setCurrentText("2")  # имеется в виду количество скрытых слоёв
         self.cbx_number_of_layers.setToolTip(self.tr("The input layer is ignored. If one layer is specified, it will "
                                                      "also be the output layer (784x10)."))
 
-        self.using_dataset_label = new_text(self.tr("MNIST usage, %:"))
+        self.using_dataset_label = new_text(self.tr("Dataset usage, %:"))
         self.cbx_using_dataset = new_cbx(self, ["1", "5", "10", "15", "20", "25", "50", "75", "100"], True,
                                          QtGui.QIntValidator(1, 100))
         self.chk_use_random_data = QtWidgets.QCheckBox(self.tr("Shuffle data from MNIST"))
-        self.learning_rate_label = new_text(self, self.tr("Learning rate"))
+        self.learning_rate_label = new_text(self, self.tr("Learning rate:"))
         self.cbx_learning_rate = new_cbx(self, ["0.01", "0.005", "0.001", "0.1", "0.5"], True,
                                          QtGui.QDoubleValidator(0.0001, 1.0, 4))
-        self.layers_settings_label = new_text(self, self.tr("Layer formation settings"))
-        self.cbx_layers_settings = new_cbx(self, ["min", "equally"])
+        self.layers_splitting_label = new_text(self, self.tr("Layers splitting:"))
+        self.cbx_layers_splitting = new_cbx(self, interpolation_functions.keys())
 
         self.settings_labels = [self.platform_label, self.epochs_label, self.activ_func_label,
                                 self.number_of_layers_label, self.learning_rate_label, self.using_dataset_label,
-                                self.layers_settings_label]
+                                self.layers_splitting_label]
         self.settings_widgets = [self.cbx_platform, self.cbx_epochs, self.cbx_activ_func, self.cbx_number_of_layers,
-                                 self.cbx_learning_rate, self.cbx_using_dataset,self.cbx_layers_settings]
+                                 self.cbx_learning_rate, self.cbx_using_dataset, self.cbx_layers_splitting]
 
         grid_layout = QtWidgets.QGridLayout()
         # заполняем парами
@@ -221,6 +269,9 @@ class PageMNIST(QtWidgets.QWidget):
         grid_layout.setHorizontalSpacing(10)
         grid_layout.setContentsMargins(0, 0, 0, 0)
         return grid_layout
+
+    def add_and_test_model(self):
+        pass
 
     def get_random_image(self):
         img = load_image_from_dataset(self.settings.read_dataset_mnist())  # извлекаем случайное изображение из датасета
@@ -279,6 +330,7 @@ class PageMNIST(QtWidgets.QWidget):
                     "accuracy": "-",
                     "loss": "-",
                     "activ_funct": self.cbx_activ_func.currentText(),
+                    "layers_splitting": self.cbx_layers_splitting.currentText(),
                     "dataset_using": self.cbx_using_dataset.currentText(),
                     "epochs": self.cbx_epochs.currentText(),
                     "number_of_layers": self.cbx_number_of_layers.currentText(),
@@ -290,21 +342,21 @@ class PageMNIST(QtWidgets.QWidget):
 
         if self.tab_inputs.tabText(self.tab_inputs.currentIndex()) == "Perceptron":  # тип НС "перцептрон"
             self.tb_start_train.setEnabled(False)  # Делаем кнопку неактивной
-            self.mnist_worker.init_data(**settings)  # инициализируем настройки
+            self.mnist_worker.get_params(**settings)  # инициализируем настройки
             self.mnist_worker.start()  # Запускаем поток
         elif self.tab_inputs.tabText(self.tab_inputs.currentIndex()) == "Convolutional neural network":  # тип CNN
-            self.signal_message.emit(self.tr("Not ready yet..."))  # TODO: CNN
+            self.inner_signal.emit(self.tr("Not ready yet..."))  # TODO: CNN
             return
 
     @QtCore.pyqtSlot()
     def mnist_on_started(self):  # Вызывается при запуске потока
-        self.signal_info.emit(self.tr("---------- Training start ----------"))
+        self.signal_info.emit(self.tr("------------------ Training start ------------------"))
         self.mnist_handler.change_icon("red")  # меняем иконку, сигнализируя, что идет процесс и...
         self.mnist_handler.tb_load.setEnabled(False)  # ...отключаем возможность загружать сохранённую модель
 
     @QtCore.pyqtSlot()
     def mnist_on_finished(self):  # Вызывается при завершении потока
-        self.signal_info.emit(self.tr("----- Model training complete -----"))
+        self.signal_info.emit(self.tr("-------------- Model training complete -------------"))
         self.tb_start_train.setEnabled(True)  # Делаем кнопку сохранения активной
         self.mnist_handler.tb_load.setEnabled(True)
 
@@ -407,14 +459,50 @@ class PageMNIST(QtWidgets.QWidget):
         return QtCore.QCoreApplication.translate("PageMNIST", text)
 
     def translate_ui(self):
+        self.mnist_handler.translate_ui()
+        self.model_results.setHorizontalHeaderLabels([self.tr("Type"),
+                                self.tr("Platform"),
+                                self.tr("Unique id"),
+                                self.tr("Epochs"),
+                                self.tr("Layers"),
+                                self.tr("layers splitting"),
+                                self.tr("Learning rate"),
+                                self.tr("Activate function"),
+                                self.tr("Dataset using"),
+                                self.tr("Shuffle data"),
+                                self.tr("Loss for training"),
+                                self.tr("Accuracy for training"),
+                                self.tr("Accuracy for test"),
+                                self.tr("Unique id")])
+        # self.adjust_table_results()
+
+        self.draw28x28.setToolTip(self.tr('Left click to draw, right click to clear'))
+        self.tab_inputs.setTabText(0, self.tr("Perceptron"))
+        self.tab_inputs.setTabText(1, self.tr("Convolutional neural network"))
+
+        self.gb_settings.setTitle(self.tr("Input settings"))
+        self.gb_draw.setTitle(self.tr('Draw'))
+        self.gb_preview.setTitle(self.tr('Preview'))
+        self.tb_toggle_grid.setToolTip(self.tr("Toggle grid"))
+
+        self.tb_start_train.setToolTip(self.tr("Start train"))
+        self.tb_get_random.setToolTip(self.tr("Load random image"))
+        self.tb_clear_log.setToolTip(self.tr("Clear log"))
+        self.tb_use_model.setToolTip(self.tr("Use model for current image"))
+
+        self.gb_model.setTitle(self.tr("Model"))
+        self.gb_result.setTitle(self.tr("Results"))
+
         self.platform_label.setText(self.tr("Platform:"))
         self.epochs_label.setText(self.tr("Epoch:"))
         self.activ_func_label.setText(self.tr("Activation function:"))
         self.number_of_layers_label.setText(self.tr("Layers number:"))
+        self.cbx_number_of_layers.setToolTip(self.tr("The input layer is ignored. If one layer is specified, it will "
+                                                     "also be the output layer (784x10)."))
         self.using_dataset_label.setText(self.tr("Dataset usage, %:"))
-        self.gb_settings.setTitle(self.tr("Input settings"))
-        self.gb_draw.setTitle(self.tr('Draw'))
-        self.gb_preview.setTitle(self.tr('Preview'))
+        self.chk_use_random_data.setText(self.tr("Shuffle data from MNIST"))
+        self.learning_rate_label.setText(self.tr("Learning rate:"))
+        self.layers_splitting_label.setText(self.tr("Layers splitting:"))
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -643,8 +731,10 @@ class MNISTHandler(QtWidgets.QWidget):
         self.settings = AppSettings()
         self.model_params = None  # параметры модели
         self.model_data = None  # данные модели
+        self.current_status = None
 
         self.label_status = new_text(self.tr("Model not loaded"))
+        self.current_status = self.label_status.text()
         self.btn_status = new_button(self, "tb", icon="circle_grey", color=None, icon_size=16,
                                      tooltip=self.tr("Model status"))
         self.tb_save = new_button(self, "tb", self.tr("Save current model"), "glyph_save2", the_color, self.save_model,
@@ -667,7 +757,8 @@ class MNISTHandler(QtWidgets.QWidget):
         """Сохранение модели со случайным именем из 5 символов, по умолчанию в каталоге с MNIST, в виде словаря"""
         if os.path.exists(os.path.dirname(self.settings.read_dataset_mnist())):  # проверяем есть ли каталог с MNIST?
             # тогда сохраняем модель там
-            new_name = os.path.join(os.path.dirname(self.settings.read_dataset_mnist()), self.model_params["uniq_id"])
+            new_name = os.path.join(os.path.dirname(self.settings.read_dataset_mnist()),
+                                    self.model_params["uniq_id"] + ".pkl")
 
         else:  # иначе вызываем диалог
             new_name = az_file_dialog(self, self.tr("Select dir to save model"), self.settings.read_last_dir(),
@@ -733,7 +824,8 @@ class MNISTHandler(QtWidgets.QWidget):
 
     def change_status(self, message, color, handler_info):
         """Изменение статуса: сообщения в QLabel, цвета иконки и отправление сигнала о готовности"""
-        self.label_status.setText(message)
+        self.current_status = message
+        self.label_status.setText(self.current_status)
         self.change_icon(color)
         self.signal_mnist_handler.emit(handler_info)
 
@@ -746,12 +838,22 @@ class MNISTHandler(QtWidgets.QWidget):
             icon = "circle_grey"
         self.btn_status.setIcon(new_icon(icon))
 
+    def tr(self, text):
+        return QtCore.QCoreApplication.translate("MNISTHandler", text)
+
+    def translate_ui(self):
+        self.label_status.setText(self.tr(self.current_status))
+        self.btn_status.setToolTip(self.tr("Model status"))
+        self.tb_save.setToolTip(self.tr("Save current model"))
+        self.tb_load.setToolTip(self.tr("Load last saved model"))
+        self.btn_status.setToolTip(self.tr("Model status"))
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 class MNISTWorker(QtCore.QThread):
     """Поток обучения, загрузка данных персептрона MNIST"""
     # TODO: добавить время обучения
-    signal_message = QtCore.pyqtSignal(str)  # передача сообщения
+    inner_signal = QtCore.pyqtSignal(str)  # передача сообщения
     signal_model = QtCore.pyqtSignal(tuple)  # сигнал передачи модели
 
     def __init__(self, parent=None):
@@ -760,17 +862,38 @@ class MNISTWorker(QtCore.QThread):
         self.params = None
         self.settings = AppSettings()
 
-    def init_data(self, **params):
+    def get_training_info(self):
+        self.training_info = self.tr(f"type: {self.params['nn_type']}; "
+                                     f"epochs: {self.params['epochs']}; "
+                                     f"activation: {self.params['activ_funct']}; "
+                                     f"layers: {self.params['number_of_layers']}; "
+                                     f"shuffle mnist: {self.params['shuffle_data']}; "
+                                     f"learning rate: {self.params['learning_rate']}; "
+                                     f"dataset limit: {self.params['dataset_using']}%; "
+                                     f"layers splitting: {self.params['layers_splitting']}; "
+                                     f"platform: {self.params['platform']}; "
+                                     f"unique id: {self.params['uniq_id']}")
+        return self.training_info
+
+    def get_params(self, **params):
         # инициализация начальных параметров через словарь
         self.params = params
 
     def run(self):
+        self.train_and_send_simple()
+        # images, labels, unused_inx = load_dataset(self.settings.read_dataset_mnist(), self.params["dataset_using"],
+        #                                           self.params["shuffle_data"])
+        # if images is None:
+        #     self.inner_signal.emit(self.tr("MNIST file not found, check for source data."))
+        #     return
+
+    def train_and_send_simple(self):
         images, labels, unused_inx = load_dataset(self.settings.read_dataset_mnist(), self.params["dataset_using"],
-                                      self.params["shuffle_data"])
+                                                  self.params["shuffle_data"])
         if images is None:
-            self.signal_message.emit(self.tr("MNIST file not found, check for source data."))
+            self.inner_signal.emit(self.tr("MNIST file not found, check for source data."))
             return
-        self.signal_message.emit(self.tr(f"Loaded {len(labels)} images from MNIST"))
+        self.inner_signal.emit(self.tr(f"Loaded {len(labels)} images from MNIST"))
         # слои следуют: 1 (исходный), 2 (скрытый), 3 (скрытый), ..., выходной слой
         # инициализируем случайные веса второго слоя, 20 строк х 28*28 (784) столбцов
         weights_layer_1 = np.random.uniform(-0.5, 0.5, (20, 784))
@@ -779,6 +902,7 @@ class MNISTWorker(QtCore.QThread):
         weights_layer_2 = np.random.uniform(-0.5, 0.5, (10, 20))  # веса третьего (выходного) слоя
         bias_layer_2 = np.zeros((10, 1))  # смещения для третьего (выходного) слоя
 
+        self.get_training_info()
         # определяем используемую функцию активации
         activ_func = self.params["activ_funct"]
 
@@ -786,18 +910,7 @@ class MNISTWorker(QtCore.QThread):
         e_loss = 0
         e_correct = 0  # коррекция ошибки
         learning_rate = float(self.params["learning_rate"])  # скорость обучения
-
-        info = self.tr(f"type: {self.params['nn_type']}; "
-                       f"epochs: {self.params['epochs']}; "
-                       f"activation: {activ_func}; "
-                       f"layers: {self.params['number_of_layers']}; "
-                       f"shuffle mnist: {self.params['shuffle_data']}; "
-                       f"learning rate: {self.params['learning_rate']}; "
-                       f"dataset limit: {self.params['dataset_using']}%; "
-                       f"platform: {self.params['platform']}; "
-                       f"unique id: {self.params['uniq_id']}")
-
-        self.signal_message.emit(self.tr(f"Training settings: {info}"))
+        self.inner_signal.emit(self.tr(f"Training settings: {self.training_info}"))
         for epoch in range(epochs):
             for image, label in zip(images, labels):
                 image = np.reshape(image, (-1, 1))  # преобразование массивов исходных данных в [784, 1]
@@ -836,15 +949,16 @@ class MNISTWorker(QtCore.QThread):
                 self.params["accuracy"] = str(round((e_correct / images.shape[0]) * 100, 2)) + "%"
             # Обучение завершено
 
-            self.signal_message.emit(self.tr(f"Epoch {epoch + 1}: loss {round((e_loss[0] / images.shape[0]) * 100, 2)}%"
-                                             f"; accuracy: {round((e_correct / images.shape[0]) * 100, 2)}%"))
+            self.inner_signal.emit(self.tr(f"Epoch {epoch + 1}: loss {round((e_loss[0] / images.shape[0]) * 100, 2)}%"
+                                           f"; accuracy: {round((e_correct / images.shape[0]) * 100, 2)}%"))
             e_loss = 0
             e_correct = 0
 
         # Подготавливаем данные для отправки
         # структура данных: ({словарь параметров}, {данные обученной модели})
         data = (self.params,
-                {"data": [(bias_layer_1, weights_layer_1, activ_func), (bias_layer_2, weights_layer_2, activ_func)]})
+                {"data": [(bias_layer_1, weights_layer_1, activ_func), (bias_layer_2, weights_layer_2, activ_func)],
+                 "unused_inx": unused_inx})
         self.signal_model.emit(data)  # отправляем модель
 
 

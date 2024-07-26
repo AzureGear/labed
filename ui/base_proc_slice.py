@@ -19,7 +19,6 @@ class TabSliceUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         super(TabSliceUI, self).__init__(parent)
         self.settings = AppSettings()  # настройки программы
         self.name = "Slice"
-        self.tool_tip_title = "Dataset cropping"
         if color_active:
             self.icon_active = coloring_icon("glyph_slice", color_active)
         if color_inactive:

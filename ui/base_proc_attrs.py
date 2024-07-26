@@ -1,5 +1,3 @@
-import copy
-
 from PyQt5 import QtWidgets, QtGui, QtCore
 from utils import AppSettings, UI_COLORS, helper, config, natural_order
 from utils.sama_project_handler import DatasetSAMAHandler
@@ -18,6 +16,7 @@ color_train = UI_COLORS.get("train_color")
 color_val = UI_COLORS.get("val_color")
 color_test = UI_COLORS.get("test_color")
 
+
 # TODO: добавить инструмент назначения Разметчика
 # TODO: рассчитать баланс датасета
 
@@ -32,8 +31,8 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     def __init__(self, color_active=None, color_inactive=None, parent=None):
         super(TabAttributesUI, self).__init__(parent)
         self.settings = AppSettings()  # настройки программы
-        self.name = "Attributes"
-        self.tool_tip_title = "Searching and editing dataset attributes"
+        self.name = self.tr("Attributes")
+
         if color_active:
             self.icon_active = coloring_icon("glyph_attributes", color_active)
         if color_inactive:
@@ -147,7 +146,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                                             tooltip=self.tr("Apply palette for current project and reload it"))
         self.btn_apply_lrm = new_button(self, "tb", icon="glyph_sat_image", slot=self.attrs_apply_lrm_from_folder,
                                         color=the_color, icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE,
-                                        tooltip="Set GSD data from map files in folder to current project")
+                                        tooltip=self.tr("Set GSD data from map files in folder to current project"))
         self.btn_save = new_button(self, "tb", icon="glyph_save2", tooltip=self.tr("Save changes to the project"),
                                    slot=self.save, color=the_color, icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE)
         self.common_buttons = [self.btn_save, self.btn_save_palette, self.btn_apply_palette, self.btn_export,
@@ -182,7 +181,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                 self.table_widget.setColumnWidth(column, 45)
                 header.setSectionResizeMode(column, QtWidgets.QHeaderView.Fixed)
             elif column == 8:
-                self.table_widget.setColumnWidth(column, 45)
+                self.table_widget.setColumnWidth(column, 60)
                 header.setSectionResizeMode(column, QtWidgets.QHeaderView.Fixed)
             # else:
             #     header.setSectionResizeMode(column, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)  # ResizeToContents
@@ -262,7 +261,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.ti_tb_sort_cook = new_button(self, "tb", icon="glyph_cook", color=the_color, slot=self.cook_dataset,
                                           tooltip=self.tr("Cook dataset"))
         self.sort_project_name = new_text(self, self.tr("Path to sorting project (*.sort):"))
-        self.ti_tb_sort_open = AzButtonLineEdit("glyph_folder", the_color, "Open file", True, dir_only=False,
+        self.ti_tb_sort_open = AzButtonLineEdit("glyph_folder", the_color, self.tr("Open file"), True, dir_only=False,
                                                 filter="sort (*.sort)", initial_filter="sort (*.sort)",
                                                 slot=self.open_sort_file)
 
@@ -280,9 +279,9 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                 tool.setIconSize(QtCore.QSize(config.UI_AZ_PROC_ATTR_IM_ICON_SIZE, config.UI_AZ_PROC_ATTR_IM_ICON_SIZE))
 
         # создание виджетов таблиц Train, Val, Sort
-        self.sort_widget_train = AzSortTable(color_train, "train", self, ROW_H, [self.tr("Images")])
-        self.sort_widget_val = AzSortTable(color_val, "val", self, ROW_H, [self.tr("Images")])
-        self.sort_widget_test = AzSortTable(color_test, "test", self, ROW_H, [self.tr("Images")])
+        self.sort_widget_train = AzSortTable(color_train, "train", self, ROW_H)
+        self.sort_widget_val = AzSortTable(color_val, "val", self, ROW_H)
+        self.sort_widget_test = AzSortTable(color_test, "test", self, ROW_H)
         self.sort_tables = [self.sort_widget_train, self.sort_widget_val, self.sort_widget_test]
 
         h_layout2 = QtWidgets.QHBoxLayout()  # компоновщик таблиц сортировки и таблицы статистики
@@ -432,10 +431,11 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         """Создание и установка модели в таблице фильтрата, по исходным данным, настройка ui таблицы"""
         if len(data) < 1:
             self.image_table.setModel(AzTableModel())
+
         else:
-            model_sorting = AzTableModel(data, self.image_headers)  # модель для данных фильтрата
+            self.model_image = AzTableModel(data, self.image_headers)  # модель для данных фильтрата
             proxyModel = QtCore.QSortFilterProxyModel()  # используем для включения сортировки
-            proxyModel.setSourceModel(model_sorting)
+            proxyModel.setSourceModel(self.model_image)
             self.image_table.setModel(proxyModel)
             self.image_table.setSortingEnabled(True)
             self.image_table.sortByColumn(1, QtCore.Qt.SortOrder.AscendingOrder)
@@ -461,6 +461,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.fill_image_data_filters()  # заполняем параметрами для сортировки (фильтрами)
         self.set_image_data_model(data)  # загружаем и устанавливаем модель
 
+    @QtCore.pyqtSlot(int)
     def table_image_filter_changed(self):
         """Загрузка данных в таблицу фильтрата при изменении фильтров. Если включен режим сортировки, то также
          проверяется наличие объектов в таблицах Train/Val через класс DatasetSortHandler"""
@@ -513,9 +514,9 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     def clear_dataset_info(self):
         self.common_data = [["-", "-", "-", "-"]]
-        model = AzTableModel(self.common_data, self.common_headers, no_rows_captions=True)
-        self.common_table.setModel(model)
-        for i in range(self.common_table.model().columnCount()):
+        self.common_model = AzTableModel(self.common_data, self.common_headers, no_rows_captions=True)
+        self.common_table.setModel(self.common_model)
+        for i in range(self.common_model.columnCount()):
             self.common_table.horizontalHeader().setSectionResizeMode(i, QtWidgets.QHeaderView.ResizeMode.Stretch)
 
     def toggle_tool_buttons(self, flag):
@@ -565,7 +566,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             return
         if len(file) > 0:
             helper.save(file, data, 'w+')  # сохраняем файл как палитру
-        self.signal_message.emit(self.tr(f"Palette saved to: &{file}"))
+        self.signal_message.emit(self.tr(f"Palette saved to: {file}"))
 
     def attrs_apply_palette(self):  # применение палитры
         """Применить палитру к файлу проекта SAMA"""
@@ -652,8 +653,8 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         else:  # данных нет, ставим прочерк
             self.common_data = [[images_count, labels_count, "-", "-"]]
 
-        model = AzTableModel(self.common_data, self.common_headers, no_rows_captions=True)
-        self.common_table.setModel(model)
+        self.common_model = AzTableModel(self.common_data, self.common_headers, no_rows_captions=True)
+        self.common_table.setModel(self.common_model)
         for i in range(self.common_table.model().columnCount()):
             self.common_table.horizontalHeader().setSectionResizeMode(i, QtWidgets.QHeaderView.ResizeMode.Stretch)
 
@@ -984,11 +985,50 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     def translate_ui(self):  # переводим текущие тексты и добавленные/вложенные вкладки
         # Processing - Attributes
         self.table_widget.translate_ui()
+        self.table_widget.setHorizontalHeaderLabels(
+            [self.tr("Label name"), self.tr("Labels count"), self.tr("Frequency per 100 images"),
+             self.tr("% total labels"), self.tr("Average area, pixels"), self.tr('SD of area, pixels'),
+             self.tr("Balance"), self.tr("Color"), self.tr("Action")])
+        self.common_model.setHorizontalHeaderLabels([self.tr("Count of\nimages: "), self.tr("Count of\nlabels: "),
+                                                     self.tr("Average\nGSD: "), self.tr("Deviation\nGSD: ")])
+        self.model_image.setHorizontalHeaderLabels([self.tr("Group"), self.tr("Images"), self.tr("Label"),
+                                                    self.tr("Number")])
+        self.sort_widget_train.translate_ui()
+        self.sort_widget_val.translate_ui()
+        self.sort_widget_test.translate_ui()
         self.label_project.setText(self.tr("Path to file project (*.json):"))
         self.btn_copy.setToolTip(self.tr("Make copy of current project"))
         self.btn_export.setToolTip(self.tr("Export current project info"))
         self.btn_save_palette.setToolTip(self.tr("Save palette from current project"))
         self.btn_apply_palette.setToolTip(self.tr("Apply palette for current project"))
+        self.btn_save.setToolTip(self.tr("Save changes to the project"))
+        self.btn_apply_lrm.setToolTip(self.tr("Set GSD data from map files in folder to current project"))
+
+        self.tb_edit_project_descr.setToolTip(self.tr("Toggle edit project description"))
+        self.project_label.setText(self.tr("Project description:"))
+
+        self.ti_sel_class_text.setText(self.tr("Selected\nlabel:"))
+        self.ti_sel_obj_text.setText(self.tr("Selected\ngroup:"))
+        self.ti_pb_sel_clear_selection.setToolTip(self.tr("Reset selection"))
+        self.ti_pb_sel_clear_filters.setToolTip(self.tr("Clear filters"))
+
+        self.ti_tb_sort_mode.setText(self.tr(" Toggle sort\n train/val"))
+        self.ti_tb_sort_mode.setToolTip(self.tr("Enable sort mode for train/val"))
+        self.ti_tb_sort_new.setToolTip(self.tr("New train-val sorting project"))
+        self.ti_tb_toggle_tables.setToolTip(self.tr("Toggle tables"))
+        self.ti_tb_sort_save.setToolTip(self.tr("Save train-val sorting project"))
+        self.ti_tb_sort_smart.setToolTip(self.tr("Smart dataset sort"))
+        self.ti_tb_sort_cook.setToolTip(self.tr("Cook dataset"))
+        self.sort_project_name.setText(self.tr("Path to sorting project (*.sort):"))
+        self.ti_tb_sort_open.button.setToolTip(self.tr("Open file"))
+
+        self.test_val_stats_label.setText(self.tr("Statistic for train/val data:"))
+        self.toggle_train.setText(self.tr(f"Toggle train"))
+        self.toggle_train.setToolTip(self.tr("Show or hide table train"))
+        self.toggle_val.setText(self.tr(f"Toggle val"))
+        self.toggle_val.setToolTip(self.tr("Show or hide table val"))
+        self.toggle_test.setText(self.tr(f"Toggle test"))
+        self.toggle_test.setToolTip(self.tr("Show or hide table test"))
 
 
 # ----------------------------------------------------------------------------------------------------------------------

@@ -9,7 +9,7 @@ LOCALIZATION_FOLDER = 'l10n'
 
 # размеры окна (высота в процентах от ширины)
 APP_MIN_SIZE = {"WIDTH": 720,
-                "HEIGHT": 0.628}
+                "HEIGHT": 0.95}
 
 # проверка доступности датасетов и их расположений
 DEFAULT_DATASET_USAGE = {"MNIST": {"check": True, "path": "MNIST/mnist.npz"}}

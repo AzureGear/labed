@@ -179,13 +179,16 @@ class BaseGUI(QtWidgets.QMainWindow):
 
         for action in self._ui.actions_switch_lang:  # соединяем смену языка
             action.triggered.connect(self.change_lang)
+
         for i, action in enumerate(self._ui.actions_page_side_panel):
             action.setData(i)
             action.triggered.connect(self.change_page)
 
         # Локализация
         self.trans = QtCore.QTranslator(self)  # переводчик
-        self.retranslate_ui()  # переключение языка
+        # if self.trans.load("d:/data_prj/labed/labed/l10n/Russian.qm"):
+        #     QtWidgets.QApplication.installTranslator(self.trans)
+        # self.retranslate_ui()  # переключение языка
 
         # Настройки по умолчанию и сохранённые настройки
         self._theme = self.settings.read_ui_theme()  # тема светлая

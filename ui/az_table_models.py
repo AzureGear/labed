@@ -7,7 +7,7 @@ import copy
 class AzTableAttributes(QtWidgets.QTableWidget):
     """
     Таблица для взаимодействия с общей статистикой данных проекта SAMA *.json:
-    headers - перечень заголовков (может быть переводимым, если translate_headers = True*), *пока не реализовано
+    headers - перечень заголовков
     special_cols - словарь особых столбцов: ключ - номер столбца, значение - acton или color; может быть None, следует
         помнить, что нумерация идет с 0.
     data - данные для таблицы, если тип данных DatasetSAMAHandler, то записываются в self.my_data.
@@ -49,8 +49,8 @@ class AzTableAttributes(QtWidgets.QTableWidget):
                     self.setCellWidget(row, column, self.add_action_button())
 
     def add_action_button(self):  # добавление кнопки меню
-        act_button = new_button(self, "tb", icon="glyph_menu", color=self.color, tooltip=self.tr("Select action"),
-                                icon_size=14)
+        act_button = new_button(self, "tb", icon="glyph_menu", color=self.color, icon_size=14,
+                                tooltip=self.tr("Select action"))
         act_button.clicked.connect(self.show_context_menu)
         # act_button.clicked.connect(lambda ch, row=row: self.show_context_menu(row))
         return act_button
@@ -258,26 +258,20 @@ class AzTableAttributes(QtWidgets.QTableWidget):
         # Заголовки таблицы
         if self.translate_headers:
             pass
-        # TODO: headers
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-
 class AzSortTable(QtWidgets.QWidget):
-    """Testestet"""
+    """Сортировочная таблица для отображения объектов относящихся к выбранной группе: train, val, test."""
 
-    def __init__(self, color, sort_type="train", parent=None, row_h=16, table_headers=["Images"]):
+    def __init__(self, color, sort_type="train", parent=None, row_h=16):
         super().__init__(parent)
-        self.table_headers = table_headers
+        self.table_headers = [self.tr("Images")]
+        # data = [[item] for item in data]
         self.row_h = row_h  # высота строк по умолчанию
         self.sort_type = sort_type  # строковое значение типа таблицы
         # Выбираем заголовок
-        if sort_type == "train":
-            self.ti_label = QtWidgets.QLabel(self.tr("Train table:"))
-        elif sort_type == "val":
-            self.ti_label = QtWidgets.QLabel(self.tr("Val table:"))
-        elif sort_type == "test":
-            self.ti_label = QtWidgets.QLabel(self.tr("Test table:"))
+        self.ti_label = QtWidgets.QLabel(self.tr(f"Table {self.sort_type}"))
 
         # добавление
         self.ti_tb_sort_add_to = new_button(self, "tb", sort_type, "glyph_add2", color=color,
@@ -320,15 +314,15 @@ class AzSortTable(QtWidgets.QWidget):
         self.setLayout(layout)
 
         # Создаем базовую модель данных в которую помещаем исходные данные
-        self.init_sort_models(self.table_headers, [])
+        self.init_sort_models()
 
         # Разрешаем выделение строк
         self.table_view.setSelectionBehavior(QtWidgets.QTableView.SelectionBehavior.SelectRows)
         self.table_view.setSelectionMode(QtWidgets.QTableView.SelectionMode.MultiSelection)
         self.align_rows_and_cols()  # высота строк и ширина столбцов единообразна
 
-    def init_sort_models(self, headers=["Images"], data=[["aaa"], ["bbb"]]):
-        self.core_model = AzSimpleModel(data, headers)  # с тестовыми данными
+    def init_sort_models(self, data=[["aaa"], ["bbb"]]):
+        self.core_model = AzSimpleModel(data, self.table_headers)  # с тестовыми данными
         self.model = QtCore.QSortFilterProxyModel()  # создаём второстепенную модель, которая позволяет сортировку
         self.model.setSourceModel(self.core_model)
         # Устанавливаем модель данных для QTableView
@@ -345,26 +339,16 @@ class AzSortTable(QtWidgets.QWidget):
             for row in range(self.model.rowCount()):  # выравниваем высоту
                 self.table_view.setRowHeight(row, self.row_h)
 
-    def set_sort_data_with_model(self, table_view, data):
-        # TODO: подключить сортировку
-        """Создание модели для таблиц сортировки и установка в table_view, выравнивание строк"""
-        # обязательно конвертируем просто список в список списков
-        data = [[item] for item in data]
-        if len(data) < 1:
-            model = AzTableModel()
-        else:
-            model = AzTableModel(data, ["images"])  # заголовок всего один "images"
+    def tr(self, text):
+        return QtCore.QCoreApplication.translate("AzSortTable", text)
 
-        proxyModel = QtCore.QSortFilterProxyModel()  # используем для включения сортировки
-        proxyModel.setSourceModel(model)
-        table_view.setSortingEnabled(True)
-
-        table_view.setModel(proxyModel)
-        if table_view.model().columnCount() > 0:
-            table_view.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Stretch)
-        if table_view.model().rowCount() > 0:
-            for row in range(model.rowCount()):  # выравниваем высоту
-                table_view.setRowHeight(row, self.row_h)
+    def translate_ui(self):  # переводим текущие тексты и добавленные/вложенные вкладки
+        self.ti_label.setText(self.tr(f"Table ") + self.sort_type)
+        self.core_model.setHorizontalHeaderLabels([self.tr("Images")])
+        self.ti_tb_sort_add_to.setToolTip(self.tr(f"Add image to ") + self.sort_type)
+        self.ti_tb_sort_add_group_to.setToolTip(self.tr("Add group to ") + self.sort_type)
+        self.ti_tb_sort_remove_from.setToolTip(self.tr("Remove selected images from ") + self.sort_type)
+        self.ti_tb_sort_remove_group_from.setToolTip(self.tr("Remove group from ") + self.sort_type)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -415,6 +399,9 @@ class AzSimpleModel(QtCore.QAbstractTableModel):
                     return self._headers[section]
         return section + 1
 
+    def setHorizontalHeaderLabels(self, headers):
+        self._headers = headers
+        self.headerDataChanged.emit(QtCore.Qt.Orientation.Horizontal, 0, self.columnCount() - 1)
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -431,8 +418,8 @@ class AzTableModel(QtCore.QAbstractTableModel):
     def __init__(self, data=None, header_data=None, edit_column=None, parent=None, vertical_data=None,
                  no_rows_captions=False):
         super(AzTableModel, self).__init__(parent)
-        self._data = data
         self._header_data = header_data
+        self._data = data
         self._vertical_data = vertical_data
         self._no_rows_captions = no_rows_captions
         self.edit_col = edit_column
@@ -451,6 +438,10 @@ class AzTableModel(QtCore.QAbstractTableModel):
             self.dataChanged.emit(index, index, [role])
             return True
         return False
+
+    def setHorizontalHeaderLabels(self, headers):
+        self._header_data = headers
+        self.headerDataChanged.emit(QtCore.Qt.Orientation.Horizontal, 0, self.columnCount() - 1)
 
     def headerData(self, section, orientation, role):
         if role != QtCore.Qt.ItemDataRole.DisplayRole:
