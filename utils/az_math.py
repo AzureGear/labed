@@ -41,12 +41,12 @@ def activ_func_tanh(x):
 
 activation_functions = {
     "sigmoid": activ_func_sigmoid,
-    "ReLU": activ_func_relu,
+    "relu": activ_func_relu,
     "linear": activ_func_linear,
     "binary step": activ_func_binary_step,
-    "leaky ReLU": activ_func_leaky_relu,
+    "leaky relu": activ_func_leaky_relu,
     "exponential linear unit": activ_func_elu,
-    "Tanh": activ_func_tanh}
+    "tanh": activ_func_tanh}
 
 
 def get_activ_func(name, x):

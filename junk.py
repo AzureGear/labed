@@ -1,160 +1,223 @@
-import sys
-from PyQt5.QtWidgets import QApplication, QTableView, QVBoxLayout, QWidget, QComboBox, QLabel, QDialog, QDialogButtonBox, QVBoxLayout
-from PyQt5.QtCore import QAbstractTableModel, Qt, QTranslator
+import numpy as np
 
-class MyTableModel(QAbstractTableModel):
-    def __init__(self, data, headers, parent=None):
-        super().__init__(parent)
-        self._data = data
-        self._headers = headers
+data = {
+    0: [3, 2, 0, 3, 2], 1: [1, 3, 1, 1, 0], 2: [2, 0, 0, 3, 0], 3: [2, 3, 1, 3, 2],
+    4: [0, 2, 1, 2, 0], 5: [1, 1, 2, 3, 0], 6: [1, 0, 3, 3, 3], 7: [2, 3, 3, 2, 1],
+    8: [2, 0, 1, 3, 3], 9: [2, 1, 1, 3, 1], 10: [2, 2, 2, 3, 0], 11: [0, 2, 0, 1, 1],
+    12: [1, 0, 1, 2, 2], 13: [2, 0, 3, 2, 0], 14: [0, 1, 0, 2, 3]
+}
 
-    def rowCount(self, parent=None):
-        return len(self._data)
+# Convert data to a numpy array for easier manipulation
+data_array = np.array(list(data.values()))
 
-    def columnCount(self, parent=None):
-        return len(self._headers)
+# Calculate the total sum of each column
+total_sums = np.sum(data_array, axis=0)
 
-    def data(self, index, role=Qt.DisplayRole):
-        if role == Qt.DisplayRole:
-            return self._data[index.row()][index.column()]
-        return None
+# Calculate the target sums for 65%, 20%, and 15%
+target_65 = total_sums * 0.65
+target_20 = total_sums * 0.20
+target_15 = total_sums * 0.15
 
-    def headerData(self, section, orientation, role=Qt.DisplayRole):
-        if role == Qt.DisplayRole:
-            if orientation == Qt.Horizontal:
-                return self._headers[section]
-            else:
-                return str(section + 1)
-        return None
+# Initialize three lists for the 65%, 20%, and 15% groups
+group_65 = []
+group_20 = []
+group_15 = []
 
-class TableWidget(QWidget):
-    def __init__(self, data, headers, parent=None):
-        super().__init__(parent)
-        self.model = MyTableModel(data, headers)
-        self.view = QTableView()
-        self.view.setModel(self.model)
-        layout = QVBoxLayout()
-        layout.addWidget(self.view)
-        self.setLayout(layout)
+# Sort the data by the sum of each row
+sorted_indices = np.argsort(np.sum(data_array, axis=1))[::-1]
 
-class LanguageDialog(QDialog):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle(QApplication.translate("LanguageDialog", "Select Language"))
-        layout = QVBoxLayout()
-        self.languageComboBox = QComboBox()
-        self.languageComboBox.addItems([QApplication.translate("LanguageDialog", "English"),
-                                        QApplication.translate("LanguageDialog", "Russian")])
-        layout.addWidget(QLabel(QApplication.translate("LanguageDialog", "Select Language:")))
-        layout.addWidget(self.languageComboBox)
-        buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        buttonBox.accepted.connect(self.accept)
-        buttonBox.rejected.connect(self.reject)
-        layout.addWidget(buttonBox)
-        self.setLayout(layout)
+# Greedy algorithm to split the data
+current_sums_65 = np.zeros(data_array.shape[1])
+current_sums_20 = np.zeros(data_array.shape[1])
+current_sums_15 = np.zeros(data_array.shape[1])
 
-class MainWindow(QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.translator = QTranslator()
-        self.initUI()
+for idx in sorted_indices:
+    row = data_array[idx]
+    if all(current_sums_65 + row <= target_65):
+        group_65.append(row)
+        current_sums_65 += row
+    elif all(current_sums_20 + row <= target_20):
+        group_20.append(row)
+        current_sums_20 += row
+    else:
+        group_15.append(row)
+        current_sums_15 += row
 
-    def initUI(self):
-        layout = QVBoxLayout()
+# Convert lists back to numpy arrays for easier manipulation
+group_65 = np.array(group_65)
+group_20 = np.array(group_20)
+group_15 = np.array(group_15)
 
-        # Пример данных для первой таблицы
-        data1 = [
-            [1, 'John', 'Doe'],
-            [2, 'Jane', 'Smith'],
-            [3, 'Alice', 'Johnson']
-        ]
+# Print the results
+print("Group 65%:")
+print(group_65)
+print("Sum of columns in Group 65%:")
+print(np.sum(group_65, axis=0))
 
-        # Заголовки для первой таблицы
-        headers1 = [
-            QApplication.translate("MyTableModel", "ID"),
-            QApplication.translate("MyTableModel", "First Name"),
-            QApplication.translate("MyTableModel", "Last Name")
-        ]
+print("\nGroup 20%:")
+print(group_20)
+print("Sum of columns in Group 20%:")
+print(np.sum(group_20, axis=0))
 
-        # Пример данных для второй таблицы
-        data2 = [
-            [4, 'Bob', 'Brown'],
-            [5, 'Charlie', 'Green'],
-            [6, 'David', 'White']
-        ]
+print("\nGroup 15%:")
+print(group_15)
+print("Sum of columns in Group 15%:")
+print(np.sum(group_15, axis=0))
 
-        # Заголовки для второй таблицы
-        headers2 = [
-            QApplication.translate("MyTableModel", "ID"),
-            QApplication.translate("MyTableModel", "First Name"),
-            QApplication.translate("MyTableModel", "Last Name")
-        ]
-
-        tableWidget1 = TableWidget(data1, headers1)
-        tableWidget2 = TableWidget(data2, headers2)
-
-        layout.addWidget(tableWidget1)
-        layout.addWidget(tableWidget2)
-
-        self.setLayout(layout)
-
-        # Добавляем комбобокс для выбора языка
-        languageButton = QComboBox()
-        languageButton.addItems([QApplication.translate("MainWindow", "English"),
-                                 QApplication.translate("MainWindow", "Russian")])
-        languageButton.currentIndexChanged.connect(self.changeLanguage)
-        layout.addWidget(languageButton)
-
-    def changeLanguage(self, index):
-        if index == 0:
-            self.translator.load("d:/data_prj/labed/test_trans/english.qm")
-        elif index == 1:
-            self.translator.load("d:/data_prj/labed/test_trans/russian.qm")
-        QApplication.instance().installTranslator(self.translator)
-        self.updateUI()
-
-    def updateUI(self):
-        # Обновляем заголовки таблиц
-        for widget in self.findChildren(TableWidget):
-            widget.model.layoutChanged.emit()
-
-TESTING_MODE = True  # на этапе отладки желательно держать включённым
-log_file_name = 'labed.log'  # имя файла ведения лога при ошибках
+exit()
 
 
-# TODO: сделать загрузку предустановленных датасетов self.tb_load_preset.addActions
-# TODO: сделать сброс всех настроек по нажатию изменению настроек в файле settings.ini Reset = True
-# TODO: сделать корректные переводы текстов для диалогов
-# TODO: сделать прогресс бар типа паровозика с вагончиками, со всплывающими фактами, типа "Факт №291: У акул зубы
-#  обновляются всю жизнь. И поезда разные выезжают.
-# TODO: Учесть в объединении еще и раздел Descr
+import random
+from utils import az_math
 
-# Ловчий ошибок
-import datetime
-import traceback
-def excepthook_catcher(t, v, tb):
-    with open(log_file_name, 'w') as file:
-        file.write("\n-------------- Errors log --------------\n")
-        file.write("Timecode: %s\n" % datetime.now().strftime("%Y.%m.%d  %H:%M:%S"))
-        traceback.print_exception(t, v, tb, file=file)
+unsort = {'08_chn_lanzhou_2022-11_000.jpg': [0, 0, 0, 0, 5, 1, 1, 0, 0, 0],
+          '08_chn_lanzhou_2022-11_001.jpg': [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          '08_chn_lanzhou_2022-11_002.jpg': [0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+          '08_chn_lanzhou_2022-11_003.jpg': [0, 0, 0, 0, 12, 1, 1, 1, 0, 0],
+          '08_chn_lanzhou_2022-11_004.jpg': [0, 0, 0, 1, 2, 0, 0, 0, 2, 0],
+          '08_chn_lanzhou_2022-11_005.jpg': [0, 0, 0, 1, 10, 0, 0, 1, 1, 0],
+          '04_ind_ratnahalli_2023-05_000.jpg': [1, 0, 0, 0, 2, 0, 1, 1, 0, 0],
+          '07_chn_hanzhun_shaanxi_2021-11_000.jpg': [0, 3, 0, 0, 15, 1, 2, 1, 0, 0],
+          '07_chn_hanzhun_shaanxi_2021-11_001.jpg': [0, 0, 0, 0, 5, 2, 2, 1, 0, 0],
+          '13_fra_georges_besse_two_here-com_000.jpg': [0, 0, 0, 0, 8, 8, 1, 0, 1, 2],
+          '13_fra_georges_besse_two_here-com_001.jpg': [0, 0, 0, 0, 6, 6, 1, 0, 0, 0],
+          '13_fra_georges_besse_two_here-com_002.jpg': [0, 0, 0, 0, 0, 0, 0, 0, 6, 0],
+          '13_fra_georges_besse_two_here-com_003.jpg': [0, 0, 0, 0, 0, 0, 0, 0, 3, 1],
+          '13_fra_georges_besse_two_here-com_004.jpg': [0, 0, 0, 0, 0, 0, 0, 0, 3, 2],
+          '13_fra_georges_besse_two_here-com_005.jpg': [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          '13_fra_georges_besse_two_here-com_006.jpg': [0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+          '13_fra_georges_besse_two_here-com_007.jpg': [0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+          '13_fra_georges_besse_two_here-com_008.jpg': [0, 0, 0, 0, 0, 0, 0, 0, 3, 0],
+          '13_fra_georges_besse_two_here-com_009.jpg': [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          '13_fra_georges_besse_two_here-com_010.jpg': [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          '13_fra_georges_besse_two_here-com_011.jpg': [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          '13_fra_georges_besse_two_here-com_012.jpg': [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          '13_fra_georges_besse_two_here-com_013.jpg': [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          '09_chn_emeishan_2022-05_000.jpg': [1, 0, 0, 0, 4, 3, 0, 0, 0, 0],
+          '09_chn_emeishan_2022-05_001.jpg': [1, 0, 0, 0, 4, 1, 0, 0, 0, 0]}
+train = {'01_bra_resende_2023-08_02_000.jpg': [1, 0, 0, 0, 2, 2, 1, 0, 3, 0],
+         '12_usa_nef_2019-02_001.jpg': [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+         '10_nld_almelo_2021-05_002.jpg': [0, 0, 1, 2, 2, 0, 0, 0, 0, 0],
+         '14_jpn_rokkasho_2021-07_000.jpg': [1, 3, 0, 4, 5, 0, 1, 0, 0, 0],
+         '12_usa_nef_2019-02_000.jpg': [0, 0, 1, 0, 3, 3, 0, 0, 2, 1],
+         '03_deu_gronau_2022-04_000.jpg': [0, 0, 0, 1, 5, 5, 1, 1, 2, 0],
+         '11_pak_kahuta_2023-01_000.jpg': [0, 0, 0, 0, 4, 0, 0, 0, 0, 0],
+         '02_gbr_capenhurst_2018-03_000.jpg': [0, 0, 0, 0, 4, 2, 1, 1, 0, 0],
+         '02_gbr_capenhurst_2018-03_001.jpg': [0, 3, 0, 0, 0, 1, 0, 0, 0, 0],
+         '02_gbr_capenhurst_2018-03_005.jpg': [1, 0, 0, 1, 4, 0, 1, 0, 1, 0],
+         '02_gbr_capenhurst_2018-03_002.jpg': [0, 0, 0, 0, 16, 1, 1, 2, 4, 4],
+         '02_gbr_capenhurst_2018-03_003.jpg': [0, 0, 0, 0, 2, 2, 0, 1, 4, 4],
+         '10_nld_almelo_2021-05_001.jpg': [1, 0, 0, 2, 8, 1, 1, 1, 0, 0],
+         '02_gbr_capenhurst_2018-03_007.jpg': [3, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+         '10_nld_almelo_2021-05_000.jpg': [0, 1, 1, 1, 7, 4, 2, 2, 0, 0],
+         '02_gbr_capenhurst_2018-03_006.jpg': [3, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+         '03_deu_gronau_2022-04_001.jpg': [0, 0, 0, 1, 7, 1, 1, 1, 0, 0],
+         '03_deu_gronau_2022-04_002.jpg': [1, 0, 0, 0, 0, 0, 1, 0, 2, 2],
+         '02_gbr_capenhurst_2018-03_004.jpg': [0, 0, 0, 1, 8, 5, 1, 0, 1, 1]}
+val = {'01_bra_resende_bing_03_000.jpg': [1, 0, 0, 0, 2, 2, 1, 0, 3, 0]}
 
-# Стандартная инициализация
-if __name__ == '__main__':
-    try:  # открываем, если имеется, в противном случае создаем новый файл
-        file = open(log_file_name, 'a+')
-    except IOError:
-        file = open(log_file_name, 'w+')
-    if TESTING_MODE:
-        sys.excepthook = excepthook_catcher  # включение логирования
-    app = QApplication(sys.argv)
-    # Установите переводчик по умолчанию
-    translator = QTranslator()
-    translator.load("d:/data_prj/labed/test_trans/russian.qm")
-    app.installTranslator(translator)
+def balance_dice(bags):
+    # Initialize the white and black boxes
+    white_box = []
+    black_box = []
 
-    w = MainWindow()
-    w.show()
-    sys.exit(app.exec_())
+    # Step 1: Initial Sorting
+    for bag in bags:
+        if random.random() < 0.5:
+            white_box.append(bag)
+        else:
+            black_box.append(bag)
+
+    def calculate_imbalance(white_box, black_box):
+        # Step 2: Calculate Imbalance
+        counts_white = [sum(bag.count(i) for bag in white_box) for i in range(0, 5)]
+        counts_black = [sum(bag.count(i) for bag in black_box) for i in range(0, 5)]
+        imbalance = sum(abs(counts_white[i] - 2/3 * counts_black[i]) for i in range(6))
+        return imbalance
+
+    def try_swaps(white_box, black_box):
+        # Step 3: Swap Bags
+        for i, bag_w in enumerate(white_box):
+            for j, bag_b in enumerate(black_box):
+                # Try swapping the bags
+                white_box_new = white_box[:i] + white_box[i+1:] + [bag_b]
+                black_box_new = black_box[:j] + black_box[j+1:] + [bag_w]
+
+                # Step 4: Repeat
+                imbalance_new = calculate_imbalance(white_box_new, black_box_new)
+                if imbalance_new < imbalance:
+                    # If the swap reduces the imbalance, keep it
+                    imbalance = imbalance_new
+                    white_box = white_box_new
+                    black_box = black_box_new
+
+        return white_box, black_box
+
+    # Main loop
+    imbalance = calculate_imbalance(white_box, black_box)
+    while imbalance > 0:
+        white_box, black_box = try_swaps(white_box, black_box)
+        imbalance = calculate_imbalance(white_box, black_box)
+
+    return white_box, black_box
+
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+import numpy as np
+
+data = {
+    0: [3, 2, 0, 3, 2], 1: [1, 3, 1, 1, 0], 2: [2, 0, 0, 3, 0], 3: [2, 3, 1, 3, 2],
+    4: [0, 2, 1, 2, 0], 5: [1, 1, 2, 3, 0], 6: [1, 0, 3, 3, 3], 7: [2, 3, 3, 2, 1],
+    8: [2, 0, 1, 3, 3], 9: [2, 1, 1, 3, 1], 10: [2, 2, 2, 3, 0], 11: [0, 2, 0, 1, 1],
+    12: [1, 0, 1, 2, 2], 13: [2, 0, 3, 2, 0], 14: [0, 1, 0, 2, 3]
+}
+
+# Convert data to a numpy array for easier manipulation
+data_array = np.array(list(data.values()))
+
+# Calculate the total sum of each column
+total_sums = np.sum(data_array, axis=0)
+
+# Calculate the target sums for 80% and 20%
+target_80 = total_sums * 0.8
+target_20 = total_sums * 0.2
+
+# Initialize two lists for the 80% and 20% groups
+group_80 = []
+group_20 = []
+
+# Sort the data by the sum of each row
+sorted_indices = np.argsort(np.sum(data_array, axis=1))[::-1]
+
+# Greedy algorithm to split the data
+current_sums_80 = np.zeros(data_array.shape[1])
+current_sums_20 = np.zeros(data_array.shape[1])
+
+for idx in sorted_indices:
+    row = data_array[idx]
+    if all(current_sums_80 + row <= target_80):
+        group_80.append(row)
+        current_sums_80 += row
+    else:
+        group_20.append(row)
+        current_sums_20 += row
+
+# Convert lists back to numpy arrays for easier manipulation
+group_80 = np.array(group_80)
+group_20 = np.array(group_20)
+
+# Print the results
+print("Group 80%:")
+print(group_80)
+print("Sum of columns in Group 80%:")
+print(np.sum(group_80, axis=0))
+
+print("\nGroup 20%:")
+print(group_20)
+print("Sum of columns in Group 20%:")
+print(np.sum(group_20, axis=0))
 
 # ----------------------------------------------------------------------------------------------------------------------
 # from ui.az_exp_mnist import *

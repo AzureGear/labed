@@ -3,7 +3,7 @@ from PyQt5.QtCore import pyqtProperty
 from ui import new_text, new_cbx, new_button, new_icon, AzTableModel, az_file_dialog
 from utils import AppSettings, helper, config
 from datetime import datetime
-from ui.az_math import *
+from utils.az_math import *
 import numpy as np
 import random
 import os

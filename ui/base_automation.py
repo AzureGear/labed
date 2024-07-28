@@ -164,3 +164,52 @@ class AutomationUI(QtWidgets.QWidget):
                     tile_path = os.path.join(save_path, name)
                     cv2.imwrite(tile_path, tile)
                     count += 1
+# ----------------------------------------------------------------------------------------------------------------------
+
+import random
+
+# Assume bags is a list of lists, where each sublist contains the counts of each number on the dice in a bag
+def balance_dice(bags):
+    # Initialize the white and black boxes
+    white_box = []
+    black_box = []
+
+    # Step 1: Initial Sorting
+    for bag in bags:
+        if random.random() < 0.5:
+            white_box.append(bag)
+        else:
+            black_box.append(bag)
+
+    def calculate_imbalance(white_box, black_box):
+        # Step 2: Calculate Imbalance
+        counts_white = [sum(bag.count(i) for bag in white_box) for i in range(1, 7)]
+        counts_black = [sum(bag.count(i) for bag in black_box) for i in range(1, 7)]
+        imbalance = sum(abs(counts_white[i] - 2/3 * counts_black[i]) for i in range(6))
+        return imbalance
+
+    def try_swaps(white_box, black_box):
+        # Step 3: Swap Bags
+        for i, bag_w in enumerate(white_box):
+            for j, bag_b in enumerate(black_box):
+                # Try swapping the bags
+                white_box_new = white_box[:i] + white_box[i+1:] + [bag_b]
+                black_box_new = black_box[:j] + black_box[j+1:] + [bag_w]
+
+                # Step 4: Repeat
+                imbalance_new = calculate_imbalance(white_box_new, black_box_new)
+                if imbalance_new < imbalance:
+                    # If the swap reduces the imbalance, keep it
+                    imbalance = imbalance_new
+                    white_box = white_box_new
+                    black_box = black_box_new
+
+        return white_box, black_box
+
+    # Main loop
+    imbalance = calculate_imbalance(white_box, black_box)
+    while imbalance > 0:
+        white_box, black_box = try_swaps(white_box, black_box)
+        imbalance = calculate_imbalance(white_box, black_box)
+
+    return white_box, black_box

@@ -910,7 +910,14 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     def smart_sort(self):
         """Интеллектуальная автоматизированная сортировка"""
-        pass
+        # print(self.sort_data.statistic["full"])
+        # print(self.sort_data.statistic["train"])
+        # print(self.sort_data.statistic["val"])
+        # print(self.sort_data.statistic["test"])
+        print(self.sort_data.data["unsort"])
+        print(self.sort_data.data["train"])
+        print(self.sort_data.data["val"])
+        print(self.sort_data.data["test"])
 
     def cook_dataset(self):
         """Сортировка датасета в соответствии с выбранными параметрами"""
@@ -1030,6 +1037,29 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.toggle_test.setText(self.tr(f"Toggle test"))
         self.toggle_test.setToolTip(self.tr("Show or hide table test"))
 
+
+# ----------------------------------------------------------------------------------------------------------------------
+def generate_dict(count, length_val, max_rand=3):
+    import random
+    """
+    Генерация тестовых словарей для проверки работы алгоритма автоматической сортировки.
+    :count: количество ключей в словаре начиная с 0
+    :length_val: количество столбцов в единичной записи;
+    :param list_length: длина списков, которые будут значениями в словаре;
+    :max_rand: верхняя граница случайного распределения;
+    :return: словарь с полученными случайными значениями типа {0: [0, 1, 1], 1:[2, 0, 0], ... }
+    """
+    result_dict = {}
+    for i in range(0, count):
+        result_dict[i] = [random.randint(0, max_rand) for _ in range(length_val)]
+    return result_dict
+
+
+# Пример использования функции
+keys = 15
+list_length = 5
+result = generate_dict(keys, list_length)
+print(result)
 
 # ----------------------------------------------------------------------------------------------------------------------
 
