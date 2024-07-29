@@ -1058,7 +1058,7 @@ def generate_dict(count, length_val, max_rand=3):
 # Пример использования функции
 keys = 15
 list_length = 5
-result = generate_dict(keys, list_length)
+result = generate_dict(20, 2, 5)
 print(result)
 
 # ----------------------------------------------------------------------------------------------------------------------

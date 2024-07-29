@@ -1,3 +1,249 @@
+import random
+import numpy as np
+
+# Исходные данные
+data = [[1, 1], [0, 4], [2, 1], [5, 2], [4, 2], [2, 3], [3, 4], [2, 0], [4, 4], [1, 3], [3, 0], [0, 3], [5, 0], [3, 4], [1, 5], [0, 0], [0, 0], [3, 5], [4, 3], [5, 4]]
+
+# Функция для вычисления суммы столбцов
+def calculate_sums(subset):
+    return np.sum(subset, axis=0)
+
+# Функция для вычисления ошибки
+def calculate_error(subset1, subset2, total_sums):
+    sums1 = calculate_sums(subset1)
+    sums2 = calculate_sums(subset2)
+    error = np.sum(np.abs(sums1 - 0.7 * total_sums) + np.abs(sums2 - 0.3 * total_sums))
+    return error
+
+# Инициализация
+total_sums = calculate_sums(data)
+subset1 = data[:int(len(data) * 0.7)]
+subset2 = data[int(len(data) * 0.7):]
+
+# Поиск оптимального разбиения
+best_subset1 = subset1
+best_subset2 = subset2
+best_error = calculate_error(subset1, subset2, total_sums)
+
+# Параметры генетического алгоритма
+population_size = 50
+generations = 1000
+mutation_rate = 0.01
+
+# Создание начальной популяции
+population = []
+for _ in range(population_size):
+    random.shuffle(data)
+    subset1 = data[:int(len(data) * 0.7)]
+    subset2 = data[int(len(data) * 0.7):]
+    population.append((subset1, subset2))
+
+# Генетический алгоритм
+for generation in range(generations):
+    # Оценка популяции
+    errors = [calculate_error(subset1, subset2, total_sums) for subset1, subset2 in population]
+    best_index = np.argmin(errors)
+    if errors[best_index] < best_error:
+        best_error = errors[best_index]
+        best_subset1, best_subset2 = population[best_index]
+
+    # Селекция
+    selected = random.choices(population, weights=[1 / e for e in errors], k=population_size)
+
+    # Скрещивание
+    new_population = []
+    for i in range(0, population_size, 2):
+        parent1, parent2 = selected[i], selected[i + 1]
+        subset1_parent1, subset2_parent1 = parent1
+        subset1_parent2, subset2_parent2 = parent2
+
+        # Скрещивание
+        crossover_point = random.randint(1, len(data) - 1)
+        subset1_child1 = subset1_parent1[:crossover_point] + subset1_parent2[crossover_point:]
+        subset2_child1 = subset2_parent1[:crossover_point] + subset2_parent2[crossover_point:]
+        subset1_child2 = subset1_parent2[:crossover_point] + subset1_parent1[crossover_point:]
+        subset2_child2 = subset2_parent2[:crossover_point] + subset2_parent1[crossover_point:]
+
+        new_population.append((subset1_child1, subset2_child1))
+        new_population.append((subset1_child2, subset2_child2))
+
+    # Мутация
+    for i in range(population_size):
+        if random.random() < mutation_rate:
+            subset1, subset2 = new_population[i]
+            if random.random() < 0.5 and subset1:
+                row = random.choice(subset1)
+                subset1.remove(row)
+                subset2.append(row)
+            elif subset2:
+                row = random.choice(subset2)
+                subset2.remove(row)
+                subset1.append(row)
+            new_population[i] = (subset1, subset2)
+
+    population = new_population
+
+# Результат
+print("Best subset 1:", best_subset1)
+print("Best subset 2:", best_subset2)
+print("Error:", best_error)
+
+exit()
+#------------------------------------------------------------------------------------------
+import numpy as np
+from scipy.optimize import minimize
+
+# Пример данных
+data = np.array([[1, 1], [0, 4], [2, 1], [5, 2], [4, 2], [2, 3], [3, 4], [2, 0], [4, 4], [1, 3], [3, 0], [0, 3], [5, 0], [3, 4], [1, 5], [0, 0],  [0, 0], [3, 5], [4, 3], [5, 4]])
+
+# Определение функции оценки
+def score_func(x):
+    eighty_percent_data = data[:int(x[0])]
+    twenty_percent_data = data[int(x[0]):]
+    return abs(len(eighty_percent_data) / len(data) - 0.8) + abs(len(twenty_percent_data) / len(data) - 0.2)
+
+# Определение ограничений
+def constraint1(x):
+    return len(data[:int(x[0])]) / len(data) - 0.8
+
+def constraint2(x):
+    return len(data[int(x[0]):]) / len(data) - 0.2
+
+# Определение начальных параметров
+x0 = [0.5 * len(data)]
+
+# Определение ограничений и функции оценки для метода множителей Лагранжа
+constraints = ({'type': 'ineq', 'fun': constraint1},
+                {'type': 'ineq', 'fun': constraint2})
+
+# Вызов функции minimize
+result = minimize(score_func, x0, constraints=constraints, method='SLSQP')
+
+# Вывод результата
+print(result)
+
+
+exit()
+
+
+
+import numpy as np
+from scipy.optimize import brute
+
+# Пример данных
+data = np.array([[1, 1], [0, 4], [2, 1], [5, 2], [4, 2], [2, 3], [3, 4], [2, 0], [4, 4], [1, 3], [3, 0], [0, 3], [5, 0], [3, 4], [1, 5], [0, 0],  [0, 0], [3, 5], [4, 3], [5, 4]])
+
+# Определение функции оценки
+def score_func(x):
+    eighty_percent_data = data[:int(x[0])]
+    twenty_percent_data = data[int(x[0]):]
+    print("80%", eighty_percent_data)
+    print("20%", twenty_percent_data)
+    return abs(len(eighty_percent_data) / len(data) - 0.8) + abs(len(twenty_percent_data) / len(data) - 0.2)
+
+# Определение границ для индекса разделения
+bounds = [(0, len(data) - 1)]
+
+# Вызов функции brute
+result = brute(score_func, bounds, args=(), full_output=True, finish=None)
+
+# Вывод результата
+print(result)
+
+
+exit()
+
+#-----------------------------------------------------------------------------------------------------------------------
+
+
+import random
+
+# Исходные данные
+data = [[1, 1], [0, 4], [2, 1], [5, 2], [4, 2], [2, 3], [3, 4], [2, 0], [4, 4], [1, 3], [3, 0], [0, 3], [5, 0], [3, 4], [1, 5], [0, 0], [0, 0], [3, 5], [4, 3], [5, 4]]
+
+# Функция для вычисления суммы столбцов
+def calculate_sums(subset):
+    sum1 = sum(row[0] for row in subset)
+    sum2 = sum(row[1] for row in subset)
+    return sum1, sum2
+
+# Функция для вычисления ошибки
+def calculate_error(subset1, subset2, total_sum1, total_sum2):
+    sum1_1, sum2_1 = calculate_sums(subset1)
+    sum1_2, sum2_2 = calculate_sums(subset2)
+    error1 = abs(sum1_1 - 0.8 * total_sum1) + abs(sum1_2 - 0.2 * total_sum1)
+    error2 = abs(sum2_1 - 0.8 * total_sum2) + abs(sum2_2 - 0.2 * total_sum2)
+    return error1 + error2
+
+# Инициализация
+total_sum1, total_sum2 = calculate_sums(data)
+subset1 = data[:4]  # Начальное разбиение
+subset2 = data[4:]
+
+# Поиск оптимального разбиения
+best_subset1 = subset1
+best_subset2 = subset2
+best_error = calculate_error(subset1, subset2, total_sum1, total_sum2)
+
+for _ in range(10000):  # Количество итераций
+    # Случайное перемещение строки между подмножествами
+    if random.random() < 0.5 and subset1:
+        row = random.choice(subset1)
+        subset1.remove(row)
+        subset2.append(row)
+    elif subset2:
+        row = random.choice(subset2)
+        subset2.remove(row)
+        subset1.append(row)
+
+    # Вычисление ошибки для текущего разбиения
+    current_error = calculate_error(subset1, subset2, total_sum1, total_sum2)
+    print(current_error), subset1
+    # Обновление лучшего разбиения
+    if current_error < best_error:
+        best_error = current_error
+        best_subset1 = subset1.copy()
+        best_subset2 = subset2.copy()
+
+# Результат
+print("Best subset 1:", best_subset1)
+print("Best subset 2:", best_subset2)
+print("Error:", best_error)
+
+
+exit()
+#-----------------------------------------------------------------------------------------------------------------------
+import random
+import copy
+data = [[1, 1], [0, 4], [2, 1], [5, 2], [4, 2], [2, 3], [3, 4], [2, 0], [4, 4], [1, 3], [3, 0], [0, 3], [5, 0], [3, 4], [1, 5], [0, 0],  [0, 0], [3, 5], [4, 3], [5, 4]]
+
+n = len(data)
+eighty_percent = int(n * 0.8)
+
+# Инициализируем переменные для хранения лучшего результата
+best_eighty_percent_data = []
+best_twenty_percent_data = []
+best_score = float('inf')
+
+# Генерируем случайные разделения и проверяем их на соответствие условиям
+for i in range(1000):  # Вы можете увеличить количество итераций для более точного результата
+    eighty_percent_data = random.sample(data, eighty_percent)
+    twenty_percent_data = [x for x in data if x not in eighty_percent_data]
+    # Проверяем соответствие условиям
+    score = abs(len(eighty_percent_data) / n - 0.8) + abs(len(twenty_percent_data) / n - 0.2)
+
+    print(score)
+    if score < best_score:
+        best_eighty_percent_data = copy.deepcopy(eighty_percent_data)
+        best_twenty_percent_data = copy.deepcopy(twenty_percent_data)
+        best_score = score
+
+
+print("80%: ", best_eighty_percent_data, sum(row[0] for row in best_eighty_percent_data), sum(row[1] for row in best_eighty_percent_data))
+print("20%: ", best_twenty_percent_data, sum(row[0] for row in best_twenty_percent_data), sum(row[1] for row in best_twenty_percent_data))
+exit()
+
+
 import numpy as np
 
 data = {
