@@ -1,5 +1,6 @@
 from utils.helper import load, save, check_files
 from utils.helper import natural_order
+from utils.helper import format_time
 
 from .config import APP_MIN_SIZE
 from .config import UI_COLORS

@@ -1079,26 +1079,6 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.toggle_test.setToolTip(self.tr("Show or hide table test"))
 
 
-# ----------------------------------------------------------------------------------------------------------------------
-def generate_dict(count, length_val, max_rand=3):
-    import random
-    """
-    Генерация тестовых словарей для проверки работы алгоритма автоматической сортировки.
-    :count: количество ключей в словаре начиная с 0
-    :length_val: количество столбцов в единичной записи;
-    :param list_length: длина списков, которые будут значениями в словаре;
-    :max_rand: верхняя граница случайного распределения;
-    :return: словарь с полученными случайными значениями типа {0: [0, 1, 1], 1:[2, 0, 0], ... }
-    """
-    result_dict = {}
-    for i in range(0, count):
-        result_dict[i] = [random.randint(0, max_rand) for _ in range(length_val)]
-    return result_dict
-
-
-# Пример использования функции
-result = generate_dict(10, 2, 5)
-print(result)
 
 # ----------------------------------------------------------------------------------------------------------------------
 

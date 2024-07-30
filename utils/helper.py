@@ -139,4 +139,18 @@ def get_file_line(filename, n):
             return None
         return lines[n - 1].strip()
 
+
+# ----------------------------------------------------------------------------------------------------------------------
+def format_time(seconds):
+    """Преобразование секунд в более удобный для восприятия формат, в зависимости от пройденного времени"""
+    hours, remainder = divmod(seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    if hours > 0:
+        return f"{int(hours)} ч {int(minutes)} мин {int(seconds)} сек"
+    elif minutes > 0:
+        return f"{int(minutes)} мин {int(seconds)} сек"
+    else:
+        return f"{int(seconds)} сек"
+
 # ----------------------------------------------------------------------------------------------------------------------
