@@ -3,6 +3,7 @@ from shapely import Polygon, MultiPolygon, GeometryCollection, Point
 import cv2 as cv
 import numpy as np
 import codecs
+import time
 import copy
 import json
 import os
@@ -1039,6 +1040,8 @@ class DNImgCut:
         DKray:int - минимальное расстояние от края сканирующего окна до полигона (чтоб не впритычечку), в пикселях
         IsSmartCut - выбор между хитрожопой функцией нарезки и тупой
         IsHandCut - выбор между ручной нарезкой и автоматической"""
+        # Засекаем начало работы
+        start_time = time.time()  # Az: отмечаем начало работы
 
         # Если нарезка в автоматическом режиме
         if not IsHandCut:
@@ -1053,24 +1056,30 @@ class DNImgCut:
 
             # Az+: функция для расчета статистики и ориентировочного времени работы
             overall_size, images_count = az_calc_stats(self.JsonObj.PathToImg, self.JsonObj.ImgsName)
+            sum_size = 0
+
             for i in range(len(self.JsonObj.ImgsName)):
                 # Az: пропускаем несуществующие файлы
                 if not os.path.exists(os.path.join(self.JsonObj.PathToImg, self.JsonObj.ImgsName[i])):
                     continue
-                # if i < 397:  # Закончил на 441. Проверка Ирландии на 199 i < 199 and i > 202
-                #     continue
+                if i < 468:  # Закончил на 421.
+                    continue
+                bad_files = ["447_USA_2011-10.jpg", "447_USA_2016-05.jpg", "447_USA_2017-07.jpg", "447_USA_2018-08.jpg",
+                             "447_USA_2019-02.jpg", "447_USA_2020-08.jpg", "447_USA_2020-10.jpg", "447_USA_2021-09.jpg",
+                             "447_USA_2021-11.jpg", "447_USA_2022-09.jpg", "126_FRA_2016-03.jpg", "126_FRA_2018-03.jpg"]
                 # bad_files = ["128_FRA_2014-06-13.jpg", "128_FRA_2017-06.jpg", "128_FRA_2018-06.jpg",
                 #              "189_IRL_2006-06.jpg", "421_USA_2018-01.jpg", "446s_USA_2012-11-06.jpg"
                 #              "446s_USA_2014-10.jpg", "446s_USA_2016-04.jpg", "446s_USA_2018-05.jpg",
                 #              "446s_USA_2019-06.jpg", "446s_USA_2020-10.jpg", "446s_USA_2022-04.jpg",
                 #              "446s_USA_2022-06.jpg"]
-                # if not self.JsonObj.ImgsName[i] in bad_files:
-                #     continue
+                if self.JsonObj.ImgsName[i] in bad_files:
+                    continue
 
-                if DEBUG: # немного статистики, для понимания процесса
-                    print(f"{(i + 1)} из {images_count}: ~{(i + 1) / images_count}%, объем: "
-                          f"~{az_calc_size(os.path.join(self.JsonObj.PathToImg, self.JsonObj.ImgsName[i])) // overall_size}"
-                          f" из {overall_size} Mb, обрабатываю: {self.JsonObj.ImgsName[i]}")
+                if DEBUG:  # немного статистики, для понимания процесса
+                    sum_size += az_calc_size(os.path.join(self.JsonObj.PathToImg, self.JsonObj.ImgsName[i]))
+                    print(f"{(i + 1)} из {images_count}: ~{(i + 1)*100 / images_count:.2f}%; объем: "
+                          f"~{sum_size*100 / overall_size:.2f}% (всего: {overall_size:.0f} Mb), "
+                          f"обрабатываю: {self.JsonObj.ImgsName[i]}")
                 CutData = self.CutImg(i, SizeWind, ProcOverlapPol, ProcOverlapW,
                                       os.path.dirname(NameJsonFile), DKray, IsSmartCut)
 
@@ -1129,10 +1138,11 @@ class DNImgCut:
 
         if DEBUG:
             print("Нарезка завершена")
-        # except Exception as e:  # действия в случае ошибки
-        #     print(e)
-        #     return -1
-        # finally:  # действия в случае успешного выполнения
+
+        end_time = time.time()  # Az: завершение работы
+        hours = (end_time - start_time)/3600  # Az: рассчитываем время в секундах и переводим в часы
+        print(f"Время работы алгоритма нарезки {hours} часа(ов)")
+
         return self.cut_images_count
 
     def CutImgHand(self, SizeWind: int, NumImg: int, PtC: [], output_image_dir: str):

@@ -72,7 +72,6 @@ class DatasetSAMAHandler:
                     labels_nums[label_name] += 1
         return labels_nums
 
-
     def save(self, json_path):
         with open(json_path, 'w', encoding='utf8') as f:
             ujson.dump(self.data, f)
@@ -441,6 +440,33 @@ class DatasetSAMAHandler:
             os.makedirs(labels_dir)
 
         return images_dir, labels_dir
+
+    def clear_records_without_labeling_info(self):
+        """Az+: Удаление записей об изображениях с отсутствующей разметкой"""
+        removed_records = []
+        for im_name, image in self.data["images"].items():  # image = {shapes:[], lrm:float, status:str}
+            if not image["shapes"]:
+                removed_records.append(im_name)
+
+        # теперь удалим ключи, с пустыми shapes
+        for im_name in removed_records:
+            self.data["images"].pop(im_name)
+        return removed_records
+
+    def remove_records_with_pattern(self, list_to_delete):
+        """Az+: Удаление записей об изображениях по шаблону, например, '123_bra, cotton, my_pattern42', etc"""
+        if not list_to_delete:
+            return  # списка нет
+
+        removed_records = []
+        for im_name in self.data["images"].keys():  # смотрим только ключи (имена изображений)
+            if any(value in im_name for value in list_to_delete):
+                removed_records.append(im_name)
+
+        # удаляем ключи из списка
+        for im_name in removed_records:
+            self.data["images"].pop(im_name)
+        return removed_records
 
     def clear_not_existing_images(self):
         images = {}

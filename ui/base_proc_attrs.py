@@ -3,7 +3,7 @@ from utils import AppSettings, UI_COLORS, helper, config, natural_order
 from utils.sama_project_handler import DatasetSAMAHandler
 from utils.az_dataset_sort_handler import DatasetSortHandler
 from ui import new_act, new_button, new_icon, coloring_icon, new_text, new_label_icon, AzButtonLineEdit, \
-    az_file_dialog
+    az_file_dialog, AzInputDialog
 from ui import save_via_qtextstream, setup_dock_widgets
 from ui import AzSortTable, AzTableModel, AzTableAttributes
 import os
@@ -149,8 +149,15 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                                         tooltip=self.tr("Set GSD data from map files in folder to current project"))
         self.btn_save = new_button(self, "tb", icon="glyph_save2", tooltip=self.tr("Save changes to the project"),
                                    slot=self.save, color=the_color, icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE)
+        self.btn_remove_empty = new_button(self, "tb", icon="glyph_clear", slot=self.remove_empty, color=the_color,
+                                           tooltip=self.tr("Remove image entries with missing markup"),
+                                           icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE)
+        self.btn_remove_imgs_records = new_button(self, "tb", icon="glyph_delete", slot=self.remove_imgs_records,
+                                                  color=the_color, tooltip=self.tr("Remove image with pattern"),
+                                                  icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE)
+
         self.common_buttons = [self.btn_save, self.btn_save_palette, self.btn_apply_palette, self.btn_export,
-                               self.btn_apply_lrm, self.btn_copy]
+                               self.btn_apply_lrm, self.btn_copy, self.btn_remove_empty, self.btn_remove_imgs_records]
 
         v_lay_buttons = QtWidgets.QVBoxLayout()
         for button in self.common_buttons:
@@ -986,6 +993,38 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                 bad_counts += 1
         return [good_counts, bad_counts]
 
+    def remove_empty(self):
+        """Удаление записей изображений с отсутствующей разметкой (очистка датасета)"""
+        if not self.sama_data:
+            return
+        deleted = self.sama_data.clear_records_without_labeling_info()
+        if deleted:
+            message = self.tr(f"Removed: {len(deleted)} empty entries")
+            self.log_change_data(message)
+            self.signal_message.emit(message)
+        else:
+            self.signal_message.emit(self.tr("There are no images without markup to clear"))
+
+    def remove_imgs_records(self):
+        """Удаление записей изображений по шаблону, например: '125s_FRA, 147s_DEU', возвращает количество
+        удалённых записей"""
+        dialog = AzInputDialog(self, 1, [self.tr("Enter pattern ('125s_FRA, 147s_DEU', for example)")],
+                               input_type=[0],
+                               window_title=self.tr("Delete records images with pattern"),
+                               cancel_text=self.tr("Cancel"))
+        if dialog.exec_() == QtWidgets.QDialog.DialogCode.Rejected:  # нажата "Отмена"
+            return
+        result = dialog.get_inputs()  # получаем введенные данные
+        print(result)
+        pattern_list = [item.strip() for item in result[0].split(',')]  # разделяем по запятым, удаляем пробелы
+        deleted = self.sama_data.remove_records_with_pattern(pattern_list)  # удаляем записи из проекта
+        if deleted:
+            message = self.tr(f"Removed: {len(deleted)} images records")
+            self.log_change_data(message)
+            self.signal_message.emit(message)
+        else:
+            self.signal_message.emit(self.tr("There are no images with pattern to delete"))
+
     def tr(self, text):
         return QtCore.QCoreApplication.translate("TabAttributesUI", text)
 
@@ -1010,6 +1049,8 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.btn_apply_palette.setToolTip(self.tr("Apply palette for current project"))
         self.btn_save.setToolTip(self.tr("Save changes to the project"))
         self.btn_apply_lrm.setToolTip(self.tr("Set GSD data from map files in folder to current project"))
+        self.btn_remove_empty.setToolTip(self.tr("Remove image entries with missing markup"))
+        self.btn_remove_imgs_records.setToolTip(self.tr("Remove image with pattern"))
 
         self.tb_edit_project_descr.setToolTip(self.tr("Toggle edit project description"))
         self.project_label.setText(self.tr("Project description:"))
@@ -1056,9 +1097,7 @@ def generate_dict(count, length_val, max_rand=3):
 
 
 # Пример использования функции
-keys = 15
-list_length = 5
-result = generate_dict(keys, list_length)
+result = generate_dict(10, 2, 5)
 print(result)
 
 # ----------------------------------------------------------------------------------------------------------------------

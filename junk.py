@@ -1,3 +1,88 @@
+import random
+
+# data = [[3, 5, 2, 4, 1, 6], [0, 6, 1, 0, 4, 4], [5, 4, 5, 0, 5, 6], [3, 6, 1, 4, 5, 3], [5, 0, 6, 4, 0, 6],
+#         [1, 1, 4, 2, 5, 2], [4, 3, 3, 4, 6, 1], [6, 1, 2, 3, 2, 0], [5, 2, 1, 6, 2, 4], [1, 1, 0, 5, 5, 2],
+#         [3, 1, 2, 0, 5, 6], [2, 0, 1, 3, 3, 1], [3, 5, 2, 6, 3, 5], [2, 0, 1, 1, 2, 2], [4, 2, 2, 3, 2, 5]]
+#
+# data = [[3, 5, 2, 4, 1, 6], [0, 6, 1, 0, 4, 4], [5, 4, 5, 0, 5, 6], [3, 6, 1, 4, 5, 3], [5, 0, 6, 4, 0, 6]]
+
+import itertools
+
+
+def calc_ratio(train, val):
+    """Расчет и вывод статистики для выборок"""
+    if len(train) != len(val):
+        raise ValueError("Списки должны быть одинаковой длины")
+    # на 0 делить нельзя, поэтому вводим правило, и считаем сумму/столбец для train и val
+    train_percentages = [(t / (t + v)) * 100 if (t + v) != 0 else 0 for t, v in zip(train, val)]
+    val_percentages = [(v / (t + v)) * 100 if (t + v) != 0 else 0 for t, v in zip(train, val)]
+
+    return train_percentages, val_percentages
+
+
+def calculate_sum(items):
+    """Расчет поэлементной суммы (по столбцам) для набора items"""
+    return [sum(row[i] for row in items) for i in range(len(items[0]))]
+
+
+def calculate_error(train, val, ratio=0.8):
+    """Расчет ошибки между классами. Вычисляется как модуль между abs(train*ration - val*(1 - ratio)) для всех
+    столбцов"""
+    sum_train = calculate_sum(train)
+    sum_val = calculate_sum(val)
+    abs_error = sum(abs(sum_train[i] * (1 - ratio) - (sum_val[i] * ratio)) for i in range(len(train[0])))
+    # train_, val_ = calc_ratio(sum_train, sum_val)
+    # print("sum_train:", sum_train, "; sum_val:", sum_val, f"; error: {error:.1f}, %t: ",
+    #       [f"{p:.0f}" for p in train_], ";  %v:", [f"{p:.0f}" for p in val_])
+    return abs_error
+
+
+def optimum_split_for_data(data, ratio=0.8):
+    num_rows = len(data)
+    results = []
+
+    for train_size in range(1, num_rows):
+        for train_indices in itertools.combinations(data.keys(), train_size):
+            val_indices = [i for i in data.keys() if i not in train_indices]
+            train_data = [data[i] for i in train_indices]
+            val_data = [data[i] for i in val_indices]
+            error = calculate_error(train_data, val_data, ratio)
+            results.append((train_indices, val_indices, error))
+            # val_sum = sum(sum(data[i]) for i in val_indices)
+            # train_sum = sum(sum(data[i]) for i in train_indices)
+    return results
+
+
+# Пример использования
+data = {0: [3, 2, 0, 3, 2], 1: [1, 3, 1, 1, 0], 2: [2, 0, 0, 3, 0], 3: [2, 3, 1, 3, 2],
+        4: [0, 2, 1, 2, 0], 5: [1, 1, 2, 3, 0], 6: [1, 0, 3, 3, 3], 7: [2, 3, 3, 2, 1],
+        8: [2, 0, 1, 3, 3], 9: [2, 1, 1, 3, 1], 10: [2, 2, 2, 3, 0], 11: [0, 2, 0, 1, 1],
+        12: [1, 0, 1, 2, 2], 13: [2, 0, 3, 2, 0], 14: [0, 1, 0, 2, 3]}
+
+results = optimum_split_for_data(data)
+
+for train_indices, val_indices, error in results:
+    print(f"Train Indices: {train_indices}, Val Indices: {val_indices}, error: {error:.1f}")
+
+exit()
+
+
+def calc_ratio(train, val):
+    """Расчет и вывод статистики для выборок"""
+    if len(train) != len(val):
+        raise ValueError("Списки должны быть одинаковой длины")
+    # на 0 делить нельзя, поэтому вводим правило, и считаем сумму/столбец для train и val
+    train_percentages = [(t / (t + v)) * 100 if (t + v) != 0 else 0 for t, v in zip(train, val)]
+    val_percentages = [(v / (t + v)) * 100 if (t + v) != 0 else 0 for t, v in zip(train, val)]
+
+    return train_percentages, val_percentages
+
+
+import itertools
+
+exit()
+# ----------------------------------------------------------------------------------------------------------------------
+
 import numpy as np
 
 data = {
@@ -66,7 +151,6 @@ print(np.sum(group_15, axis=0))
 
 exit()
 
-
 import random
 from utils import az_math
 
@@ -94,74 +178,27 @@ unsort = {'08_chn_lanzhou_2022-11_000.jpg': [0, 0, 0, 0, 5, 1, 1, 0, 0, 0],
           '13_fra_georges_besse_two_here-com_012.jpg': [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
           '13_fra_georges_besse_two_here-com_013.jpg': [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
           '09_chn_emeishan_2022-05_000.jpg': [1, 0, 0, 0, 4, 3, 0, 0, 0, 0],
-          '09_chn_emeishan_2022-05_001.jpg': [1, 0, 0, 0, 4, 1, 0, 0, 0, 0]}
-train = {'01_bra_resende_2023-08_02_000.jpg': [1, 0, 0, 0, 2, 2, 1, 0, 3, 0],
-         '12_usa_nef_2019-02_001.jpg': [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-         '10_nld_almelo_2021-05_002.jpg': [0, 0, 1, 2, 2, 0, 0, 0, 0, 0],
-         '14_jpn_rokkasho_2021-07_000.jpg': [1, 3, 0, 4, 5, 0, 1, 0, 0, 0],
-         '12_usa_nef_2019-02_000.jpg': [0, 0, 1, 0, 3, 3, 0, 0, 2, 1],
-         '03_deu_gronau_2022-04_000.jpg': [0, 0, 0, 1, 5, 5, 1, 1, 2, 0],
-         '11_pak_kahuta_2023-01_000.jpg': [0, 0, 0, 0, 4, 0, 0, 0, 0, 0],
-         '02_gbr_capenhurst_2018-03_000.jpg': [0, 0, 0, 0, 4, 2, 1, 1, 0, 0],
-         '02_gbr_capenhurst_2018-03_001.jpg': [0, 3, 0, 0, 0, 1, 0, 0, 0, 0],
-         '02_gbr_capenhurst_2018-03_005.jpg': [1, 0, 0, 1, 4, 0, 1, 0, 1, 0],
-         '02_gbr_capenhurst_2018-03_002.jpg': [0, 0, 0, 0, 16, 1, 1, 2, 4, 4],
-         '02_gbr_capenhurst_2018-03_003.jpg': [0, 0, 0, 0, 2, 2, 0, 1, 4, 4],
-         '10_nld_almelo_2021-05_001.jpg': [1, 0, 0, 2, 8, 1, 1, 1, 0, 0],
-         '02_gbr_capenhurst_2018-03_007.jpg': [3, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-         '10_nld_almelo_2021-05_000.jpg': [0, 1, 1, 1, 7, 4, 2, 2, 0, 0],
-         '02_gbr_capenhurst_2018-03_006.jpg': [3, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-         '03_deu_gronau_2022-04_001.jpg': [0, 0, 0, 1, 7, 1, 1, 1, 0, 0],
-         '03_deu_gronau_2022-04_002.jpg': [1, 0, 0, 0, 0, 0, 1, 0, 2, 2],
-         '02_gbr_capenhurst_2018-03_004.jpg': [0, 0, 0, 1, 8, 5, 1, 0, 1, 1]}
-val = {'01_bra_resende_bing_03_000.jpg': [1, 0, 0, 0, 2, 2, 1, 0, 3, 0]}
-
-def balance_dice(bags):
-    # Initialize the white and black boxes
-    white_box = []
-    black_box = []
-
-    # Step 1: Initial Sorting
-    for bag in bags:
-        if random.random() < 0.5:
-            white_box.append(bag)
-        else:
-            black_box.append(bag)
-
-    def calculate_imbalance(white_box, black_box):
-        # Step 2: Calculate Imbalance
-        counts_white = [sum(bag.count(i) for bag in white_box) for i in range(0, 5)]
-        counts_black = [sum(bag.count(i) for bag in black_box) for i in range(0, 5)]
-        imbalance = sum(abs(counts_white[i] - 2/3 * counts_black[i]) for i in range(6))
-        return imbalance
-
-    def try_swaps(white_box, black_box):
-        # Step 3: Swap Bags
-        for i, bag_w in enumerate(white_box):
-            for j, bag_b in enumerate(black_box):
-                # Try swapping the bags
-                white_box_new = white_box[:i] + white_box[i+1:] + [bag_b]
-                black_box_new = black_box[:j] + black_box[j+1:] + [bag_w]
-
-                # Step 4: Repeat
-                imbalance_new = calculate_imbalance(white_box_new, black_box_new)
-                if imbalance_new < imbalance:
-                    # If the swap reduces the imbalance, keep it
-                    imbalance = imbalance_new
-                    white_box = white_box_new
-                    black_box = black_box_new
-
-        return white_box, black_box
-
-    # Main loop
-    imbalance = calculate_imbalance(white_box, black_box)
-    while imbalance > 0:
-        white_box, black_box = try_swaps(white_box, black_box)
-        imbalance = calculate_imbalance(white_box, black_box)
-
-    return white_box, black_box
-
-
+          '09_chn_emeishan_2022-05_001.jpg': [1, 0, 0, 0, 4, 1, 0, 0, 0, 0],
+          '01_bra_resende_2023-08_02_000.jpg': [1, 0, 0, 0, 2, 2, 1, 0, 3, 0],
+          '12_usa_nef_2019-02_001.jpg': [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          '10_nld_almelo_2021-05_002.jpg': [0, 0, 1, 2, 2, 0, 0, 0, 0, 0],
+          '14_jpn_rokkasho_2021-07_000.jpg': [1, 3, 0, 4, 5, 0, 1, 0, 0, 0],
+          '12_usa_nef_2019-02_000.jpg': [0, 0, 1, 0, 3, 3, 0, 0, 2, 1],
+          '03_deu_gronau_2022-04_000.jpg': [0, 0, 0, 1, 5, 5, 1, 1, 2, 0],
+          '11_pak_kahuta_2023-01_000.jpg': [0, 0, 0, 0, 4, 0, 0, 0, 0, 0],
+          '02_gbr_capenhurst_2018-03_000.jpg': [0, 0, 0, 0, 4, 2, 1, 1, 0, 0],
+          '02_gbr_capenhurst_2018-03_001.jpg': [0, 3, 0, 0, 0, 1, 0, 0, 0, 0],
+          '02_gbr_capenhurst_2018-03_005.jpg': [1, 0, 0, 1, 4, 0, 1, 0, 1, 0],
+          '02_gbr_capenhurst_2018-03_002.jpg': [0, 0, 0, 0, 16, 1, 1, 2, 4, 4],
+          '02_gbr_capenhurst_2018-03_003.jpg': [0, 0, 0, 0, 2, 2, 0, 1, 4, 4],
+          '10_nld_almelo_2021-05_001.jpg': [1, 0, 0, 2, 8, 1, 1, 1, 0, 0],
+          '02_gbr_capenhurst_2018-03_007.jpg': [3, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          '10_nld_almelo_2021-05_000.jpg': [0, 1, 1, 1, 7, 4, 2, 2, 0, 0],
+          '02_gbr_capenhurst_2018-03_006.jpg': [3, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          '03_deu_gronau_2022-04_001.jpg': [0, 0, 0, 1, 7, 1, 1, 1, 0, 0],
+          '03_deu_gronau_2022-04_002.jpg': [1, 0, 0, 0, 0, 0, 1, 0, 2, 2],
+          '02_gbr_capenhurst_2018-03_004.jpg': [0, 0, 0, 1, 8, 5, 1, 0, 1, 1],
+          '01_bra_resende_bing_03_000.jpg': [1, 0, 0, 0, 2, 2, 1, 0, 3, 0]}
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -220,9 +257,75 @@ print("Sum of columns in Group 20%:")
 print(np.sum(group_20, axis=0))
 
 # ----------------------------------------------------------------------------------------------------------------------
-# from ui.az_exp_mnist import *
-# img = load_image_from_dataset(False)
-# print (img)
+# Пересортировка датасета
+# def calculate_sum(items):
+#     """Расчет поэлементной суммы (по столбцам) для набора items"""
+#     return [sum(row[i] for row in items) for i in range(len(items[0]))]
+#
+# def calculate_error(train, val, ratio=0.8):
+#     """Расчет ошибки между классами. Вычисляется как модуль между abs(train*ration - val*(1 - ratio)) для всех
+#     столбцов"""
+#     sum_train = calculate_sum(train)
+#     sum_val = calculate_sum(val)
+#     error = sum(abs(sum_train[i] * (1 - ratio) - (sum_val[i] * ratio)) for i in range(5))
+#     # train_, val_ = calc_ratio(sum_train, sum_val)
+#     # print("sum_train:", sum_train, "; sum_val:", sum_val, f"; error: {error:.1f}, %t: ",
+#     #       [f"{p:.0f}" for p in train_], ";  %v:", [f"{p:.0f}" for p in val_])
+#     return error
+#
+#
+# def try_swaps(train, val, imbalance):
+#     # Step 3: Swap Bags
+#     for i, bag_w in enumerate(train):
+#         for j, bag_b in enumerate(val):
+#             # Try swapping the bags
+#             train_new = train[:i] + train[i + 1:] + [bag_b]
+#             val_new = val[:j] + val[j + 1:] + [bag_w]
+#
+#             # Step 4: Repeat
+#             imbalance_new = calculate_error(train_new, val_new)
+#             if imbalance_new < imbalance:
+#                 # If the swap reduces the imbalance, keep it
+#                 imbalance = imbalance_new
+#                 train = train_new
+#                 val = val_new
+#
+#     return train, val, imbalance
+#
+#
+# def balance_dice(bags):
+#     # инициализация сортировки
+#     train = []
+#     val = []
+#     # random.seed(11)
+#     for bag in bags:
+#         if random.random() < 0.5:
+#             train.append(bag)
+#         else:
+#             val.append(bag)
+#
+#     imbalance = calculate_error(train, val)
+#     count = 0
+#     averange_error = 0
+#     while imbalance > 0:
+#         count += 1
+#         train, val, imbalance = try_swaps(train, val, imbalance)
+#         averange_error += imbalance
+#         if count % 10 == 0:
+#             print(f"Iteration {count}: Imbalance = {imbalance}")
+#         if count > 10:
+#             print("Average error: ", averange_error / 1000)
+#             return train, val
+#     return train, val
+#
+# train, val = balance_dice(data)
+# print(data)
+# print("train: ", len(train), "sum: ", calculate_sum(train))
+# print("val: ", len(val), "sum: ", calculate_sum(val))
+# train_percent, val_percent = calc_ratio(calculate_sum(train), calculate_sum(val))
+# # Печать списков с точностью до одного знака после запятой
+# print("Train %", [f"{p:.1f}" for p in train_percent], "; Val %:", [f"{p:.1f}" for p in val_percent])
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 # def pixelate_rgb(img, window):
