@@ -1,13 +1,4 @@
-import random
-
-# data = [[3, 5, 2, 4, 1, 6], [0, 6, 1, 0, 4, 4], [5, 4, 5, 0, 5, 6], [3, 6, 1, 4, 5, 3], [5, 0, 6, 4, 0, 6],
-#         [1, 1, 4, 2, 5, 2], [4, 3, 3, 4, 6, 1], [6, 1, 2, 3, 2, 0], [5, 2, 1, 6, 2, 4], [1, 1, 0, 5, 5, 2],
-#         [3, 1, 2, 0, 5, 6], [2, 0, 1, 3, 3, 1], [3, 5, 2, 6, 3, 5], [2, 0, 1, 1, 2, 2], [4, 2, 2, 3, 2, 5]]
-#
-# data = [[3, 5, 2, 4, 1, 6], [0, 6, 1, 0, 4, 4], [5, 4, 5, 0, 5, 6], [3, 6, 1, 4, 5, 3], [5, 0, 6, 4, 0, 6]]
-
 import itertools
-
 
 def calc_ratio(train, val):
     """Расчет и вывод статистики для выборок"""
@@ -78,81 +69,7 @@ def calc_ratio(train, val):
     return train_percentages, val_percentages
 
 
-import itertools
-
 exit()
-# ----------------------------------------------------------------------------------------------------------------------
-
-import numpy as np
-
-data = {
-    0: [3, 2, 0, 3, 2], 1: [1, 3, 1, 1, 0], 2: [2, 0, 0, 3, 0], 3: [2, 3, 1, 3, 2],
-    4: [0, 2, 1, 2, 0], 5: [1, 1, 2, 3, 0], 6: [1, 0, 3, 3, 3], 7: [2, 3, 3, 2, 1],
-    8: [2, 0, 1, 3, 3], 9: [2, 1, 1, 3, 1], 10: [2, 2, 2, 3, 0], 11: [0, 2, 0, 1, 1],
-    12: [1, 0, 1, 2, 2], 13: [2, 0, 3, 2, 0], 14: [0, 1, 0, 2, 3]
-}
-
-# Convert data to a numpy array for easier manipulation
-data_array = np.array(list(data.values()))
-
-# Calculate the total sum of each column
-total_sums = np.sum(data_array, axis=0)
-
-# Calculate the target sums for 65%, 20%, and 15%
-target_65 = total_sums * 0.65
-target_20 = total_sums * 0.20
-target_15 = total_sums * 0.15
-
-# Initialize three lists for the 65%, 20%, and 15% groups
-group_65 = []
-group_20 = []
-group_15 = []
-
-# Sort the data by the sum of each row
-sorted_indices = np.argsort(np.sum(data_array, axis=1))[::-1]
-
-# Greedy algorithm to split the data
-current_sums_65 = np.zeros(data_array.shape[1])
-current_sums_20 = np.zeros(data_array.shape[1])
-current_sums_15 = np.zeros(data_array.shape[1])
-
-for idx in sorted_indices:
-    row = data_array[idx]
-    if all(current_sums_65 + row <= target_65):
-        group_65.append(row)
-        current_sums_65 += row
-    elif all(current_sums_20 + row <= target_20):
-        group_20.append(row)
-        current_sums_20 += row
-    else:
-        group_15.append(row)
-        current_sums_15 += row
-
-# Convert lists back to numpy arrays for easier manipulation
-group_65 = np.array(group_65)
-group_20 = np.array(group_20)
-group_15 = np.array(group_15)
-
-# Print the results
-print("Group 65%:")
-print(group_65)
-print("Sum of columns in Group 65%:")
-print(np.sum(group_65, axis=0))
-
-print("\nGroup 20%:")
-print(group_20)
-print("Sum of columns in Group 20%:")
-print(np.sum(group_20, axis=0))
-
-print("\nGroup 15%:")
-print(group_15)
-print("Sum of columns in Group 15%:")
-print(np.sum(group_15, axis=0))
-
-exit()
-
-import random
-from utils import az_math
 
 unsort = {'08_chn_lanzhou_2022-11_000.jpg': [0, 0, 0, 0, 5, 1, 1, 0, 0, 0],
           '08_chn_lanzhou_2022-11_001.jpg': [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
