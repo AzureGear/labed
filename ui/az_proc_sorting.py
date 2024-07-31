@@ -5,7 +5,7 @@ import itertools
 import random
 import time
 import copy
-
+import re
 
 # ----------------------------------------------------------------------------------------------------------------------
 def generate_dict(count: int, length_val: int, max_rand: int = 3) -> dict:
@@ -24,10 +24,21 @@ def generate_dict(count: int, length_val: int, max_rand: int = 3) -> dict:
 
 
 # ----------------------------------------------------------------------------------------------------------------------
+def get_group_objects(data, pattern=helper.PATTERNS.get("double_underscore")):
+    objects = []
+    for item in data:
+        match = re.search(pattern, item)
+        if match is not None:
+            if match.group(0) not in objects:
+                objects.append(match.group(0))
+    return objects
+
+
+# ----------------------------------------------------------------------------------------------------------------------
 
 # Пример использования
 sort_small = {"dad": [3, 2, 0, 3], "sister": [1, 3, 1, 1], "mama": [2, 0, 0, 3], "brother": [2, 3, 1, 3],
-              "pet": [0, 2, 1, 2], "grandpa": [1, 1, 2, 3, 0], "fish": [1, 0, 3, 3, 3]}
+              "pet": [0, 2, 1, 2], "grandpa": [1, 1, 2, 3], "fish": [1, 0, 3, 3]}
 sort_data_15 = {0: [3, 2, 0, 3, 2], 1: [1, 3, 1, 1, 0], 2: [2, 0, 0, 3, 0], 3: [2, 3, 1, 3, 2],
                 4: [0, 2, 1, 2, 0], 5: [1, 1, 2, 3, 0], 6: [1, 0, 3, 3, 3], 7: [2, 3, 3, 2, 1],
                 8: [2, 0, 1, 3, 3], 9: [2, 1, 1, 3, 1], 10: [2, 2, 2, 3, 0], 11: [0, 2, 0, 1, 1],
@@ -183,19 +194,18 @@ def optimum_by_greed(data, ratio=0.8):
 
     # TODO: попробовать сортировать исходя из значения ошибки
     sums = np.sum(data_array, axis=1)  # считаем суммы строк
-    sorted_indices = np.argsort(sums)[::-1]  # сортируем данные
-    sorted_keys = [keys[i] for i in sorted_indices]  # приводим в соответствие и ключи
+    sorted_idx = np.argsort(sums)[::-1]  # сортируем данные
     train_sums, val_sums = np.zeros(data_array.shape[1]), np.zeros(data_array.shape[1])  # нулевые матрицы для суммы
 
-    for i in sorted_indices:  # используем жадный алгоритм для разбиения данных
+    for i in sorted_idx:  # используем жадный алгоритм для разбиения данных на отсортированных индексах
         row = data_array[i]
         if all(train_sums + row <= train_score):
             train_data.append(row.tolist())
-            train_keys.append(sorted_keys[i])
+            train_keys.append(keys[i])  # индексы отсортированы, но значения верные
             train_sums += row
         else:
             val_data.append(row.tolist())
-            val_keys.append(sorted_keys[i])
+            val_keys.append(keys[i])
             val_sums += row
 
     result = {"train": dict(zip(train_keys, train_data)), "val": dict(zip(val_keys, val_data))}
@@ -204,6 +214,8 @@ def optimum_by_greed(data, ratio=0.8):
     # # Конвертируем списки в numpy для оптимизации
     # train_data = np.array(train_data)
     # val_data = np.array(val_data)
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 # res = generate_dict(40, 3, 12)
 # print(res)
@@ -212,9 +224,10 @@ sorted_dict = {i: unsort[key] for i, key in enumerate(unsort.keys())}
 
 file = "c:/Users/user/Dropbox/sort_info.json"
 big_real_data = helper.load(file)
-print(unsort)
-train, val, result = optimum_by_greed(unsort, 0.8)
-print(result)
+groups = get_group_objects(big_real_data.keys())
+print(groups)
+train, val, result = optimum_by_greed(big_real_data, 0.8)
+# print(big_real_data)
 # train, val, count = optimum_split_for_data(unsort, 0.8, 6.5)
 end_time = time.time()
 sec = (end_time - start_time)  # / 3600
