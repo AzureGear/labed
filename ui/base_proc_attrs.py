@@ -15,8 +15,9 @@ the_color = UI_COLORS.get("processing_color")
 color_train = UI_COLORS.get("train_color")
 color_val = UI_COLORS.get("val_color")
 color_test = UI_COLORS.get("test_color")
-
-
+# TODO: случайное выделение указанных% от группы
+# TODO: инструмент добавить объекты уже имеющихся групп
+# TODO: переключить вид на просмотр групп
 # TODO: добавить инструмент назначения Разметчика
 # TODO: рассчитать баланс датасета
 
@@ -917,22 +918,28 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     def smart_sort(self):
         """Интеллектуальная автоматизированная сортировка"""
-        # print(self.sort_data.statistic["full"])
+        file = az_file_dialog(self, self.tr("save_stats"), self.settings.read_last_dir(),
+                              dir_only=False, remember_dir=False, file_to_save=True, filter="json (*.json)",
+                              initial_filter="json (*.json)")
+        if file is None:
+            return
+        if len(file) < 1:  # если всё в порядке...
+            return
+        data = self.sort_data.data["full"]
+        helper.save(file, data, 'w+')  # сохраняем файл как палитру
         # print(self.sort_data.statistic["train"])
         # print(self.sort_data.statistic["val"])
         # print(self.sort_data.statistic["test"])
-        print(self.sort_data.data["unsort"])
-        print(self.sort_data.data["train"])
-        print(self.sort_data.data["val"])
-        print(self.sort_data.data["test"])
+        print(self.sort_data.data["full"])
+
 
     def cook_dataset(self):
         """Сортировка датасета в соответствии с выбранными параметрами"""
         # входной каталог:
-        input_dir = "d:\\data_sets\\oil_refinery\\yolo_seg\\alfa\\"
+        input_dir = "d:\\data_sets\\oil_refinery\\tank_exp\\full"
 
         # выходной каталог:
-        output_dir = "d:\\data_sets\\oil_refinery\\yolo_seg\\"
+        output_dir = "d:\\data_sets\\oil_refinery\\yolo_seg\\tanks_1280"
         os.makedirs(output_dir, exist_ok=True)
 
         # сначала базовые каталоги "images" и "labels"

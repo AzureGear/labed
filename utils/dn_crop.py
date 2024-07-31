@@ -1061,9 +1061,10 @@ class DNImgCut:
             for i in range(len(self.JsonObj.ImgsName)):
                 # Az: пропускаем несуществующие файлы
                 if not os.path.exists(os.path.join(self.JsonObj.PathToImg, self.JsonObj.ImgsName[i])):
+                    print(f"[!] error: no file {os.path.join(self.JsonObj.PathToImg, self.JsonObj.ImgsName[i])}")
                     continue
-                if i < 468:  # Закончил на 421.
-                    continue
+                # if i < 468:  # Закончил на 421.
+                #     continue
                 bad_files = ["447_USA_2011-10.jpg", "447_USA_2016-05.jpg", "447_USA_2017-07.jpg", "447_USA_2018-08.jpg",
                              "447_USA_2019-02.jpg", "447_USA_2020-08.jpg", "447_USA_2020-10.jpg", "447_USA_2021-09.jpg",
                              "447_USA_2021-11.jpg", "447_USA_2022-09.jpg", "126_FRA_2016-03.jpg", "126_FRA_2018-03.jpg"]

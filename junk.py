@@ -1,59 +1,5 @@
 # ----------------------------------------------------------------------------------------------------------------------
 
-import numpy as np
-
-data = {
-    0: [3, 2, 0, 3, 2], 1: [1, 3, 1, 1, 0], 2: [2, 0, 0, 3, 0], 3: [2, 3, 1, 3, 2],
-    4: [0, 2, 1, 2, 0], 5: [1, 1, 2, 3, 0], 6: [1, 0, 3, 3, 3], 7: [2, 3, 3, 2, 1],
-    8: [2, 0, 1, 3, 3], 9: [2, 1, 1, 3, 1], 10: [2, 2, 2, 3, 0], 11: [0, 2, 0, 1, 1],
-    12: [1, 0, 1, 2, 2], 13: [2, 0, 3, 2, 0], 14: [0, 1, 0, 2, 3]
-}
-
-# Convert data to a numpy array for easier manipulation
-data_array = np.array(list(data.values()))
-
-# Calculate the total sum of each column
-total_sums = np.sum(data_array, axis=0)
-
-# Calculate the target sums for 80% and 20%
-target_80 = total_sums * 0.8
-target_20 = total_sums * 0.2
-
-# Initialize two lists for the 80% and 20% groups
-group_80 = []
-group_20 = []
-
-# Sort the data by the sum of each row
-sorted_indices = np.argsort(np.sum(data_array, axis=1))[::-1]
-
-# Greedy algorithm to split the data
-current_sums_80 = np.zeros(data_array.shape[1])
-current_sums_20 = np.zeros(data_array.shape[1])
-
-for idx in sorted_indices:
-    row = data_array[idx]
-    if all(current_sums_80 + row <= target_80):
-        group_80.append(row)
-        current_sums_80 += row
-    else:
-        group_20.append(row)
-        current_sums_20 += row
-
-# Convert lists back to numpy arrays for easier manipulation
-group_80 = np.array(group_80)
-group_20 = np.array(group_20)
-
-# Print the results
-print("Group 80%:")
-print(group_80)
-print("Sum of columns in Group 80%:")
-print(np.sum(group_80, axis=0))
-
-print("\nGroup 20%:")
-print(group_20)
-print("Sum of columns in Group 20%:")
-print(np.sum(group_20, axis=0))
-
 # ----------------------------------------------------------------------------------------------------------------------
 # Пересортировка датасета
 # def calculate_sum(items):

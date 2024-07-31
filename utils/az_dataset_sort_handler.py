@@ -119,7 +119,6 @@ class DatasetSortHandler:
         # Class1_name       |  42   |   24   |   0    |  52%  |
         # Class2_name       |  7    |  ...
         # ...
-        # Расчет статистики производится как
 
         cls_count = self.get_cls_count()
         if not self.statistic["full"]:  # изображений и меток нет, расчет не имеет смысла
@@ -149,9 +148,6 @@ class DatasetSortHandler:
                 # сумма по каждому классу в процентах
                 val = round(self.statistic[dict_name]["class_sum"][x] / self.statistic["full"]["class_sum"][x] * 100, 1)
                 result[x + 2][y] = val
-                # result[x + 2][y] = self.statistic[dict_name]["class_sum"][x] / \
-                #                    self.statistic["full"]["class_sum"][x] * 100  # сумма по каждому классу в процентах
-                # сумма по каждому объекту
                 summ_train_val_test_cls[x] += val
         sum_total = 0
         summ_total_train = 0
