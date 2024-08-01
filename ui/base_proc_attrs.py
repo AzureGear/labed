@@ -932,7 +932,6 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         # print(self.sort_data.statistic["test"])
         print(self.sort_data.data["full"])
 
-
     def cook_dataset(self):
         """Сортировка датасета в соответствии с выбранными параметрами"""
         # входной каталог:
@@ -1084,8 +1083,6 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.toggle_val.setToolTip(self.tr("Show or hide table val"))
         self.toggle_test.setText(self.tr(f"Toggle test"))
         self.toggle_test.setToolTip(self.tr("Show or hide table test"))
-
-
 
 # ----------------------------------------------------------------------------------------------------------------------
 

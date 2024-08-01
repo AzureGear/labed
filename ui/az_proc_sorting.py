@@ -29,7 +29,7 @@ def get_group_objects(data_for_group, pattern=helper.PATTERNS.get("double_unders
     objects = []
     for item in data_for_group:
         match = re.search(pattern, item)
-        if match is not None:
+        if match:
             if match.group(0) not in objects:
                 objects.append(match.group(0))
     return objects
@@ -137,93 +137,11 @@ def calc_ratio(train_ratio, val_ratio):
     return train_percentages, val_percentages
 
 
-def calculate_sum(items):
-    """Расчет поэлементной суммы (по столбцам) для набора items"""
-    return [sum(row[i] for row in items) for i in range(len(items[0]))]
-
-
-def calculate_error(train, val, ratio=0.8):
-    """Расчет ошибки между классами. Вычисляется как модуль между abs(train*ration - val*(1 - ratio)) для всех
-    столбцов"""
-    sum_train = calculate_sum(train)
-    sum_val = calculate_sum(val)
-    abs_error = sum(abs(sum_train[i] * (1 - ratio) - (sum_val[i] * ratio)) for i in range(len(train[0])))
-    # train_, val_ = calc_ratio(sum_train, sum_val)
-    # print("sum_train:", sum_train, "; sum_val:", sum_val, f"; error: {error:.1f}, %t: ",
-    #       [f"{p:.0f}" for p in train_], ";  %v:", [f"{p:.0f}" for p in val_])
-    return abs_error
-
-
-def optimum_split_for_data(data, ratio=0.8, accept_error=6.5):
-    """Автоматизированная сортировка данных"""
-    # TODO: Работа алгоритма должна включать в себя "группу" и формирование связанных индексов, с последующим просмотром
-    # значений индексов и удаления среди них тех, кто из одной "группы" оказывается в разнесён и в train и в val.
-    if len(data) < 2:
-        raise ValueError("Список должен содержать хотя бы 2 строки")
-    num_rows = len(data)
-    min_error = float('inf')
-    count = 0  # количество перебранных вариантов
-    for train_size in range(1, num_rows):
-        for val_indices in itertools.combinations(data.keys(), train_size):
-            train_indices = tuple([i for i in data.keys() if i not in val_indices])
-            train_data = [data[i] for i in train_indices]
-            val_data = [data[i] for i in val_indices]
-            error = calculate_error(train_data, val_data, ratio)
-            count += 1
-            # Compare
-            if count % 100000 == 0:
-                print(f"still work: {count}")
-            if error < min_error:
-                min_error = error
-                print(f"{count}: min error {error}")
-                best_train = copy.copy(train_data)
-                best_val = copy.copy(val_data)
-
-                if error <= accept_error:
-                    return best_train, best_val, count
-    return best_train, best_val, count
-
-
-def optimum_by_greed(data, ratio=0.8, group_pattern=None):
-    """Поиск оптимального разбиения на основе жадного алгоритма. Исходные данные data являются словарем списка
-     типа: {"dad": [3, 2, 0, 3], "sister": [1, 3, 1, 1], "mama": [2, 0, 0, 3]}
-     ratio - это размер отношения для выборки train от 1 до 0"""
-    data_array = np.array(list(data.values()))  # преобразуем в массив numpy для оптимизации
-    keys = list(data.keys())  # сохраняем список ключей
-    total_sums = np.sum(data_array, axis=0)  # сумма каждой колонки
-    train_score = total_sums * ratio  # рассчитываем идеальное соотношение
-    train_data, val_data = [], []  # списки для выходных данных: train и val
-    train_keys, val_keys = [], []  # ключи для выходных данных
-
-    # TODO: попробовать сортировать исходя из значения ошибки
-    sums = np.sum(data_array, axis=1)  # считаем суммы строк
-    sorted_idx = np.argsort(sums)[::-1]  # сортируем данные
-    train_sums, val_sums = np.zeros(data_array.shape[1]), np.zeros(data_array.shape[1])  # нулевые матрицы для суммы
-
-    for i in sorted_idx:  # используем жадный алгоритм для разбиения данных на отсортированных индексах
-        row = data_array[i]
-        if all(train_sums + row <= train_score):
-            train_data.append(row.tolist())
-            train_keys.append(keys[i])  # индексы отсортированы, но значения верные
-            train_sums += row
-        else:
-            val_data.append(row.tolist())
-            val_keys.append(keys[i])
-            val_sums += row
-
-    result = {"train": dict(zip(train_keys, train_data)), "val": dict(zip(val_keys, val_data))}
-    return train_data, val_data, result
-
-    # # Конвертируем списки в numpy для оптимизации
-    # train_data = np.array(train_data)
-    # val_data = np.array(val_data)
-
-
 def group_data_by_pattern(data, pattern):
     """
     Объединение данных и суммация их значений по заданому шаблону.
     Example. Отправляем словарь типа {"bar": [3, 2, 0, 3], "bond": [1, 3, 1, 1], "cell": [2, 0, 0, 3]}, с шаблоном
-    типа r'^(\w)' получаем словарь новых значений { "b": [4, 5, 1, 4], "c": [2, 0, 0, 3]} и словарь связанных
+    типа r"^." получаем словарь новых значений { "b": [4, 5, 1, 4], "c": [2, 0, 0, 3]} и словарь связанных
     ключей {"b": ["bar", "bond"], "c":["cell"]}
     """
     if not data or not pattern:
@@ -238,20 +156,22 @@ def group_data_by_pattern(data, pattern):
     for group in groups:
         key_record = []  # связанные значения
         summ_for_group = np.zeros(array.shape[1])  # сумма для группы
-        for i, key in enumerate(data.keys()):  # для изображений: key - имя изображения
-            row_vals = array[i]
+
+        for key, row_vals in zip(data.keys(), array):  # для изображений: key - имя изображения
             if key.startswith(group):
                 key_record.append(key)
                 summ_for_group += row_vals
+
         group_data[group] = summ_for_group.tolist()  # преобразуем в лист
         group_keys[group] = key_record
     return group_data, group_keys
 
 
-def optimum_by_greed_with_group(data, ratio=0.8, group_pattern=None):
+def optimum_by_greed_with_group(data, ratio=0.8, names=["train", "val"], group_pattern=None):
     """Поиск оптимального разбиения на основе жадного алгоритма. Исходные данные data являются словарем списка
-     типа: {"dad": [3, 2, 0, 3], "sister": [1, 3, 1, 1], "mama": [2, 0, 0, 3]}
-     ratio - это размер отношения для выборки train от 1 до 0
+     типа: {"dad": [3, 2, 0, 3], "sister": [1, 3, 1, 1], "mom": [2, 0, 0, 3]}
+     names - названия групп, по умолчанию "train", "val" (первая группа имеет распределение ratio)
+     ratio - это размер отношения для выборки train от 1 до 0 (70% = 0.7)
      group_pattern - шаблон образования групп; если None используется простая сортировка"""
     if group_pattern:  # есть необходимость использования групп
         group_data, group_links = group_data_by_pattern(data, group_pattern)
@@ -260,9 +180,9 @@ def optimum_by_greed_with_group(data, ratio=0.8, group_pattern=None):
     else:
         data_array = np.array(list(data.values()))  # преобразуем в массив numpy для оптимизации
         keys = list(data.keys())  # сохраняем список ключей
+
     total_sums = np.sum(data_array, axis=0)  # сумма каждой колонки
     train_score = total_sums * ratio  # рассчитываем идеальное соотношение
-    train_data, val_data = [], []  # списки для выходных данных: train и val
     train_keys, val_keys = [], []  # ключи для выходных данных
 
     # TODO: попробовать сортировать исходя из значения ошибки
@@ -273,16 +193,37 @@ def optimum_by_greed_with_group(data, ratio=0.8, group_pattern=None):
     for i in sorted_idx:  # используем жадный алгоритм для разбиения данных на отсортированных индексах
         row = data_array[i]
         if all(train_sums + row <= train_score):
-            train_data.append(row.tolist())
             train_keys.append(keys[i])  # индексы отсортированы, но значения верные
             train_sums += row
         else:
-            val_data.append(row.tolist())
             val_keys.append(keys[i])
             val_sums += row
 
-    result = {"train": dict(zip(train_keys, train_data)), "val": dict(zip(val_keys, val_data))}
-    return train_data, val_data, result
+    # Рассчитаем величину ошибки как модуль разницы между abs(train*(1-ration) - val*(ratio)) суммами всех столбцов
+    error = np.sum(np.abs(train_sums * (1 - ratio) - val_sums * ratio))  #
+
+    result = {}  # словарь выходных данных
+    if group_pattern:  # если были использованы группы
+        unpack_train, unpack_val = {}, {}  # имеем набор данных train и val, которые надо распаковать
+
+        for group in train_keys:  # просматриваем список групп: '022_AUT', '030_BEL'...)
+            for item in group_links[group]:  # смотрим словарь связей: {'022_AUT': "aut_01.jpg", "aut_02.jpg", ... }
+                unpack_train[item] = data[item]
+        for group in val_keys:
+            for item in group_links[group]:
+                unpack_val[item] = data[item]
+        result[names[0]] = unpack_train
+        result[names[1]] = unpack_val
+
+    else:  # простой вариант
+        train_dict = {key: data[key] for key in train_keys if key in data}  # списки для выходных данных train и val...
+        val_dict = {key: data[key] for key in val_keys if key in data}  # ...строим по ключам через исходные "data"
+        result[names[0]] = train_dict
+        result[names[1]] = val_dict
+
+    result["ratio"] = [train_sums.tolist(), val_sums.tolist()]  # итоговое
+    result["error"] = error  # значение ошибки
+    return result
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -295,98 +236,17 @@ file = "c:/Users/user/Dropbox/sort_info.json"
 big_real_data = helper.load(file)
 
 cur_ratio = 0.8
-train, val, result = optimum_by_greed_with_group(big_real_data, cur_ratio, helper.PATTERNS.get("double_underscore"))
+result = optimum_by_greed_with_group(big_real_data, cur_ratio, group_pattern=helper.PATTERNS.get("double_underscore"))
+train = result["train"].values()
+val = result["val"].values()
 # print(big_real_data)
 # train, val, count = optimum_split_for_data(unsort, 0.8, 6.5)
 end_time = time.time()
 sec = (end_time - start_time)  # / 3600
-train_, val_ = calc_ratio(calculate_sum(train), calculate_sum(val))
-print(f"error: {calculate_error(train, val, cur_ratio):.1f};\n%t:", [f"{p:.0f}" for p in train_], ";\n%v:",
-      [f"{p:.0f}" for p in val_])
-print(f"Обработано строк: {None}; занятое время: {format_time(sec)}")
+train_per, val_per = calc_ratio(result['ratio'][0], result['ratio'][1])
+print(train_per, "\n", val_per)
 
-# # Print the results
-# print("Group 80%:")
-# print(train_data)
-# print("Sum of columns in Group 80%:")
-# print(np.sum(train_data, axis=0))
-#
-# print("\nGroup 20%:")
-# print(val_data)
-# print("Sum of columns in Group 20%:")
-# print(np.sum(val_data, axis=0))
-
-exit()
-
-
-def calculate_error_np(train_data, val_data, ratio):
-    # Пример функции для вычисления ошибки
-    train_sum = np.sum(train_data)
-    val_sum = np.sum(val_data)
-    return np.abs(train_sum - val_sum * ratio)
-
-
-def calculate_sum_np(data):
-    return np.sum(data)
-
-
-def calc_ratio_np(train_sum, val_sum):
-    return train_sum / val_sum
-
-
-def optimum_split_for_data_np(data, ratio=0.8):
-    """Автоматизированная сортировка данных"""
-    if len(data) < 2:
-        raise ValueError("Список должен содержать хотя бы 2 строки")
-
-    num_rows = len(data)
-    results = []
-
-    # Преобразуем данные в массив NumPy
-    data_array = np.array(list(data.values()))
-
-    for train_size in range(1, num_rows):
-        for train_indices in itertools.combinations(range(num_rows), train_size):
-            val_indices = tuple([i for i in range(num_rows) if i not in train_indices])
-            train_data = data_array[list(train_indices)]
-            val_data = data_array[list(val_indices)]
-            error = calculate_error(train_data, val_data, ratio)
-            results.append((train_indices, val_indices, error))
-
-    min_index = min(enumerate(results), key=lambda x: x[1][2])[0]  # находим строку с минимальным значением ошибки
-    # формируем из неё значение
-    best_train = data_array[list(results[min_index][0])]
-    best_val = data_array[list(results[min_index][1])]
-    print(calc_ratio(calculate_sum(best_train), calculate_sum(best_val)))
-
-    return results, min_index
-
-
-# Пример использования
-data = {"a": [0, 1], "b": [1, 1], "c": [2, 4], "d": [0, 6]}
-results, min_index = optimum_split_for_data(data)
-print(results)
-print(min_index)
-
-
-def optimum_split_for_data_old(data, ratio=0.8):
-    """Автоматизированная сортировка данных. Изначальный алгоритм"""
-    # значений индексов и удаления среди них тех, кто из одной "группы" оказывается в разнесён и в train и в val.
-    if len(data) < 2:
-        raise ValueError("Список должен содержать хотя бы 2 строки")
-    num_rows = len(data)
-    results = []
-    for train_size in range(1, num_rows):
-        for train_indices in itertools.combinations(data.keys(), train_size):
-            val_indices = tuple([i for i in data.keys() if i not in train_indices])
-            train_data = [data[i] for i in train_indices]
-            val_data = [data[i] for i in val_indices]
-            error = calculate_error(train_data, val_data, ratio)
-            results.append((train_indices, val_indices, error))
-    min_index = min(enumerate(results), key=lambda x: x[1][2])[0]  # находим строку с минимальным значением ошибки
-    # формируем из неё значение
-    best_train = [data[i] for i in results[min_index][0]]
-    best_val = [data[i] for i in results[min_index][1]]
-    print(calc_ratio(calculate_sum(best_train), calculate_sum(best_val)))
-
-    return results, min_index
+print(f"error: {result['error']:.1f};\n%t:",
+      [f"{p:.0f}" for p in train_per], ";\n%v:",
+      [f"{p:.0f}" for p in val_per])
+print(f"Обработано строк: {len(big_real_data.keys())}; занятое время: {format_time(sec)}")

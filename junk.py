@@ -1,6 +1,44 @@
 # ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
+
+# def calc_ratio(train_ratio, val_ratio):
+#     """Расчет и вывод статистики для выборок"""
+#     if len(train_ratio) != len(val_ratio):
+#         raise ValueError("Списки должны быть одинаковой длины")
+#     # на 0 делить нельзя, поэтому вводим правило, и считаем сумму/столбец для train и val
+#     train_percentages = [(t / (t + v)) * 100 if (t + v) != 0 else 0 for t, v in zip(train_ratio, val_ratio)]
+#     val_percentages = [(v / (t + v)) * 100 if (t + v) != 0 else 0 for t, v in zip(train_ratio, val_ratio)]
+#     return train_percentages, val_percentages
+#
+#
+# def calculate_sum(items):
+#     """Расчет поэлементной суммы (по столбцам) для набора items"""
+#     return [sum(row[i] for row in items) for i in range(len(items[0]))]
+#
+# def optimum_split_for_data_old(data, ratio=0.8):
+#     """Автоматизированная сортировка данных. Изначальный алгоритм"""
+#     # значений индексов и удаления среди них тех, кто из одной "группы" оказывается в разнесён и в train и в val.
+#     if len(data) < 2:
+#         raise ValueError("Список должен содержать хотя бы 2 строки")
+#     num_rows = len(data)
+#     results = []
+#     for train_size in range(1, num_rows):
+#         for train_indices in itertools.combinations(data.keys(), train_size):
+#             val_indices = tuple([i for i in data.keys() if i not in train_indices])
+#             train_data = [data[i] for i in train_indices]
+#             val_data = [data[i] for i in val_indices]
+#             error = calculate_error(train_data, val_data, ratio)
+#             results.append((train_indices, val_indices, error))
+#     min_index = min(enumerate(results), key=lambda x: x[1][2])[0]  # находим строку с минимальным значением ошибки
+#     # формируем из неё значение
+#     best_train = [data[i] for i in results[min_index][0]]
+#     best_val = [data[i] for i in results[min_index][1]]
+#     print(calc_ratio(calculate_sum(best_train), calculate_sum(best_val)))
+#
+#     return results, min_index
+#
+
 # Пересортировка датасета
 # def calculate_sum(items):
 #     """Расчет поэлементной суммы (по столбцам) для набора items"""
@@ -69,8 +107,6 @@
 # train_percent, val_percent = calc_ratio(calculate_sum(train), calculate_sum(val))
 # # Печать списков с точностью до одного знака после запятой
 # print("Train %", [f"{p:.1f}" for p in train_percent], "; Val %:", [f"{p:.1f}" for p in val_percent])
-
-
 # ----------------------------------------------------------------------------------------------------------------------
 # def pixelate_rgb(img, window):
 #     """Пикселизация изображения"""
@@ -108,7 +144,6 @@
 #     # remove frames
 #     [a.set_axis_off() for a in ax.flatten()]
 #     plt.subplots_adjust(wspace=0.03, hspace=0)
-
 # ----------------------------------------------------------------------------------------------------------------------
 # change_color = "#238b45"
 # self.project_description.setStyleSheet(f"*{{background-color: {bg_color}; border: 1px solid #d90909;;}}")
@@ -181,16 +216,6 @@
 # window=MainWindow()
 # window.show()
 # app.exec_()
-# ----------------------------------------------------------------------------------------------------------------------
-import re
-
-# s = "asdasdasdaasdasdad03.jpg"
-# pattern = r"^([^_]+)_([^_]+)"
-# match = re.search(pattern, s)
-# result1 = match.group(0)
-# result2 = match.group(2)
-# print(len(match))  # Выведет "19981"
-
 # ----------------------------------------------------------------------------------------------------------------------
 # import sys
 # from PyQt5 import QtWidgets
@@ -273,7 +298,6 @@ import re
 #     ex.show()
 #
 #     sys.exit(app.exec_())
-
 # ----------------------------------------------------------------------------------------------------------------------
 # from PyQt5 import QtCore, QtWidgets
 #
@@ -331,7 +355,6 @@ import re
 #     window.resize(300, 70)
 #     window.show()
 #     sys.exit(app.exec_())
-
 # ----------------------------------------------------------------------------------------------------------------------
 # import sys
 # from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout
@@ -397,7 +420,6 @@ import re
 #     widget.show()
 #     sys.exit(app.exec_())
 # ----------------------------------------------------------------------------------------------------------------------
-
 # from PyQt5.QtGui import *
 # from PyQt5.QtWidgets import *
 # from PyQt5.QtCore import *
@@ -476,9 +498,7 @@ import re
 #         scene.addItem(item)
 #     view.show()
 #     sys.exit(app.exec_())
-
 # ----------------------------------------------------------------------------------------------------------------------
-
 # import sys
 # from PyQt5.Qt import *
 # from PyQt5 import QtWidgets
@@ -597,7 +617,6 @@ import re
 #     w = Window()
 #     w.show()
 #     app.exec()
-
 # ----------------------------------------------------------------------------------------------------------------------
 
 # import sys
@@ -683,9 +702,7 @@ import re
 #     w = Window()
 #     w.show()
 #     app.exec()
-
 # ----------------------------------------------------------------------------------------------------------------------
-
 # # Автоматическое изменение размера картинки автомасштабирование
 # from PyQt5.Qt import *
 #
@@ -748,16 +765,13 @@ import re
 #     window = MainWindow()
 #     window.show()
 #     sys.exit(app.exec_())
-
 # ----------------------------------------------------------------------------------------------------------------------
-
 # # Разница между сигналами в pySide и PyQt5
 # # my_custom_signal = pyqtSignal()  # PyQt5
 # my_custom_signal = Signal()  # PySide2
 #
 # my_other_signal = pyqtSignal(int)  # PyQt5
 # my_other_signal = Signal(int)  # PySide2
-
 # ----------------------------------------------------------------------------------------------------------------------
 # hor_spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
 # Спейсер, спайсер
