@@ -7,10 +7,11 @@ import time
 import copy
 import re
 
+
 # ----------------------------------------------------------------------------------------------------------------------
 def generate_dict(count: int, length_val: int, max_rand: int = 3) -> dict:
     """
-    Генерация тестовых словарей для проверки работы алгоритма автоматической сортировки.
+    Генерация тестовых словарей для проверки работы алгоритма автоматической сортировки. Аргументы:
     count - количество ключей в словаре начиная с 0
     length_val - количество столбцов в единичной записи;
     max_rand верхняя - граница случайного распределения;
@@ -24,9 +25,9 @@ def generate_dict(count: int, length_val: int, max_rand: int = 3) -> dict:
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-def get_group_objects(data, pattern=helper.PATTERNS.get("double_underscore")):
+def get_group_objects(data_for_group, pattern=helper.PATTERNS.get("double_underscore")):
     objects = []
-    for item in data:
+    for item in data_for_group:
         match = re.search(pattern, item)
         if match is not None:
             if match.group(0) not in objects:
@@ -126,13 +127,13 @@ unsort = {'08_chn_lanzhou_2022-11_000.jpg': [0, 0, 0, 0, 5, 1, 1, 0, 0, 0],
           '01_bra_resende_bing_03_000.jpg': [1, 0, 0, 0, 2, 2, 1, 0, 3, 0]}
 
 
-def calc_ratio(train, val):
+def calc_ratio(train_ratio, val_ratio):
     """Расчет и вывод статистики для выборок"""
-    if len(train) != len(val):
+    if len(train_ratio) != len(val_ratio):
         raise ValueError("Списки должны быть одинаковой длины")
     # на 0 делить нельзя, поэтому вводим правило, и считаем сумму/столбец для train и val
-    train_percentages = [(t / (t + v)) * 100 if (t + v) != 0 else 0 for t, v in zip(train, val)]
-    val_percentages = [(v / (t + v)) * 100 if (t + v) != 0 else 0 for t, v in zip(train, val)]
+    train_percentages = [(t / (t + v)) * 100 if (t + v) != 0 else 0 for t, v in zip(train_ratio, val_ratio)]
+    val_percentages = [(v / (t + v)) * 100 if (t + v) != 0 else 0 for t, v in zip(train_ratio, val_ratio)]
     return train_percentages, val_percentages
 
 
@@ -217,13 +218,48 @@ def optimum_by_greed(data, ratio=0.8, group_pattern=None):
     # train_data = np.array(train_data)
     # val_data = np.array(val_data)
 
+
+def group_data_by_pattern(data, pattern):
+    """
+    Объединение данных и суммация их значений по заданому шаблону.
+    Example. Отправляем словарь типа {"bar": [3, 2, 0, 3], "bond": [1, 3, 1, 1], "cell": [2, 0, 0, 3]}, с шаблоном
+    типа r'^(\w)' получаем словарь новых значений { "b": [4, 5, 1, 4], "c": [2, 0, 0, 3]} и словарь связанных
+    ключей {"b": ["bar", "bond"], "c":["cell"]}
+    """
+    if not data or not pattern:
+        raise ValueError("Отсутствуют данные либо шаблон")
+    groups = get_group_objects(data.keys())
+    if not groups:
+        return None, None  # по заданному шаблону ничего не найдено
+
+    array = np.array(list(data.values()))  # преобразуем в массив numpy значений типа [0, 1, 3, 0]
+    group_data, group_keys = {}, {}  # создаем словари новых данных и ключей к ним
+
+    for group in groups:
+        key_record = []  # связанные значения
+        summ_for_group = np.zeros(array.shape[1])  # сумма для группы
+        for i, key in enumerate(data.keys()):  # для изображений: key - имя изображения
+            row_vals = array[i]
+            if key.startswith(group):
+                key_record.append(key)
+                summ_for_group += row_vals
+        group_data[group] = summ_for_group.tolist()  # преобразуем в лист
+        group_keys[group] = key_record
+    return group_data, group_keys
+
+
 def optimum_by_greed_with_group(data, ratio=0.8, group_pattern=None):
     """Поиск оптимального разбиения на основе жадного алгоритма. Исходные данные data являются словарем списка
      типа: {"dad": [3, 2, 0, 3], "sister": [1, 3, 1, 1], "mama": [2, 0, 0, 3]}
      ratio - это размер отношения для выборки train от 1 до 0
-     group_pattern - шаблон образования групп для переченя"""
-    data_array = np.array(list(data.values()))  # преобразуем в массив numpy для оптимизации
-    keys = list(data.keys())  # сохраняем список ключей
+     group_pattern - шаблон образования групп; если None используется простая сортировка"""
+    if group_pattern:  # есть необходимость использования групп
+        group_data, group_links = group_data_by_pattern(data, group_pattern)
+        data_array = np.array(list(group_data.values()))
+        keys = list(group_data.keys())
+    else:
+        data_array = np.array(list(data.values()))  # преобразуем в массив numpy для оптимизации
+        keys = list(data.keys())  # сохраняем список ключей
     total_sums = np.sum(data_array, axis=0)  # сумма каждой колонки
     train_score = total_sums * ratio  # рассчитываем идеальное соотношение
     train_data, val_data = [], []  # списки для выходных данных: train и val
@@ -248,6 +284,7 @@ def optimum_by_greed_with_group(data, ratio=0.8, group_pattern=None):
     result = {"train": dict(zip(train_keys, train_data)), "val": dict(zip(val_keys, val_data))}
     return train_data, val_data, result
 
+
 # ----------------------------------------------------------------------------------------------------------------------
 # res = generate_dict(40, 3, 12)
 # print(res)
@@ -256,8 +293,7 @@ sorted_dict = {i: unsort[key] for i, key in enumerate(unsort.keys())}
 
 file = "c:/Users/user/Dropbox/sort_info.json"
 big_real_data = helper.load(file)
-groups = get_group_objects(big_real_data.keys())
-print(groups)
+
 cur_ratio = 0.8
 train, val, result = optimum_by_greed_with_group(big_real_data, cur_ratio, helper.PATTERNS.get("double_underscore"))
 # print(big_real_data)
