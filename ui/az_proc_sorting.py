@@ -183,8 +183,10 @@ def optimum_split_for_data(data, ratio=0.8, accept_error=6.5):
     return best_train, best_val, count
 
 
-def optimum_by_greed(data, ratio=0.8):
-    """Поиск оптимального разбиения на основе жадного алгоритма"""
+def optimum_by_greed(data, ratio=0.8, group_pattern=None):
+    """Поиск оптимального разбиения на основе жадного алгоритма. Исходные данные data являются словарем списка
+     типа: {"dad": [3, 2, 0, 3], "sister": [1, 3, 1, 1], "mama": [2, 0, 0, 3]}
+     ratio - это размер отношения для выборки train от 1 до 0"""
     data_array = np.array(list(data.values()))  # преобразуем в массив numpy для оптимизации
     keys = list(data.keys())  # сохраняем список ключей
     total_sums = np.sum(data_array, axis=0)  # сумма каждой колонки
@@ -215,6 +217,36 @@ def optimum_by_greed(data, ratio=0.8):
     # train_data = np.array(train_data)
     # val_data = np.array(val_data)
 
+def optimum_by_greed_with_group(data, ratio=0.8, group_pattern=None):
+    """Поиск оптимального разбиения на основе жадного алгоритма. Исходные данные data являются словарем списка
+     типа: {"dad": [3, 2, 0, 3], "sister": [1, 3, 1, 1], "mama": [2, 0, 0, 3]}
+     ratio - это размер отношения для выборки train от 1 до 0
+     group_pattern - шаблон образования групп для переченя"""
+    data_array = np.array(list(data.values()))  # преобразуем в массив numpy для оптимизации
+    keys = list(data.keys())  # сохраняем список ключей
+    total_sums = np.sum(data_array, axis=0)  # сумма каждой колонки
+    train_score = total_sums * ratio  # рассчитываем идеальное соотношение
+    train_data, val_data = [], []  # списки для выходных данных: train и val
+    train_keys, val_keys = [], []  # ключи для выходных данных
+
+    # TODO: попробовать сортировать исходя из значения ошибки
+    sums = np.sum(data_array, axis=1)  # считаем суммы строк
+    sorted_idx = np.argsort(sums)[::-1]  # сортируем данные
+    train_sums, val_sums = np.zeros(data_array.shape[1]), np.zeros(data_array.shape[1])  # нулевые матрицы для суммы
+
+    for i in sorted_idx:  # используем жадный алгоритм для разбиения данных на отсортированных индексах
+        row = data_array[i]
+        if all(train_sums + row <= train_score):
+            train_data.append(row.tolist())
+            train_keys.append(keys[i])  # индексы отсортированы, но значения верные
+            train_sums += row
+        else:
+            val_data.append(row.tolist())
+            val_keys.append(keys[i])
+            val_sums += row
+
+    result = {"train": dict(zip(train_keys, train_data)), "val": dict(zip(val_keys, val_data))}
+    return train_data, val_data, result
 
 # ----------------------------------------------------------------------------------------------------------------------
 # res = generate_dict(40, 3, 12)
@@ -226,13 +258,14 @@ file = "c:/Users/user/Dropbox/sort_info.json"
 big_real_data = helper.load(file)
 groups = get_group_objects(big_real_data.keys())
 print(groups)
-train, val, result = optimum_by_greed(big_real_data, 0.8)
+cur_ratio = 0.8
+train, val, result = optimum_by_greed_with_group(big_real_data, cur_ratio, helper.PATTERNS.get("double_underscore"))
 # print(big_real_data)
 # train, val, count = optimum_split_for_data(unsort, 0.8, 6.5)
 end_time = time.time()
 sec = (end_time - start_time)  # / 3600
 train_, val_ = calc_ratio(calculate_sum(train), calculate_sum(val))
-print(f"error: {calculate_error(train, val):.1f}; %t: ", [f"{p:.0f}" for p in train_], ";  %v:",
+print(f"error: {calculate_error(train, val, cur_ratio):.1f};\n%t:", [f"{p:.0f}" for p in train_], ";\n%v:",
       [f"{p:.0f}" for p in val_])
 print(f"Обработано строк: {None}; занятое время: {format_time(sec)}")
 
