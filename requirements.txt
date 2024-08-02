@@ -1,12 +1,5 @@
-darkdetect==0.7.1
-packaging==24.0
-PyQt5==5.15.10
-PyQt5-Qt5==5.15.2
-PyQt5-sip==12.13.0
-pyqtdarktheme==2.1.0
-QtPy==2.4.1
-
-numpy~=1.26.4
-opencv-python~=4.9.0.80
+PyQt5~=5.15.11
+numpy~=1.24.4
+ujson~=5.10.0
 shapely~=2.0.4
-ujson~=5.9.0
+keras~=2.15.0

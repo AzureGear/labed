@@ -138,7 +138,7 @@ class AzTableAttributes(QtWidgets.QTableWidget):
     def add_item_number(self, row, col, number, acc=0,
                         align=QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter):
         """ Установка числовых значений.
-        row - строка, col - столбце, number - отображаемое число, acc - знаки с точностью после запятой
+        row - строка, col - столбец, number - отображаемое число, acc - знаки с точностью после запятой
         align - расположение значения по горизонтали | вертикали типа "Qt.AlignmentFlag"
         """
         item = QtWidgets.QTableWidgetItem()

@@ -83,6 +83,6 @@ MIN_CROP_SIZE = 16
 ALPHA = 230  # степень прозрачности заливки у меток по умолчанию (0 ... 255)
 
 UI_OUTPUT_TYPES = ["SAMA.json"]  # типы выходных данных
-UI_INPUT_TYPES = ["LabelMe.json", "SAMA.json"]
+UI_INPUT_TYPES = ["LabelMe.json", "SAMA.json"]  # типы входных данных
 
 UI_READ_LINES = 3  # количество загружаемых строк в проектах *.json для предпросмотра

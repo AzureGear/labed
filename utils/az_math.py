@@ -68,19 +68,36 @@ def interpolation_quadr(min_val, max_val, n):
     return [min_val + (max_val - min_val) * (x / n) ** 2 for x in range(n + 1)]
 
 
-def interpolation_exp(min_val, max_val, n):
-    """Экспоненциальная функция. Возвращает перечень значений включая исходные."""
-    return [min_val + (max_val - min_val) * (np.exp(x / n) - 1) for x in range(n + 1)]
+def interpolation_exp(min_val, max_val, n, use_norm=True):
+    """Экспоненциальная функция. Возвращает перечень значений включая исходные. По умолчанию нормализованна."""
+    if use_norm:
+        return [min_val + (max_val - min_val) * (np.exp(x / n) - 1) / (np.exp(1) - 1) for x in range(n + 1)]
+    else:
+        return [min_val + (max_val - min_val) * (np.exp(x / n) - 1) for x in range(n + 1)]
 
 
-def interpolation_log(min_val, max_val, n):
-    """Логарифмическая функция. Возвращает перечень значений включая исходные."""
-    return [min_val + (max_val - min_val) * np.log10(1 + x / n) for x in range(n + 1)]
+def interpolation_log(min_val, max_val, n, use_norm=True):
+    """Логарифмическая функция. Возвращает перечень значений включая исходные. По умолчанию нормализованна."""
+    if use_norm:
+        return [min_val + (max_val - min_val) * np.log10(1 + x) / np.log10(1 + n) for x in range(n + 1)]
+    else:
+        return [min_val + (max_val - min_val) * np.log10(1 + x / n) for x in range(n + 1)]
 
 
-def interpolation_hyper(min_val, max_val, n):
-    """Гиперболическая функция. Возвращает перечень значений включая исходные."""
-    return [min_val + (max_val - min_val) * np.tanh(x / n) for x in range(n + 1)]
+def interpolation_hyper(min_val, max_val, n, use_norm=True):
+    """Гиперболическая функция. Возвращает перечень значений включая исходные. По умолчанию нормализованна."""
+    if use_norm:
+        return [min_val + (max_val - min_val) * (np.tanh(x / n) / np.tanh(1)) for x in range(n + 1)]
+    else:
+        return [min_val + (max_val - min_val) * np.tanh(x / n) for x in range(n + 1)]
+
+
+def incremental_interpolation(min_val, max_val, n, increment=10):
+    """Функция, которая увеличивает значения в каждом промежутке на фиксированное значение.
+    Возвращает перечень значений включая исходные."""
+    result = [min_val + i * increment for i in range(n)]
+    result.append(max_val)
+    return result
 
 
 interpolation_functions = {
@@ -88,7 +105,8 @@ interpolation_functions = {
     "quadratic": interpolation_quadr,
     "exponential": interpolation_exp,
     "logarithmic": interpolation_log,
-    "hyperbolic": interpolation_hyper
+    "hyperbolic": interpolation_hyper,
+    "incremental": incremental_interpolation
 }
 
 
@@ -96,7 +114,31 @@ def use_interpolation_func(name, min_val, max_val, n):
     """Автоматизированное использование функции интерполяции через словарь. Доступно 5 функций. Может быть расширен."""
     return interpolation_functions[name](min_val, max_val, n)
 
-# ----------------------------------------------------------------------------------------------------------------------
 
+# ----------------------------------------------------------------------------------------------------------------------
+"""Функции генерации весов"""
+
+
+def glorot_uniform(shape, num_neurons_in, num_neurons_out):
+    # TODO: переделать, для возможности использовать различные инициализации весов
+    """Инициализации весов в соответствии с методом Глорота"""
+    scale = np.sqrt(6. / (num_neurons_in + num_neurons_out))
+    return np.random.uniform(low=-scale, high=scale, size=shape)
+
+
+def random_uniform(shape, min_val=-0.5, max_val=0.5):
+    """Инициализирует массив случайными числами, равномерно распределенными в диапазоне от -0.5 до 0.5."""
+    return np.random.uniform(low=min_val, high=max_val, size=shape)
+
+
+initializing_weights = {
+    "glorot": glorot_uniform,
+    "random": random_uniform
+}
+
+
+def use_init_weights_func(name, shape, min_val=-0.5, max_val=0.5):
+    """Автоматизированное использование функции интерполяции через словарь. Доступно 5 функций. Может быть расширен."""
+    return initializing_weights[name](shape, min_val, max_val)
 
 # ----------------------------------------------------------------------------------------------------------------------

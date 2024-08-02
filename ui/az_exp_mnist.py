@@ -193,6 +193,7 @@ class PageMNIST(QtWidgets.QWidget):
         h_lay = QtWidgets.QHBoxLayout()
         self.tb_add_and_test_model = new_button(self, "tb", self.tr("Test model and add to table"), "glyph_add2",
                                                 the_color, self.add_and_test_model,
+                                                icon_size=config.UI_AZ_MNIST_ICON_PANEL,
                                                 tooltip=self.tr("Test model and add to table"))
         self.headers_results = [self.tr("Type"),
                                 self.tr("Platform"),
@@ -214,6 +215,7 @@ class PageMNIST(QtWidgets.QWidget):
         self.table_results.setModel(self.model_results)
         self.adjust_table_results()
         h_lay.addWidget(self.tb_add_and_test_model)
+        h_lay.addStretch(1)
         v_lay = QtWidgets.QVBoxLayout()
         v_lay.addLayout(h_lay)
         v_lay.addWidget(self.table_results)
@@ -271,6 +273,7 @@ class PageMNIST(QtWidgets.QWidget):
         return grid_layout
 
     def add_and_test_model(self):
+        # TODO: добавить полный тест на тестовых данных MNIST
         pass
 
     def get_random_image(self):
@@ -461,19 +464,19 @@ class PageMNIST(QtWidgets.QWidget):
     def translate_ui(self):
         self.mnist_handler.translate_ui()
         self.model_results.setHorizontalHeaderLabels([self.tr("Type"),
-                                self.tr("Platform"),
-                                self.tr("Unique id"),
-                                self.tr("Epochs"),
-                                self.tr("Layers"),
-                                self.tr("layers splitting"),
-                                self.tr("Learning rate"),
-                                self.tr("Activate function"),
-                                self.tr("Dataset using"),
-                                self.tr("Shuffle data"),
-                                self.tr("Loss for training"),
-                                self.tr("Accuracy for training"),
-                                self.tr("Accuracy for test"),
-                                self.tr("Unique id")])
+                                                      self.tr("Platform"),
+                                                      self.tr("Unique id"),
+                                                      self.tr("Epochs"),
+                                                      self.tr("Layers"),
+                                                      self.tr("layers splitting"),
+                                                      self.tr("Learning rate"),
+                                                      self.tr("Activate function"),
+                                                      self.tr("Dataset using"),
+                                                      self.tr("Shuffle data"),
+                                                      self.tr("Loss for training"),
+                                                      self.tr("Accuracy for training"),
+                                                      self.tr("Accuracy for test"),
+                                                      self.tr("Unique id")])
         # self.adjust_table_results()
 
         self.draw28x28.setToolTip(self.tr('Left click to draw, right click to clear'))
@@ -861,6 +864,7 @@ class MNISTWorker(QtCore.QThread):
         # QtCore.QThread.__init__(self, parent)
         self.params = None
         self.settings = AppSettings()
+        self.layers = []
 
     def get_training_info(self):
         self.training_info = self.tr(f"type: {self.params['nn_type']}; "
@@ -872,6 +876,7 @@ class MNISTWorker(QtCore.QThread):
                                      f"dataset limit: {self.params['dataset_using']}%; "
                                      f"layers splitting: {self.params['layers_splitting']}; "
                                      f"platform: {self.params['platform']}; "
+                                     f"layers: {self.params['layers']}; "
                                      f"unique id: {self.params['uniq_id']}")
         return self.training_info
 
@@ -881,11 +886,55 @@ class MNISTWorker(QtCore.QThread):
 
     def run(self):
         self.train_and_send_simple()
-        # images, labels, unused_inx = load_dataset(self.settings.read_dataset_mnist(), self.params["dataset_using"],
-        #                                           self.params["shuffle_data"])
-        # if images is None:
-        #     self.inner_signal.emit(self.tr("MNIST file not found, check for source data."))
-        #     return
+        return
+
+        # TODO: Завершить поддержку многослойной структуры персептрона
+
+        images, labels, unused_inx = load_dataset(self.settings.read_dataset_mnist(), self.params["dataset_using"],
+                                                  self.params["shuffle_data"])
+        if images is None:
+            self.inner_signal.emit(self.tr("MNIST file not found, check for source data."))
+            return
+        # Определяем размерность слоёв в зависимости от их количества и типа разбиения. Всегда min = 10, max = 784
+        layers_sep = use_interpolation_func(self.params["layers_splitting"], 10, 784,
+                                            int(self.params["number_of_layers"]))
+        layers_sep = list(reversed([int(item) for item in layers_sep]))  # инвертируем и приводим к целым
+        print(layers_sep)
+
+        # Параметры обучения
+        activ_func = self.params["activ_funct"]  # функция активации
+        epochs = int(self.params["epochs"])  # количество эпох
+        learning_rate = float(self.params["learning_rate"])  # скорость обучения
+
+        for i in range(1, len(layers_sep)):
+            layer = PerceptronLayer(height=layers_sep[i], width=layers_sep[i - 1], act_func=self.params["activ_funct"])
+            self.layers.append(layer)
+        self.params["layers"] = layers_sep
+        self.get_training_info()  # формируем информацию о параметрах обучения...
+        self.inner_signal.emit(self.tr(f"Training settings: {self.training_info}"))  # ...и отправляем её
+
+        e_loss = 0
+        e_correct = 0  # коррекция ошибки
+
+        for epoch in range(epochs):
+            for image, label in zip(images, labels):
+                image = np.reshape(image, (-1, 1))
+                cur_layer = self.layers[0]
+                layer = PerceptronLayer()
+                # layer.bias + layer.weights @ image
+
+                # 1. Прямое распространение (к скрытому слою)
+                # смещение + веса * данные изображения
+                # мы перемножаем [20x784] на [784x1] и получаем [20x1]
+
+                # 2. Расчет потерь/ошибок, используем MSE (СКО)
+                e_loss += 1 / len(output) * np.sum((output - label) ** 2, axis=0)
+                e_correct += int(np.argmax(output) == np.argmax(label))
+
+        # Подготавливаем данные для отправки
+        # структура данных: ({словарь параметров}, {данные обученной модели})
+        data = (self.params, {"data": self.layers, "unused_inx": unused_inx})
+        self.signal_model.emit(data)  # отправляем модель
 
     def train_and_send_simple(self):
         images, labels, unused_inx = load_dataset(self.settings.read_dataset_mnist(), self.params["dataset_using"],
@@ -960,6 +1009,28 @@ class MNISTWorker(QtCore.QThread):
                 {"data": [(bias_layer_1, weights_layer_1, activ_func), (bias_layer_2, weights_layer_2, activ_func)],
                  "unused_inx": unused_inx})
         self.signal_model.emit(data)  # отправляем модель
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+class PerceptronLayer:  # Idea by Francesco Cagnin (integeruser)
+    def __init__(self, height, width, act_func, init_func="random"):
+        """
+        В numpy идут сначала строки, затем столбцы
+        height - высота массива (количество строк), rows;
+        width - ширина массива (количество столбцов), cols;
+        act_func - функция активации;
+        init_func - функция инициализации весов;
+        """
+
+        super().__init__()
+        self.depth = 1
+        self.height = height  # height - высота массива (количество строк)
+        self.width = width  # width - ширина массива (количество столбцов)
+        self.init_func = init_func
+        self.weights = use_init_weights_func(init_func, (height, width))
+        self.bias = np.zeros((height, 1))
+        self.act_func = act_func
+
 
 
 # ----------------------------------------------------------------------------------------------------------------------

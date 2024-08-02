@@ -918,6 +918,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     def smart_sort(self):
         """Интеллектуальная автоматизированная сортировка"""
+
         file = az_file_dialog(self, self.tr("save_stats"), self.settings.read_last_dir(),
                               dir_only=False, remember_dir=False, file_to_save=True, filter="json (*.json)",
                               initial_filter="json (*.json)")
