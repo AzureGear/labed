@@ -240,7 +240,6 @@ class PageMNIST(QtWidgets.QWidget):
         self.cbx_activ_func = new_cbx(self, activation_functions.keys())
         self.number_of_layers_label = new_text(self.tr("Layers number:"))
         self.cbx_number_of_layers = new_cbx(self, ["1", "2", "3", "4", "5", "10"], True, QtGui.QIntValidator(1, 30))
-        self.cbx_number_of_layers.setCurrentText("2")  # имеется в виду количество скрытых слоёв
         self.cbx_number_of_layers.setToolTip(self.tr("The input layer is ignored. If one layer is specified, it will "
                                                      "also be the output layer (784x10)."))
 
@@ -449,6 +448,7 @@ class PageMNIST(QtWidgets.QWidget):
         self.cbx_learning_rate.setCurrentText(self.settings.read_mnist_learning_rate())
         self.chk_use_random_data.setChecked(self.settings.read_mnist_shuffle_dataset())
         self.cbx_activ_func.setCurrentText(self.settings.read_mnist_activ_func())
+        self.cbx_number_of_layers.setCurrentText(self.settings.read_mnist_layers_number())
 
     def store_settings(self):
         """Сохранение настроек"""
@@ -457,6 +457,7 @@ class PageMNIST(QtWidgets.QWidget):
         self.settings.write_mnist_learning_rate(self.cbx_learning_rate.currentText())
         self.settings.write_mnist_shuffle_dataset(self.chk_use_random_data.isChecked())
         self.settings.write_mnist_activ_func(self.cbx_activ_func.currentText())
+        self.settings.write_mnist_layers_number(self.cbx_number_of_layers.currentText())
 
     def tr(self, text):
         return QtCore.QCoreApplication.translate("PageMNIST", text)
@@ -799,7 +800,7 @@ class MNISTHandler(QtWidgets.QWidget):
 
     def use_model(self, image_data):
         """Использование обученной модели для определения данных. Входные данные image_data - изображение переведенное
-        в формат numpy, в значениях пикселей от 0 до 1: [784, 1]"""
+        в формат numpy, в значениях пикселей от 0 до 1: [1, 784]"""
         image = image_data
         [bias_list, weights_list, activ_funcs_list] = zip(*self.model_data["data"])  # распаковываем данные нейросети
         current_layer = image
@@ -865,6 +866,7 @@ class MNISTWorker(QtCore.QThread):
         self.params = None
         self.settings = AppSettings()
         self.layers = []
+        self.epochs = []
 
     def get_training_info(self):
         self.training_info = self.tr(f"type: {self.params['nn_type']}; "
@@ -885,13 +887,11 @@ class MNISTWorker(QtCore.QThread):
         self.params = params
 
     def run(self):
-        self.train_and_send_simple()
-        return
-
-        # TODO: Завершить поддержку многослойной структуры персептрона
+        # self.train_and_send_simple()  # можно посмотреть на более простую реализацию персептрона...
+        # return  # ...с 1 входным слоем и 2 скрытыми слоями (784, 20, 10)
 
         images, labels, unused_inx = load_dataset(self.settings.read_dataset_mnist(), self.params["dataset_using"],
-                                                  self.params["shuffle_data"])
+                                                  self.params["shuffle_data"], )
         if images is None:
             self.inner_signal.emit(self.tr("MNIST file not found, check for source data."))
             return
@@ -899,41 +899,74 @@ class MNISTWorker(QtCore.QThread):
         layers_sep = use_interpolation_func(self.params["layers_splitting"], 10, 784,
                                             int(self.params["number_of_layers"]))
         layers_sep = list(reversed([int(item) for item in layers_sep]))  # инвертируем и приводим к целым
-        print(layers_sep)
 
         # Параметры обучения
+        self.epochs.clear()  # очищаем списки эпох и слоёв не в конце, а...
+        self.layers.clear()  # ...здесь, чтобы быть уверенным
         activ_func = self.params["activ_funct"]  # функция активации
         epochs = int(self.params["epochs"])  # количество эпох
         learning_rate = float(self.params["learning_rate"])  # скорость обучения
-
-        for i in range(1, len(layers_sep)):
-            layer = PerceptronLayer(height=layers_sep[i], width=layers_sep[i - 1], act_func=self.params["activ_funct"])
-            self.layers.append(layer)
+        for i in range(1, len(layers_sep)):  # собираем слои персептрона (если их несколько)
+            perc = PerceptronLayer(height=layers_sep[i], width=layers_sep[i - 1], act_func=activ_func)
+            self.layers.append(perc)
         self.params["layers"] = layers_sep
         self.get_training_info()  # формируем информацию о параметрах обучения...
         self.inner_signal.emit(self.tr(f"Training settings: {self.training_info}"))  # ...и отправляем её
-
-        e_loss = 0
-        e_correct = 0  # коррекция ошибки
+        print("layers_dim:", self.params["layers"])
 
         for epoch in range(epochs):
+            epoch_loss = 0
+            epoch_correct = 0
             for image, label in zip(images, labels):
                 image = np.reshape(image, (-1, 1))
-                cur_layer = self.layers[0]
-                layer = PerceptronLayer()
-                # layer.bias + layer.weights @ image
+                label = np.reshape(label, (-1, 1))
 
-                # 1. Прямое распространение (к скрытому слою)
-                # смещение + веса * данные изображения
-                # мы перемножаем [20x784] на [784x1] и получаем [20x1]
+                #  1. Прямое распространение от исходного слоя:
+                self.layers[0].vals = self.layers[0].bias + self.layers[0].weights @ image
+                self.layers[0].vals = get_activ_func(self.layers[0].act_func, self.layers[0].vals)  # активация
+
+                if len(self.layers) > 1:  # более 1 скрытого слоя: прямое распространения для остальных скрытых слоёв
+                    for i in range(1, len(self.layers)):
+                        self.layers[i].vals = self.layers[i].bias + self.layers[i].weights @ self.layers[i - 1].vals
+                        self.layers[i].vals = get_activ_func(self.layers[i].act_func, self.layers[i].vals)
 
                 # 2. Расчет потерь/ошибок, используем MSE (СКО)
-                e_loss += 1 / len(output) * np.sum((output - label) ** 2, axis=0)
-                e_correct += int(np.argmax(output) == np.argmax(label))
+                epoch_loss += 1 / len(self.layers[-1].vals) * np.sum((self.layers[-1].vals - label) ** 2,
+                                                                     axis=0)
+                epoch_correct += int(np.argmax(self.layers[-1].vals) == np.argmax(label))  # счетчик предсказаний
+
+                # 3. Обратное распространение ошибки (выходной уровень).
+                # Разница между результатом и контрольным значением для последнего слоя
+                self.layers[-1].delta = self.layers[-1].vals - label
+
+                if len(self.layers) > 1:  # более 1 скрытого слоя: обратное распространения для остальных скрытых слоёв
+                    for i in range(len(self.layers) - 1, 0, -1):  # завершаем на 2 слое от начала
+                        self.layers[i].weights += -learning_rate * self.layers[i].delta @ np.transpose(
+                            self.layers[i - 1].vals)
+                        self.layers[i].bias += -learning_rate * self.layers[i].delta
+                        self.layers[i - 1].delta = np.transpose(self.layers[i].weights) @ self.layers[i].delta * (
+                                self.layers[i - 1].vals * (1 - self.layers[i - 1].vals))
+                # первый слой
+                self.layers[0].weights += -learning_rate * self.layers[0].delta @ np.transpose(image)
+                self.layers[0].bias += -learning_rate * self.layers[0].delta
+
+                # 4. Расчёт ошибок
+                self.params["loss"] = str(round((epoch_loss[0] / images.shape[0]) * 100, 2)) + "%"
+                self.params["accuracy"] = str(round((epoch_correct / images.shape[0]) * 100, 2)) + "%"
+                # Изображение обработано
+
+            # Эпоха завершена
+            epochs_loss = round((epoch_loss[0] / images.shape[0]) * 100, 2)
+            epoch_correct = round((epoch_correct / images.shape[0]) * 100, 2)
+            self.inner_signal.emit(self.tr(f"Epoch {epoch + 1}: loss {epochs_loss}%; accuracy: {epoch_correct}%"))
+            self.epochs.append((epoch_loss, epoch_correct))  # добавляем данные об ошибках этой эпохи
 
         # Подготавливаем данные для отправки
+
         # структура данных: ({словарь параметров}, {данные обученной модели})
-        data = (self.params, {"data": self.layers, "unused_inx": unused_inx})
+        data = (self.params, {"data": [(layer.bias, layer.weights, layer.act_func) for layer in self.layers],
+                              "unused_inx": unused_inx})
+
         self.signal_model.emit(data)  # отправляем модель
 
     def train_and_send_simple(self):
@@ -1010,6 +1043,9 @@ class MNISTWorker(QtCore.QThread):
                  "unused_inx": unused_inx})
         self.signal_model.emit(data)  # отправляем модель
 
+        self.epochs.clear()  # очищаем списки эпох...
+        self.layers.clear()  # ...и слоёв
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 class PerceptronLayer:  # Idea by Francesco Cagnin (integeruser)
@@ -1021,16 +1057,16 @@ class PerceptronLayer:  # Idea by Francesco Cagnin (integeruser)
         act_func - функция активации;
         init_func - функция инициализации весов;
         """
-
         super().__init__()
         self.depth = 1
         self.height = height  # height - высота массива (количество строк)
         self.width = width  # width - ширина массива (количество столбцов)
-        self.init_func = init_func
-        self.weights = use_init_weights_func(init_func, (height, width))
-        self.bias = np.zeros((height, 1))
-        self.act_func = act_func
-
+        self.init_func = init_func  # функция инициализации первичных значений весов
+        self.weights = use_init_weights_func(init_func, (height, width))  # веса
+        self.bias = np.zeros((height, 1))  # смещения
+        self.act_func = act_func  # функция активации
+        self.vals = None  # прямое распространение
+        self.delta = None
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -1051,47 +1087,45 @@ def load_image_from_dataset(path, shuffle=True, index=0):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-def load_dataset(path, using_percent=100, shuffle=False, task="classification"):
+def load_dataset(path, using_percent=100, shuffle=False):
     """
     Загрузка датасета MNIST, возвращает перечень изображений, значений для них и перечень неиспользуемых индексов:
     x_train - изображения в формате: яркость 255 для ячейки, где есть контур цифры; 0 для пустого значения
     y_train - соответствующая изображению цифра в формате int.
     Параметры: path - путь к файлу *.npz; using_percent - объем используемого датасета;
     shuffle - использование данных в случайном порядке
-    task - формат возвращаемых данных: "classification" для перцептрона; "detection" для CNN
     """
     if not helper.check_file(path):
         return None, None
 
     with np.load(path) as file:
-        if task == "classification":
-            unused_inx = None  # неиспользуемые индексы
-            # преобразуем яркость 1 для ячейки, где есть контур цифры; 0 для пустого значения
-            x_train = file['x_train'].astype("float32") / 255  # конвертация из RGB в Unit RGB
-            # преобразование массива из (60000, 28, 28) в формат (60000, 784)
-            x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1] * x_train.shape[2]))
+        unused_inx = None  # неиспользуемые индексы
+        # преобразуем яркость 1 для ячейки, где есть контур цифры; 0 для пустого значения
+        x_train = file['x_train'].astype("float32") / 255  # конвертация из RGB в Unit RGB
+        # преобразование массива из (60000, 28, 28) в формат (60000, 784)
+        x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1] * x_train.shape[2]))
 
-            # ограничение датасета: отвечает using_percent (при необходимости)
-            num_rows = int(x_train.shape[0] * int(using_percent) / 100)
-            # определяем флаг "случайных" данных
-            if shuffle:
-                # набираем случайных индексов
-                sel_inx = np.random.choice(x_train.shape[0], num_rows, replace=False)  # следим, чтобы не было повторов
-            else:
-                sel_inx = np.arange(0, num_rows)
-            unused_inx = set(range(x_train.shape[0])) - set(sel_inx)
+        # ограничение датасета: отвечает using_percent (при необходимости)
+        num_rows = int(x_train.shape[0] * int(using_percent) / 100)
+        # определяем флаг "случайных" данных
+        if shuffle:
+            # набираем случайных индексов
+            sel_inx = np.random.choice(x_train.shape[0], num_rows, replace=False)  # следим, чтобы не было повторов
+        else:
+            sel_inx = np.arange(0, num_rows)
+        unused_inx = set(range(x_train.shape[0])) - set(sel_inx)
 
-            # формируем итоговый набор данных изображений
-            x_train = x_train[sel_inx]
+        # формируем итоговый набор данных изображений
+        x_train = x_train[sel_inx]
 
-            # выходные данные
-            y_train = file['y_train']
-            y_train = y_train[sel_inx]  # ограничиваем набор датасета при 100% = 60000
-            #                                                           6          1     ...      8
-            # выходные 1-х матрицы в формате по 10 классов цифр [[0000001000][0100000000]...[0000000010]]]
-            y_train = np.eye(10)[y_train]
+        # выходные данные
+        y_train = file['y_train']
+        y_train = y_train[sel_inx]  # ограничиваем набор датасета при 100% = 60000
+        #                                                           6          1     ...      8
+        # выходные 1-х матрицы в формате по 10 классов цифр [[0000001000][0100000000]...[0000000010]]]
+        y_train = np.eye(10)[y_train]
 
-            return x_train, y_train, unused_inx
+        return x_train, y_train, unused_inx
 
 
 # ----------------------------------------------------------------------------------------------------------------------

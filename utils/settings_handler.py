@@ -197,5 +197,13 @@ class AppSettings:
         return self.settings.value('experiments/mnist_activ_func', "ReLU")
 
     def write_mnist_activ_func(self, value):
-        """Функция активации для датасета для вкладки Эксперименты - MNIST [w]"""
+        """Функция активации для вкладки Эксперименты - MNIST [w]"""
         self.settings.setValue('experiments/mnist_activ_func', value)
+
+    def read_mnist_layers_number(self):
+        """Количество слоёв во вкладке Эксперименты - MNIST [r]"""
+        return self.settings.value('experiments/mnist_layers_num', "2")
+
+    def write_mnist_layers_number(self, value):
+        """Количество слоёв во вкладке Эксперименты - MNIST [w]"""
+        self.settings.setValue('experiments/mnist_layers_num', value)
