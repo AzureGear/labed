@@ -912,7 +912,6 @@ class MNISTWorker(QtCore.QThread):
         self.params["layers"] = layers_sep
         self.get_training_info()  # формируем информацию о параметрах обучения...
         self.inner_signal.emit(self.tr(f"Training settings: {self.training_info}"))  # ...и отправляем её
-        print("layers_dim:", self.params["layers"])
 
         for epoch in range(epochs):
             epoch_loss = 0

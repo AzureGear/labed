@@ -10,8 +10,6 @@ current_folder = os.path.dirname(os.path.abspath(__file__))  # каталога 
 the_color = UI_COLORS.get("automation_color")
 
 
-# TODO: добавить код удаления выбранных записей по разметке и самих изображений к ним относящимся
-
 class AutomationUI(QtWidgets.QWidget):
     """
     Класс виджета автоматизации

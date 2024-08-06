@@ -101,12 +101,12 @@ def incremental_interpolation(min_val, max_val, n, increment=10):
 
 
 interpolation_functions = {
+    "incremental": incremental_interpolation,
     "linear": interpolation_line,
     "quadratic": interpolation_quadr,
     "exponential": interpolation_exp,
     "logarithmic": interpolation_log,
-    "hyperbolic": interpolation_hyper,
-    "incremental": incremental_interpolation
+    "hyperbolic": interpolation_hyper
 }
 
 
