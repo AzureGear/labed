@@ -1,5 +1,5 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
-from utils import format_time, helper
+from utils import format_time, helper, AppSettings
 import numpy as np
 from itertools import combinations
 import random
@@ -130,8 +130,6 @@ def generate_dict(count: int, length_val: int, max_rand: int = 3) -> dict:
     for i in range(0, count):
         result_dict[i] = [random.randint(0, max_rand) for _ in range(length_val)]
     return result_dict
-
-
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -299,12 +297,12 @@ def optimization_swap(train_data, val_data, ratio, input_error, max_iterations=1
 # ----------------------------------------------------------------------------------------------------------------------
 start_time = time.time()
 
-file = "c:/Users/user/Dropbox/sort_info.json"
-big_real_data = helper.load(file)
+# file = "c:/Users/user/Dropbox/sort_info.json"
+# big_real_data = helper.load(file)
 
 cur_ratio = 0.8
 # result = optimum_by_greed_with_group(big_real_data, cur_ratio)
-result = optimum_by_greed_with_group(unsort, cur_ratio, group_pattern=helper.PATTERNS.get("double_underscore"))
+result = optimum_by_greed_with_group(test_real_uranium, cur_ratio, group_pattern=helper.PATTERNS.get("double_underscore"))
 train = result["train"].values()
 val = result["val"].values()
 # print(big_real_data)
@@ -312,9 +310,7 @@ val = result["val"].values()
 end_time = time.time()
 sec = (end_time - start_time)  # / 3600
 train_per, val_per = calc_ratio(result['ratio'][0], result['ratio'][1])
-if SHOW_PRINTS:
-    print(f"Обработано строк: {len(unsort.keys())}; занятое время: {format_time(sec)},"
-          f"error: {result['error']:.1f};\n%t:",
-          [f"{p:.0f}" for p in train_per], ";\n%v:",
-          [f"{p:.0f}" for p in val_per])
-    print()
+print(f"Обработано строк: {len(test_real_uranium.keys())}; занятое время: {format_time(sec)},"
+      f"error: {result['error']:.1f};\n%t:",
+      [f"{p:.0f}" for p in train_per], ";\n%v:",
+      [f"{p:.0f}" for p in val_per])

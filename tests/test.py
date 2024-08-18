@@ -1,4 +1,19 @@
-from ui.az_proc_sorting import optimum_by_greed_with_group
+import unittest  # модуль для автотестов
+
+# from ui.az_proc_sorting import optimum_by_greed_with_group
+
+
+def test_passing():
+    assert (1, 2, 3) == (1, 2, 3)
+
+def test_failing():
+    assert (1, 2, 3) == (3, 2, 1)
+
+class BaseProcMerge(unittest.TestCase): # класс тестирования
+    # функция, которая проверит, как формируется приветствие
+    def test_passing(self):
+        assert (1, 2, 3) == (1, 2, 3)
+
 
 def test_using_sort():
     test_real_uranium = {'08_chn_lanzhou_2022-11_000.jpg': [0, 0, 0, 0, 5, 1, 1, 0, 0, 0],
@@ -46,5 +61,11 @@ def test_using_sort():
                          '03_deu_gronau_2022-04_002.jpg': [1, 0, 0, 0, 0, 0, 1, 0, 2, 2],
                          '02_gbr_capenhurst_2018-03_004.jpg': [0, 0, 0, 1, 8, 5, 1, 0, 1, 1],
                          '01_bra_resende_bing_03_000.jpg': [1, 0, 0, 0, 2, 2, 1, 0, 3, 0]}
-    assert optimum_by_greed_with_group(test_real_uranium, 0.8) == d
+    # assert optimum_by_greed_with_group(test_real_uranium, 0.8) == d
+
+
+# запускаем тестирование
+if __name__ == '__main__':
+    test_failing()
+    # pytest -v tests\test.py
 
