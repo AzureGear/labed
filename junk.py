@@ -1,4 +1,30 @@
 # ----------------------------------------------------------------------------------------------------------------------
+import copy
+import random
+def find_missing(A, n):
+    result = 0
+
+    # XOR of all the values from 1 to n
+    for value in range(1, n + 1):
+        result ^= value
+
+    # XOR of all values in the given array
+    for value in A:
+        result ^= value
+
+    return result
+
+
+mass_original = [x for x in range(0, 100)]
+print(mass_original)
+secret_val = random.randint(0, 100)
+print(secret_val)
+mass_original.pop(secret_val)
+for i in range(0, 100):
+    if i not in mass_original:
+        print(f"gotcha: {i}")
+res = find_missing([44], 100)
+print("res:", res)
 
 # ----------------------------------------------------------------------------------------------------------------------
 
