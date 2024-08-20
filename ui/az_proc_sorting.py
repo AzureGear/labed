@@ -111,7 +111,7 @@ class AzSortingDatasetDialog(QtWidgets.QWidget):
     signal_info = QtCore.pyqtSignal(str)  # сигнал для вывода сообщения в self.info
 
     def __init__(self, parent=None):
-        super(PageMNIST, self).__init__(parent)
+        super(AzSortingDatasetDialog, self).__init__(parent)
         self.name = "MNIST"
         self.settings = AppSettings()
 
@@ -310,7 +310,7 @@ val = result["val"].values()
 end_time = time.time()
 sec = (end_time - start_time)  # / 3600
 train_per, val_per = calc_ratio(result['ratio'][0], result['ratio'][1])
-print(f"Обработано строк: {len(test_real_uranium.keys())}; занятое время: {format_time(sec)},"
+print(f"Обработано строк: {len(test_real_uranium.keys())}; занятое время: {format_time(sec,'ru')},"
       f"error: {result['error']:.1f};\n%t:",
       [f"{p:.0f}" for p in train_per], ";\n%v:",
       [f"{p:.0f}" for p in val_per])

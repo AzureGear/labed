@@ -1,9 +1,9 @@
 # Реализация Жукова Дениса, некоторые доработки: Az
+from PyQt5 import QtCore
 from shapely import Polygon, MultiPolygon, GeometryCollection, Point
 import cv2 as cv
 import numpy as np
 import codecs
-import time
 import copy
 import json
 import os
@@ -11,7 +11,6 @@ import os
 # Библиотечички для отладочки
 # import matplotlib.pyplot as plt
 # from PIL import Image
-
 
 DEBUG = True  # активатор режима отладки
 
@@ -259,15 +258,16 @@ class DNjson:
 
 # ----------------------------------------------------------------------------------------------------------------------
 
-class DNImgCut:
+class DNImgCut(QtCore.QObject):
     """ Класс работы с изображениями:
         PathToImg - каталог входной файла json
         NameJsonFile - наименования входного файла json
         init_mc_file - флаг инициализации данных для ручного кадрирования
         """
+    signal_progress = QtCore.pyqtSignal(str)  # Az+: сигнал об изменении работы алгоритма
 
     def __init__(self, PathToJsonFile: str, NameJsonFile: str, init_mc_file=False):
-
+        super().__init__()
         self.FullNamesImgsMCFile = None
         self.FullNamesImgsFile = None
         self.cut_images_count = 0  # счетчик нарезанных изображений, в случае ошибки возвращает None
@@ -350,8 +350,8 @@ class DNImgCut:
 
     @classmethod
     def PolsDifference(cls, Pol1: Polygon, Pol2: Polygon):
-        """Ищет вычитание полигонов
-           Возвращает ТОЛЬКО список полигонов"""
+        """Ищет вычитание полигонов,
+           возвращает ТОЛЬКО список полигонов"""
 
         Res = []
         Area = []
@@ -1040,8 +1040,6 @@ class DNImgCut:
         DKray:int - минимальное расстояние от края сканирующего окна до полигона (чтоб не впритычечку), в пикселях
         IsSmartCut - выбор между хитрожопой функцией нарезки и тупой
         IsHandCut - выбор между ручной нарезкой и автоматической"""
-        # Засекаем начало работы
-        start_time = time.time()  # Az: отмечаем начало работы
 
         # Если нарезка в автоматическом режиме
         if not IsHandCut:
@@ -1056,7 +1054,7 @@ class DNImgCut:
 
             # Az+: функция для расчета статистики и ориентировочного времени работы
             overall_size, images_count = az_calc_stats(self.JsonObj.PathToImg, self.JsonObj.ImgsName)
-            sum_size = 0
+            sum_size = 0  # прогресс по объему (весу файлов)
 
             for i in range(len(self.JsonObj.ImgsName)):
                 # Az: пропускаем несуществующие файлы
@@ -1076,11 +1074,15 @@ class DNImgCut:
                 if self.JsonObj.ImgsName[i] in bad_files:
                     continue
 
-                if DEBUG:  # немного статистики, для понимания процесса
-                    sum_size += az_calc_size(os.path.join(self.JsonObj.PathToImg, self.JsonObj.ImgsName[i]))
-                    print(f"{(i + 1)} из {images_count}: ~{(i + 1)*100 / images_count:.2f}%; объем: "
-                          f"~{sum_size*100 / overall_size:.2f}% (всего: {overall_size:.0f} Mb), "
-                          f"обрабатываю: {self.JsonObj.ImgsName[i]}")
+                # Az+: немного статистики, для понимания процесса
+                sum_size += az_calc_size(os.path.join(self.JsonObj.PathToImg, self.JsonObj.ImgsName[i]))
+                stats = (f"{(i + 1)} из {images_count}: ~{(i + 1) * 100 / images_count:.2f}%; объем: "
+                         f"~{sum_size * 100 / overall_size:.2f}% (всего: {overall_size:.0f} Mb), "
+                         f"обрабатываю: {self.JsonObj.ImgsName[i]}")
+                self.signal_progress.emit(stats)
+
+                if DEBUG:
+                    print(stats)
                 CutData = self.CutImg(i, SizeWind, ProcOverlapPol, ProcOverlapW,
                                       os.path.dirname(NameJsonFile), DKray, IsSmartCut)
 
@@ -1139,11 +1141,6 @@ class DNImgCut:
 
         if DEBUG:
             print("Нарезка завершена")
-
-        end_time = time.time()  # Az: завершение работы
-        hours = (end_time - start_time)/3600  # Az: рассчитываем время в секундах и переводим в часы
-        print(f"Время работы алгоритма нарезки {hours} часа(ов)")
-
         return self.cut_images_count
 
     def CutImgHand(self, SizeWind: int, NumImg: int, PtC: [], output_image_dir: str):
@@ -1250,6 +1247,6 @@ def az_calc_stats(path_to_dir, images):
 
 
 def az_calc_size(file, degree=2):
-    """Расчет размера файла и перевод его в нужную размерность. degree: 1 - Килобайты; 2 - Мб; 3 - Гб и т.д."""
+    """Az: Расчет размера файла и перевод его в нужную размерность. degree: 1 - Килобайты; 2 - Мб; 3 - Гб и т.д."""
     size = os.path.getsize(file) / (1024 ** degree)
     return size

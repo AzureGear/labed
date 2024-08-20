@@ -1,30 +1,86 @@
 # ----------------------------------------------------------------------------------------------------------------------
-import copy
-import random
-def find_missing(A, n):
-    result = 0
 
-    # XOR of all the values from 1 to n
-    for value in range(1, n + 1):
-        result ^= value
+# При необходимости сделать класс без Дениса
+import sys
+from PyQt5.QtCore import QObject, pyqtSignal, QThread
+from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout
 
-    # XOR of all values in the given array
-    for value in A:
-        result ^= value
+class Worker(QObject):
+    # Определяем сигнал
+    progress_signal = pyqtSignal(int)
 
-    return result
+    def run(self):
+        for i in range(10):
+            # Выполняем какую-то работу
+            QThread.sleep(1)
+            # Отправляем сигнал с прогрессом
+            self.progress_signal.emit(i)
 
+class MyClass:
+    def __init__(self):
+        self.worker = Worker()
+        self.worker.progress_signal.connect(self.handle_progress)
 
-mass_original = [x for x in range(0, 100)]
-print(mass_original)
-secret_val = random.randint(0, 100)
-print(secret_val)
-mass_original.pop(secret_val)
-for i in range(0, 100):
-    if i not in mass_original:
-        print(f"gotcha: {i}")
-res = find_missing([44], 100)
-print("res:", res)
+    def handle_progress(self, progress):
+        print(f"Прогресс: {progress}")
+
+    def start_work(self):
+        thread = QThread()
+        self.worker.moveToThread(thread)
+        thread.started.connect(self.worker.run)
+        thread.start()
+
+class MyWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+
+    def initUI(self):
+        self.label = QLabel('Прогресс: 0', self)
+        layout = QVBoxLayout()
+        layout.addWidget(self.label)
+        self.setLayout(layout)
+
+        self.my_class = MyClass()
+        self.my_class.worker.progress_signal.connect(self.update_label)
+        self.my_class.start_work()
+
+    def update_label(self, progress):
+        self.label.setText(f'Прогресс: {progress}')
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    widget = MyWidget()
+    widget.show()
+    sys.exit(app.exec_())
+
+# ----------------------------------------------------------------------------------------------------------------------
+# import copy
+# import random
+# def find_missing(A, n):
+#     result = 0
+#
+#     # XOR of all the values from 1 to n
+#     for value in range(1, n + 1):
+#         result ^= value
+#
+#     # XOR of all values in the given array
+#     for value in A:
+#         result ^= value
+#
+#     return result
+#
+#
+# mass_original = [x for x in range(0, 100)]
+# print(mass_original)
+# secret_val = random.randint(0, 100)
+# print(secret_val)
+# mass_original.pop(secret_val)
+# for i in range(0, 100):
+#     if i not in mass_original:
+#         print(f"gotcha: {i}")
+# res = find_missing([44], 100)
+# print("res:", res)
 
 # ----------------------------------------------------------------------------------------------------------------------
 

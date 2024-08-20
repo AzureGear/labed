@@ -1,7 +1,8 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
-from utils import AppSettings, dn_crop, UI_COLORS, config
+from utils import AppSettings, dn_crop, UI_COLORS, config, helper
 from ui import new_button, AzButtonLineEdit, AzSpinBox, AzTableModel, AzManualSlice, coloring_icon
 from datetime import datetime
+import time
 import os
 
 the_color = UI_COLORS.get("processing_color")
@@ -17,6 +18,7 @@ class TabSliceUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     def __init__(self, color_active=None, color_inactive=None, parent=None):
         super(TabSliceUI, self).__init__(parent)
+        self.crop_options = None
         self.settings = AppSettings()  # настройки программы
         self.name = "Slice"
         if color_active:
@@ -128,6 +130,7 @@ class TabSliceUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         wid = QtWidgets.QWidget()  # создаём виджет-контейнер...
         wid.setLayout(vlayout)  # ...куда помещаем vlayout (поскольку Central Widget может быть только QWidget)
         self.setCentralWidget(wid)
+        self.autocrop_worker = AutoCropWorker()  # экземпляр потока авторазрезания
 
         # проверяем есть ли сохранённый ранее файл проекта, и загружаем его автоматически
         if len(self.slice_input_file_path.text()) > 0:
@@ -145,6 +148,25 @@ class TabSliceUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.slice_overlap_window.valueChanged.connect(self.slice_options_for_crop_update)  # window overlap
         self.slice_edge.valueChanged.connect(self.slice_options_for_crop_update)  # edge
         self.slice_smart_crop.toggled.connect(self.slice_options_for_crop_update)  # smart
+        # Соединения для потока
+        self.autocrop_worker.finished.connect(self.autocrop_on_finished)  # завершение работы autocrop worker
+        self.autocrop_worker.signal_progress.connect(self.show_progress)  # прогресс работы autocrop worker
+
+    @QtCore.pyqtSlot()
+    def autocrop_on_finished(self):
+        self.slice_exec.setEnabled(True)
+        if self.autocrop_worker.result:
+            if self.autocrop_worker.result > 0:
+                self.signal_message.emit(
+                    "Авто-кадрирование завершено. Общее количество изображений: %s" % self.autocrop_worker.result)
+            elif self.autocrop_worker.result == 0:
+                self.signal_message.emit("Авто-кадрирование изображений не выполнено. Изображения отсутствуют")
+        else:
+            self.signal_message.emit("Авто-кадрирование не выполнено")
+
+    @QtCore.pyqtSlot(str)
+    def show_progress(self, progress):
+        self.signal_message.emit(progress)
 
     @QtCore.pyqtSlot(str)
     def default_dir_changed(self, path):
@@ -171,38 +193,20 @@ class TabSliceUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.manual_wid.crop_options = self.crop_options  # обновляем данные для виджета Ручного кадрирования
 
     def slice_init_options_for_crop(self):  # заполняем словарь параметрами для кадрирования
-        self.crop_options = dict()
-        self.crop_options["hand_cut"] = False
+        self.crop_options = {"hand_cut": False}
         self.slice_options_for_crop_update()
 
     @QtCore.pyqtSlot()
-    def slice_exec_run(self):  # процедура разрезания
-        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)  # ставим курсор ожидание
-        try:
-            date_time = datetime.now().strftime("%Y-%m-%d--%H-%M-%S")
-            new_name = os.path.join(str(self.crop_options["output_name"]), "sliced_%s.json" % date_time)
-            # объект класса для автоматического кадрирования
-            cut_images = dn_crop.DNImgCut(os.path.dirname(self.slice_input_file_path.text()),
-                                          os.path.basename(self.slice_input_file_path.text()))
-            proc_imgs = cut_images.CutAllImgs(self.crop_options["crop_size"],
-                                              self.crop_options["percent_overlap_polygons"],
-                                              self.crop_options["percent_overlap_scan"],
-                                              new_name,
-                                              self.crop_options["edge"],
-                                              self.crop_options["smart_cut"],
-                                              self.crop_options["hand_cut"])
-            if proc_imgs > 0:
-                self.signal_message.emit("Авто-кадрирование завершено. Общее количество изображений: %s" % proc_imgs)
-            elif proc_imgs == 0:
-                self.signal_message.emit("Авто-кадрирование изображений не выполнено. Изображения отсутствуют")
-            else:
-                self.signal_message.emit("Авто-кадрирование не выполнено")
-        except Exception as e:
-            raise e
-            print("Error {}".format(e.args[0]))
-            QtWidgets.QApplication.restoreOverrideCursor()
-        finally:
-            QtWidgets.QApplication.restoreOverrideCursor()
+    def slice_exec_run(self):  # процедура авторазрезания
+        if self.autocrop_worker.isRunning():
+            self.signal_message.emit("Авто-кадрирование уже запущено...")
+        else:
+            self.slice_exec.setEnabled(False)
+            self.signal_message.emit("Запуск авто-кадрирования...")
+            self.crop_options["json_path"] = os.path.dirname(self.slice_input_file_path.text())
+            self.crop_options["json_name"] = os.path.basename(self.slice_input_file_path.text())
+            self.autocrop_worker.get_params(**self.crop_options)  # передаём параметры авто-кадрирования в поток
+            self.autocrop_worker.start()  # Запускаем поток
 
     def slice_load_projects_data(self):  # загрузка файла проекта
         if self.json_obj is not None:
@@ -267,6 +271,45 @@ class TabSliceUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.slice_up_group.setTitle(self.tr("Automatic image cropping"))
         self.slice_down_group.setTitle(self.tr("Manual visual image cropping"))
         self.manual_wid.translate_ui()
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+class AutoCropWorker(QtCore.QThread):
+    """Поток для выполнения автоматического разрезания"""
+    signal_progress = QtCore.pyqtSignal(str)
+
+    def __init__(self):
+        super(AutoCropWorker, self).__init__()
+        self.params = None
+        self.result = None
+        self.dn_crop = None
+
+    def get_params(self, **params):
+        # инициализация начальных параметров через словарь
+        self.params = params
+
+    @QtCore.pyqtSlot(str)
+    def forward_signal(self, message):
+        self.signal_progress.emit(message)  # перенаправление сигналов
+
+    def run(self):
+        start_time = time.time()  # отмечаем начало работы
+        date_time = datetime.now().strftime("%Y-%m-%d--%H-%M-%S")
+        new_name = os.path.join(str(self.params["output_name"]), "cropped_%s.json" % date_time)
+        self.dn_crop = dn_crop.DNImgCut(self.params["json_path"], self.params["json_name"])  # объект класса для АК
+        self.dn_crop.signal_progress.connect(self.forward_signal)
+        # выполняем кадрирование (нарезку)
+        self.result = self.dn_crop.CutAllImgs(self.params["crop_size"],
+                                              self.params["percent_overlap_polygons"],
+                                              self.params["percent_overlap_scan"],
+                                              new_name,
+                                              self.params["edge"],
+                                              self.params["smart_cut"],
+                                              self.params["hand_cut"])
+
+        end_time = time.time()  # завершение работы
+        print(f"Время работы алгоритма автоматического кадрирования: {helper.format_time(end_time - start_time, 'ru')}")
 
 
 # ----------------------------------------------------------------------------------------------------------------------
