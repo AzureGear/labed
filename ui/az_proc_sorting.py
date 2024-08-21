@@ -1,11 +1,11 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
-from utils import format_time, helper, AppSettings
-import numpy as np
+from utils import format_time, helper, UI_COLORS
+from ui import new_button
 from itertools import combinations
+import numpy as np
 import random
 import time
 import re
-
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Данные для тестирования
@@ -100,23 +100,179 @@ test_real_uranium = {'08_chn_lanzhou_2022-11_000.jpg': [0, 0, 0, 0, 5, 1, 1, 0, 
 
 
 # ----------------------------------------------------------------------------------------------------------------------
+class SortColWidget(QtWidgets.QWidget):
+    signal_spin_changed = QtCore.pyqtSignal(float)  # сигнал изменения значений
+    signal_state_changed = QtCore.pyqtSignal(bool)  # сигнал изменения состояния
 
+    def __init__(self, checkbox_text, initial_value=0.0, enabled=True, color=None, parent=None):
+        super().__init__(parent)
 
-class AzSortingDatasetDialog(QtWidgets.QWidget):
-    """
-    Диалоговое окно для автоматизированной сортировки датасета
-    """
-    signal_message = QtCore.pyqtSignal(str)  # сигнал передачи сообщения родительскому виджету
-    inner_signal = QtCore.pyqtSignal(str)  # внутренний сигнал
-    signal_info = QtCore.pyqtSignal(str)  # сигнал для вывода сообщения в self.info
+        self.checkbox_text = checkbox_text  # текст
+        self.initial_value = initial_value  # начальное значение
+        self.enabled = enabled  # состояние (вкл./выкл.)
+        self.color = color  # цвет
+        self.setup_ui()
 
-    def __init__(self, parent=None):
-        super(AzSortingDatasetDialog, self).__init__(parent)
-        self.name = "MNIST"
-        self.settings = AppSettings()
+    def setup_ui(self):
+        layout = QtWidgets.QHBoxLayout()
+
+        self.checkbox = QtWidgets.QCheckBox(self.checkbox_text)
+        self.checkbox.setChecked(self.enabled)  # устанавливаем начальное состояние
+        self.checkbox.stateChanged.connect(self.toggle_widgets)
+        layout.addWidget(self.checkbox)
+
+        self.spinbox = QtWidgets.QDoubleSpinBox()  # точность "0.0%"
+        self.spinbox.setDecimals(0)  # устанавливаем необходимую точность
+        self.spinbox.setRange(1, 100)  # устанавливаем диапазон от 0 до 100
+        self.spinbox.setSuffix("%")  # суффикс "%"
+        self.spinbox.setValue(self.initial_value)  # начальное значение
+
+        layout.addWidget(self.spinbox)
+        self.setLayout(layout)
+
+        # Исходная настройка виджетов
+        self.toggle_widgets(self.checkbox.checkState())  # исходное состояние виджетов
+
+        # Signals
+        self.spinbox.valueChanged.connect(self.signal_spin_changed.emit)  # Подключаем сигнал к изменению значений
+        # self.checkbox.clicked.connect(self.si)
+
+    def toggle_widgets(self, state):
+        """Переключение состояния виджета"""
+        if state == QtCore.Qt.CheckState.Checked:
+            self.spinbox.setEnabled(True)
+        else:
+            self.spinbox.setEnabled(False)
+        self.signal_state_changed.emit(state)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
+
+class ColorBarWidget(QtWidgets.QWidget):
+    """Виджет индикатор соотношения в виде полоски заполненности"""
+
+    def __init__(self, line_thickness, lines=None, font_size=10):
+        super().__init__()
+        self.line_thickness = line_thickness
+        self.lines = lines
+        self.font_size = font_size
+        self.setMinimumHeight(line_thickness + font_size*3)
+
+    def update_values(self, lines):
+        self.lines = lines
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QtGui.QPainter(self)
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+
+        # Определите максимальную длину линии с учетом отступов
+        max_length = self.width() - 20  # 20 пикселей слева и справа
+
+        # Начальная позиция для рисования линий
+        current_x = 10
+
+        # Рисуем линии и текст
+        if not self.lines:
+            return
+        for length_percent, color, text in self.lines:
+            print(length_percent, color, text)
+            length = int(max_length * length_percent / 100)
+            the_color = QtGui.QColor(color)
+            pen = QtGui.QPen(the_color, self.line_thickness)
+            painter.setPen(pen)
+            painter.drawLine(current_x, self.height() // 2, current_x + length, self.height() // 2)
+
+            font = QtGui.QFont("Tahoma", self.font_size)  # добавляем текст над линией
+            painter.setFont(font)
+            painter.setPen(the_color)  # цвет текста как у линии
+            text_width = painter.fontMetrics().width(text)
+            text_x = current_x + (length - text_width) // 2
+            text_y = self.height() // 2 - self.line_thickness - 1  # учитываем смещение вверх
+            text2_y = self.height() // 2 + self.line_thickness + self.font_size + 1
+            painter.drawText(text_x, text_y, text)
+            painter.drawText(text_x, text2_y, str(int(length_percent)) + "%")
+
+            current_x += length
+
+
+
+
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+class AzSortingDatasetDialog(QtWidgets.QDialog):
+    """
+    Диалоговое окно для автоматизированной сортировки датасета
+    """
+
+    def __init__(self, parent=None, window_title="Smart dataset sorting"):
+        super().__init__(parent)
+        self.setStyleSheet("QWidget { border: 1px solid red; }")
+        self.setWindowTitle(window_title)
+        self.setFixedSize(500, 255)  # Увеличим высоту окна для размещения полосы цвета
+        self.setWindowFlag(QtCore.Qt.WindowType.Tool)
+        self.setup_ui()
+
+    def setup_ui(self):
+        # Создаем кнопки
+        self.button_cancel = new_button(self, "pb", self.tr("Cancel"), slot=self.reject)
+        self.button_ok = new_button(self, "pb", self.tr("OK"), slot=self.accept)
+        self.button_cancel.setMinimumWidth(100)
+        self.button_ok.setMinimumWidth(100)
+
+        self.sort_widgets = []  # виджеты сортировки
+        # widgets = [("train", 70), ("val", 15)]  # виджеты сортировки
+        widgets = [("train", 70, UI_COLORS.get("train_color")),
+                   ("val", 15, UI_COLORS.get("val_color")),
+                   ("test", 15, UI_COLORS.get("test_color"))]
+
+        sort_lay = QtWidgets.QHBoxLayout()  # компоновщик виджетов сортировки
+
+        for name, value, color in widgets:
+            widget = SortColWidget(checkbox_text=name, initial_value=value, color=color)
+            widget.signal_spin_changed.connect(self.update_color_bar)  # сигнал обновления при изменении значений
+            widget.signal_state_changed.connect(self.update_color_bar)  # сигнал обновления при изменении состояния
+            self.sort_widgets.append(widget)
+            sort_lay.addWidget(widget)
+
+        # Индикатор соотношения в виде полоски заполненности (train, val, test)
+        values_labels_colors = [(widget.spinbox.value(), widget.color, widget.checkbox_text) for widget in
+                                self.sort_widgets]
+        self.color_bar = ColorBarWidget(5, values_labels_colors)
+
+        button_layout = QtWidgets.QHBoxLayout()  # компоновщик для кнопок
+        button_layout.addStretch(1)
+        button_layout.addWidget(self.button_ok)
+        button_layout.addWidget(self.button_cancel)
+
+        self.layout = QtWidgets.QVBoxLayout()  # основной компоновщик
+        self.layout.addLayout(sort_lay)
+        self.layout.addWidget(self.color_bar)
+        self.layout.addStretch(1)
+        # self.layout.addSpacing(3)
+        self.layout.addLayout(button_layout)
+        self.setLayout(self.layout)
+
+    def update_color_bar(self):
+        # Обновление индикатора соотношения при изменении состояния или значения
+        values_labels_colors = [(widget.spinbox.value(), widget.color, widget.checkbox_text) for widget in
+                                self.sort_widgets if widget.checkbox.isChecked()]  # с учетом флага отметки
+        self.color_bar.update_values(values_labels_colors)
+
+    def tr(self, text):
+        return QtCore.QCoreApplication.translate("AzSortingDatasetDialog", text)
+
+    def translate_ui(self):  # переводим диалог
+        # Processing - Attributes - Smart Sorting
+        self.table_widget.translate_ui()
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+
 def generate_dict(count: int, length_val: int, max_rand: int = 3) -> dict:
     """
     Генерация тестовых словарей для проверки работы алгоритма автоматической сортировки. Аргументы:
@@ -250,6 +406,9 @@ def calculate_error(train_sums, val_sums, ratio):
     return np.sum(np.abs(train_sums * (1 - ratio) - val_sums * ratio))
 
 
+# ----------------------------------------------------------------------------------------------------------------------
+# Функции показавшие неудовлетворительную вычислительную стоимость
+
 def move_rows(train, val, row_indices):
     # Преобразуем кортеж индексов в список
     row_indices = list(row_indices)
@@ -294,23 +453,26 @@ def optimization_swap(train_data, val_data, ratio, input_error, max_iterations=1
     return best_train, best_val
 
 
+def junk():
+    start_time = time.time()
+
+    # file = "c:/Users/user/Dropbox/sort_info.json"
+    # big_real_data = helper.load(file)
+
+    cur_ratio = 0.8
+    # result = optimum_by_greed_with_group(big_real_data, cur_ratio)
+    result = optimum_by_greed_with_group(test_real_uranium, cur_ratio,
+                                         group_pattern=helper.PATTERNS.get("double_underscore"))
+    train = result["train"].values()
+    val = result["val"].values()
+    # print(big_real_data)
+    # train, val, count = optimum_split_for_data(unsort, 0.8, 6.5)
+    end_time = time.time()
+    sec = (end_time - start_time)  # / 3600
+    train_per, val_per = calc_ratio(result['ratio'][0], result['ratio'][1])
+    print(f"Обработано строк: {len(test_real_uranium.keys())}; занятое время: {format_time(sec, 'ru')},"
+          f"error: {result['error']:.1f};\n%t:",
+          [f"{p:.0f}" for p in train_per], ";\n%v:",
+          [f"{p:.0f}" for p in val_per])
+
 # ----------------------------------------------------------------------------------------------------------------------
-start_time = time.time()
-
-# file = "c:/Users/user/Dropbox/sort_info.json"
-# big_real_data = helper.load(file)
-
-cur_ratio = 0.8
-# result = optimum_by_greed_with_group(big_real_data, cur_ratio)
-result = optimum_by_greed_with_group(test_real_uranium, cur_ratio, group_pattern=helper.PATTERNS.get("double_underscore"))
-train = result["train"].values()
-val = result["val"].values()
-# print(big_real_data)
-# train, val, count = optimum_split_for_data(unsort, 0.8, 6.5)
-end_time = time.time()
-sec = (end_time - start_time)  # / 3600
-train_per, val_per = calc_ratio(result['ratio'][0], result['ratio'][1])
-print(f"Обработано строк: {len(test_real_uranium.keys())}; занятое время: {format_time(sec,'ru')},"
-      f"error: {result['error']:.1f};\n%t:",
-      [f"{p:.0f}" for p in train_per], ";\n%v:",
-      [f"{p:.0f}" for p in val_per])

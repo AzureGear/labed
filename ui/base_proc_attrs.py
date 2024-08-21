@@ -5,7 +5,7 @@ from utils.az_dataset_sort_handler import DatasetSortHandler
 from ui import new_act, new_button, new_icon, coloring_icon, new_text, new_label_icon, AzButtonLineEdit, \
     az_file_dialog, AzInputDialog
 from ui import save_via_qtextstream, setup_dock_widgets
-from ui import AzSortTable, AzTableModel, AzTableAttributes
+from ui import AzSortTable, AzTableModel, AzTableAttributes, AzSortingDatasetDialog
 import os
 import shutil
 from datetime import datetime
@@ -15,6 +15,7 @@ the_color = UI_COLORS.get("processing_color")
 color_train = UI_COLORS.get("train_color")
 color_val = UI_COLORS.get("val_color")
 color_test = UI_COLORS.get("test_color")
+
 # TODO: случайное выделение указанных% от группы
 # TODO: инструмент добавить объекты уже имеющихся групп
 # TODO: переключить вид на просмотр групп
@@ -917,21 +918,36 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             self.table_statistic.setModel(None)
 
     def smart_sort(self):
-        """Интеллектуальная автоматизированная сортировка"""
+        """Автоматизированная сортировка"""
+        if not self.sort_data:
+            return
 
-        file = az_file_dialog(self, self.tr("save_stats"), self.settings.read_last_dir(),
-                              dir_only=False, remember_dir=False, file_to_save=True, filter="json (*.json)",
-                              initial_filter="json (*.json)")
-        if file is None:
+        result = None
+        if self.sort_data.is_correct_file and len(self.sort_data.data["full"]) > 2:
+            # sort_dialog = AzSortingDatasetDialog(self, window_title=self.tr("Smart dataset sorting"))
+            sort_dialog = AzSortingDatasetDialog(self, window_title=self.tr("Smart dataset sorting"))
+            if sort_dialog.exec_() == QtWidgets.QDialog.Accepted:
+                print("Dialog accepted")
+
+        else:
+            self.signal_message.emit(self.tr("The current data is not correct for smart sorting."))
             return
-        if len(file) < 1:  # если всё в порядке...
-            return
-        data = self.sort_data.data["full"]
-        helper.save(file, data, 'w+')  # сохраняем файл как палитру
-        # print(self.sort_data.statistic["train"])
-        # print(self.sort_data.statistic["val"])
-        # print(self.sort_data.statistic["test"])
-        print(self.sort_data.data["full"])
+
+
+
+        # file = az_file_dialog(self, self.tr("save_stats"), self.settings.read_last_dir(),
+        #                       dir_only=False, remember_dir=False, file_to_save=True, filter="json (*.json)",
+        #                       initial_filter="json (*.json)")
+        # if file is None:
+        #     return
+        # if len(file) < 1:  # если всё в порядке...
+        #     return
+        # data = self.sort_data.data["full"]
+        # helper.save(file, data, 'w+')  # сохраняем файл как палитру
+        # # print(self.sort_data.statistic["train"])
+        # # print(self.sort_data.statistic["val"])
+        # # print(self.sort_data.statistic["test"])
+        # print(self.sort_data.data["full"])
 
     def cook_dataset(self):
         """Сортировка датасета в соответствии с выбранными параметрами"""
@@ -1084,8 +1100,8 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.toggle_val.setToolTip(self.tr("Show or hide table val"))
         self.toggle_test.setText(self.tr(f"Toggle test"))
         self.toggle_test.setToolTip(self.tr("Show or hide table test"))
-
 # ----------------------------------------------------------------------------------------------------------------------
+
 
 if __name__ == "__main__":
     import sys

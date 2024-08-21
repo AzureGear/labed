@@ -1061,11 +1061,12 @@ class DNImgCut(QtCore.QObject):
                 if not os.path.exists(os.path.join(self.JsonObj.PathToImg, self.JsonObj.ImgsName[i])):
                     print(f"[!] error: no file {os.path.join(self.JsonObj.PathToImg, self.JsonObj.ImgsName[i])}")
                     continue
-                # if i < 468:  # Закончил на 421.
+                # if i < 139:  # Закончил на 421.
                 #     continue
                 bad_files = ["447_USA_2011-10.jpg", "447_USA_2016-05.jpg", "447_USA_2017-07.jpg", "447_USA_2018-08.jpg",
                              "447_USA_2019-02.jpg", "447_USA_2020-08.jpg", "447_USA_2020-10.jpg", "447_USA_2021-09.jpg",
-                             "447_USA_2021-11.jpg", "447_USA_2022-09.jpg", "126_FRA_2016-03.jpg", "126_FRA_2018-03.jpg"]
+                             "447_USA_2021-11.jpg", "447_USA_2022-09.jpg", "126_FRA_2016-03.jpg", "126_FRA_2018-03.jpg",
+                             "129c_FRA_2016-08.jpg"]
                 # bad_files = ["128_FRA_2014-06-13.jpg", "128_FRA_2017-06.jpg", "128_FRA_2018-06.jpg",
                 #              "189_IRL_2006-06.jpg", "421_USA_2018-01.jpg", "446s_USA_2012-11-06.jpg"
                 #              "446s_USA_2014-10.jpg", "446s_USA_2016-04.jpg", "446s_USA_2018-05.jpg",
