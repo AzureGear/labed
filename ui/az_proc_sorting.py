@@ -156,7 +156,7 @@ class ColorBarWidget(QtWidgets.QWidget):
         self.line_thickness = line_thickness
         self.lines = lines
         self.font_size = font_size
-        self.setMinimumHeight(line_thickness + font_size*3)
+        self.setMinimumHeight(line_thickness + font_size * 3)
 
     def update_values(self, lines):
         self.lines = lines
@@ -164,45 +164,45 @@ class ColorBarWidget(QtWidgets.QWidget):
 
     def paintEvent(self, event):
         painter = QtGui.QPainter(self)
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        max_length = self.width() - 60  # максимальную длина линии с учетом отступов (10 пикселей слева и 50 справа)
+        x_pos = 10
 
-        # Определите максимальную длину линии с учетом отступов
-        max_length = self.width() - 20  # 20 пикселей слева и справа
-
-        # Начальная позиция для рисования линий
-        current_x = 10
-
-        # Рисуем линии и текст
         if not self.lines:
             return
-        for length_percent, color, text in self.lines:
-            print(length_percent, color, text)
+
+        summ = 0
+        for length_percent, color, text in self.lines:  # рисуем линии и текст
+            summ += int(length_percent)
             length = int(max_length * length_percent / 100)
             the_color = QtGui.QColor(color)
             pen = QtGui.QPen(the_color, self.line_thickness)
             painter.setPen(pen)
-            painter.drawLine(current_x, self.height() // 2, current_x + length, self.height() // 2)
+            painter.drawLine(x_pos, self.height() // 2, x_pos + length, self.height() // 2)  # линия
 
             font = QtGui.QFont("Tahoma", self.font_size)  # добавляем текст над линией
             painter.setFont(font)
             painter.setPen(the_color)  # цвет текста как у линии
             text_width = painter.fontMetrics().width(text)
-            text_x = current_x + (length - text_width) // 2
+            text_x = x_pos + (length - text_width) // 2
             text_y = self.height() // 2 - self.line_thickness - 1  # учитываем смещение вверх
             text2_y = self.height() // 2 + self.line_thickness + self.font_size + 1
             painter.drawText(text_x, text_y, text)
             painter.drawText(text_x, text2_y, str(int(length_percent)) + "%")
+            painter.setPen(QtGui.QColor("grey"))
 
-            current_x += length
+            x_pos += length
 
+        painter.drawText(self.width() - 37, self.height() // 2 + self.font_size // 2, str(summ) + "%")
 
-
-
+        if summ == 100:  # если получено 100%, то рисуем красивую рамку
+            # pen = QtGui.QPen(QtGui.QColor("green"), 2)
+            painter.setPen(QtGui.QPen(QtGui.QColor("green"), 2, QtCore.Qt.PenStyle.DotLine))
+            painter.drawRect(0, 0, self.width() - 40, self.minimumHeight())
+            painter.drawText(self.width() - 37, self.height() // 2 + self.font_size // 2, "100%")
+            # painter.drawRect(0, -1 * (self.line_thickness + self.font_size + 5), self.width(), self.minimumHeight() - 1)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-
-
 class AzSortingDatasetDialog(QtWidgets.QDialog):
     """
     Диалоговое окно для автоматизированной сортировки датасета
@@ -210,7 +210,7 @@ class AzSortingDatasetDialog(QtWidgets.QDialog):
 
     def __init__(self, parent=None, window_title="Smart dataset sorting"):
         super().__init__(parent)
-        self.setStyleSheet("QWidget { border: 1px solid red; }")
+        # self.setStyleSheet("QWidget { border: 1px solid red; }")
         self.setWindowTitle(window_title)
         self.setFixedSize(500, 255)  # Увеличим высоту окна для размещения полосы цвета
         self.setWindowFlag(QtCore.Qt.WindowType.Tool)
@@ -233,8 +233,8 @@ class AzSortingDatasetDialog(QtWidgets.QDialog):
 
         for name, value, color in widgets:
             widget = SortColWidget(checkbox_text=name, initial_value=value, color=color)
-            widget.signal_spin_changed.connect(self.update_color_bar)  # сигнал обновления при изменении значений
-            widget.signal_state_changed.connect(self.update_color_bar)  # сигнал обновления при изменении состояния
+            widget.signal_spin_changed.connect(self.check_values)  # сигнал обновления при изменении значений
+            widget.signal_state_changed.connect(self.check_values)  # сигнал обновления при изменении состояния
             self.sort_widgets.append(widget)
             sort_lay.addWidget(widget)
 
@@ -256,10 +256,31 @@ class AzSortingDatasetDialog(QtWidgets.QDialog):
         self.layout.addLayout(button_layout)
         self.setLayout(self.layout)
 
+    def check_values(self):
+        summ = sum(widget.spinbox.value() for widget in self.sort_widgets if widget.checkbox.isChecked())  # общая сумма
+        active_numbers = sum(1 for widget in self.sort_widgets if widget.checkbox.isChecked())  # количество объектов
+        [widget.spinbox.setMaximum(100 - active_numbers) for widget in self.sort_widgets]
+        print("active numbers: ", active_numbers)
+        if summ > 100:
+            sender_spinbox = self.sender().spin
+            print(sender_spinbox)
+            sender_value = sender_spinbox
+            excess = summ - 100
+
+            for widget in self.sort_widgets:
+                if widget.spinbox is not sender_spinbox:
+                    if widget.checkbox.isChecked():
+                        new_value = widget.spinbox.value() - excess
+                        widget.spinbox.setValue(max(0, new_value))
+            sender_spinbox.setValue(sender_value + excess)
+
+        self.update_color_bar()
+
     def update_color_bar(self):
         # Обновление индикатора соотношения при изменении состояния или значения
         values_labels_colors = [(widget.spinbox.value(), widget.color, widget.checkbox_text) for widget in
                                 self.sort_widgets if widget.checkbox.isChecked()]  # с учетом флага отметки
+        # if values_labels_colors:
         self.color_bar.update_values(values_labels_colors)
 
     def tr(self, text):
@@ -271,8 +292,6 @@ class AzSortingDatasetDialog(QtWidgets.QDialog):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-
-
 def generate_dict(count: int, length_val: int, max_rand: int = 3) -> dict:
     """
     Генерация тестовых словарей для проверки работы алгоритма автоматической сортировки. Аргументы:
