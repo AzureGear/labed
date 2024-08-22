@@ -16,6 +16,7 @@ color_train = UI_COLORS.get("train_color")
 color_val = UI_COLORS.get("val_color")
 color_test = UI_COLORS.get("test_color")
 
+
 # TODO: случайное выделение указанных% от группы
 # TODO: инструмент добавить объекты уже имеющихся групп
 # TODO: переключить вид на просмотр групп
@@ -43,6 +44,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.current_file = None  # текущий файл проекта SAMA
         self.sort_file = None  # текущий файл сортировки
         self.sort_mode = False  # режим сортировки
+        self.sort_dialog = None # диалог сортировки
 
         # Настройка ui
         self.setup_log()
@@ -925,15 +927,14 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         result = None
         if self.sort_data.is_correct_file and len(self.sort_data.data["full"]) > 2:
             # sort_dialog = AzSortingDatasetDialog(self, window_title=self.tr("Smart dataset sorting"))
-            sort_dialog = AzSortingDatasetDialog(self, window_title=self.tr("Smart dataset sorting"))
-            if sort_dialog.exec_() == QtWidgets.QDialog.Accepted:
+            self.sort_dialog = AzSortingDatasetDialog(self.sort_data.data["full"], parent=self,
+                                                 window_title=self.tr("Smart dataset sorting"))
+            if self.sort_dialog.exec_() == QtWidgets.QDialog.Accepted:
                 print("Dialog accepted")
 
         else:
             self.signal_message.emit(self.tr("The current data is not correct for smart sorting."))
             return
-
-
 
         # file = az_file_dialog(self, self.tr("save_stats"), self.settings.read_last_dir(),
         #                       dir_only=False, remember_dir=False, file_to_save=True, filter="json (*.json)",
@@ -1065,6 +1066,8 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.sort_widget_train.translate_ui()
         self.sort_widget_val.translate_ui()
         self.sort_widget_test.translate_ui()
+        if self.sort_dialog:
+            self.sort_dialog.translate_ui()
         self.label_project.setText(self.tr("Path to file project (*.json):"))
         self.btn_copy.setToolTip(self.tr("Make copy of current project"))
         self.btn_export.setToolTip(self.tr("Export current project info"))
@@ -1100,6 +1103,14 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.toggle_val.setToolTip(self.tr("Show or hide table val"))
         self.toggle_test.setText(self.tr(f"Toggle test"))
         self.toggle_test.setToolTip(self.tr("Show or hide table test"))
+
+    # todo: перенести в другое место
+    def find_by_label(self):
+        val = "04-cat_crack"
+        mylist = self.sama_data.get_images_by_label(val)
+        print("list: ", mylist)
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 
 

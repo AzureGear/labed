@@ -441,6 +441,21 @@ class DatasetSAMAHandler:
 
         return images_dir, labels_dir
 
+    def get_images_by_label(self, label):
+        """Az+: Получение перечня изображений, содержащих заданную метку (класс)"""
+        result = []
+        cls_num = self.get_label_num(label)
+        if cls_num < 0:
+            return None  # такой метки нет
+        for im_name, image in self.data["images"].items():  # image = {shapes:[], lrm:float, status:str}
+            if not image["shapes"]: # пропускаем изображения без разметки
+                continue
+            for shape in image["shapes"]:
+                if shape["cls_num"] == cls_num:
+                    result.append(im_name)
+                    break
+        return result
+
     def clear_records_without_labeling_info(self):
         """Az+: Удаление записей об изображениях с отсутствующей разметкой"""
         removed_records = []

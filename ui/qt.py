@@ -244,6 +244,7 @@ def new_act(parent, text, icon=None, color=None, slot=None, checkable=False, che
     return a
 
 
+# ----------------------------------------------------------------------------------------------------------------------
 def new_label_icon(icon_path, the_color, size, ):
     """Возвращает QLabel с объектом иконкой заданного цвета (the_color) и размера (size)"""
     label_icon = QtWidgets.QLabel()
@@ -353,7 +354,6 @@ def labelValidator():
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-
 def setup_dock_widgets(parent, docks, settings):
     """
     Настройка интерфейса Widget'ов с поддержкой DockWidgets со структурой DockWidget
@@ -507,6 +507,7 @@ def set_margins_recursive(widget, left, top, right, bottom, spacing):
                     set_margins_recursive(item, left, top, right, bottom, spacing)
 
 
+# ----------------------------------------------------------------------------------------------------------------------
 def set_widgets_and_layouts_margins2(widget, left, top, right, bottom):
     """Установка всем виджетам и компоновщикам отступов. Работает рекурсивно"""
     if isinstance(widget, QtWidgets.QWidget):  # наш тип виджет
@@ -525,7 +526,6 @@ def set_widgets_and_layouts_margins2(widget, left, top, right, bottom):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-
 def set_widgets_visible(layout, flag):
     """Отключение всех виджетов и компоновщиков. Работает рекурсивно"""
     # TODO: не работает, разобраться

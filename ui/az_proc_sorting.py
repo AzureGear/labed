@@ -1,11 +1,13 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
 from utils import format_time, helper, UI_COLORS
-from ui import new_button
+from ui import new_button, new_text
 from itertools import combinations
 import numpy as np
 import random
 import time
 import re
+
+the_color = UI_COLORS.get("processing_color")
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Данные для тестирования
@@ -121,11 +123,15 @@ class SortColWidget(QtWidgets.QWidget):
         self.checkbox.stateChanged.connect(self.toggle_widgets)
         layout.addWidget(self.checkbox)
 
-        self.spinbox = QtWidgets.QDoubleSpinBox()  # точность "0.0%"
+        self.spinbox = QtWidgets.QDoubleSpinBox()  # точность "0%"
+        self.spinbox.setAccelerated(True)
         self.spinbox.setDecimals(0)  # устанавливаем необходимую точность
         self.spinbox.setRange(1, 100)  # устанавливаем диапазон от 0 до 100
-        self.spinbox.setSuffix("%")  # суффикс "%"
+        self.spinbox.setSuffix("%")  # суффикс
         self.spinbox.setValue(self.initial_value)  # начальное значение
+
+        self.checkbox.setStyleSheet(f"QCheckBox {{ color: {self.color}; }}")
+        self.spinbox.setStyleSheet(f"QDoubleSpinBox {{ color: {self.color}; }}")
 
         layout.addWidget(self.spinbox)
         self.setLayout(layout)
@@ -135,7 +141,6 @@ class SortColWidget(QtWidgets.QWidget):
 
         # Signals
         self.spinbox.valueChanged.connect(self.signal_spin_changed.emit)  # Подключаем сигнал к изменению значений
-        # self.checkbox.clicked.connect(self.si)
 
     def toggle_widgets(self, state):
         """Переключение состояния виджета"""
@@ -147,7 +152,6 @@ class SortColWidget(QtWidgets.QWidget):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-
 class ColorBarWidget(QtWidgets.QWidget):
     """Виджет индикатор соотношения в виде полоски заполненности"""
 
@@ -208,23 +212,43 @@ class AzSortingDatasetDialog(QtWidgets.QDialog):
     Диалоговое окно для автоматизированной сортировки датасета
     """
 
-    def __init__(self, parent=None, window_title="Smart dataset sorting"):
+    def __init__(self, data, parent=None, window_title="Smart dataset sorting", ):
         super().__init__(parent)
         # self.setStyleSheet("QWidget { border: 1px solid red; }")
         self.setWindowTitle(window_title)
-        self.setFixedSize(500, 255)  # Увеличим высоту окна для размещения полосы цвета
+        self.setFixedSize(600, 260)  # фиксированные размеры для размещения кастомных виджетов
         self.setWindowFlag(QtCore.Qt.WindowType.Tool)
+        self.data = data
         self.setup_ui()
 
+        self.result = {}  # выходные данные
+        self.sort_cols = {}  # размер и наименование групп сортировки
+        self.update_sort_cols()  # заполняем self.sort_cols
+
     def setup_ui(self):
+        """Настройка интерфейса"""
         # Создаем кнопки
         self.button_cancel = new_button(self, "pb", self.tr("Cancel"), slot=self.reject)
         self.button_ok = new_button(self, "pb", self.tr("OK"), slot=self.accept)
+        self.button_ok.setEnabled(False)  # по умолчанию отключаем
+        self.button_sort = new_button(self, "pb", self.tr("Сортировать"), slot=self.exec_sort)
+
+        # Объекты с общим именем рассматриваются как группа данных
+        self.chk_group_sort = QtWidgets.QCheckBox(
+            self.tr("Objects with a common name are considered as a data group (use group pattern):"),
+            self)
+        # по умолчанию используем шаблон двойного подчеркивания
+        self.group_sort_pattern = QtWidgets.QLineEdit(self)
+        self.group_sort_pattern.setEnabled(False)
+        self.group_sort_pattern.setText(helper.PATTERNS.get("double_underscore"))
+        self.chk_group_sort.stateChanged.connect(
+            lambda state: self.group_sort_pattern.setEnabled(state == QtCore.Qt.CheckState.Checked))
+
+        self.sort_info = new_text(self)
         self.button_cancel.setMinimumWidth(100)
         self.button_ok.setMinimumWidth(100)
 
         self.sort_widgets = []  # виджеты сортировки
-        # widgets = [("train", 70), ("val", 15)]  # виджеты сортировки
         widgets = [("train", 70, UI_COLORS.get("train_color")),
                    ("val", 15, UI_COLORS.get("val_color")),
                    ("test", 15, UI_COLORS.get("test_color"))]
@@ -238,10 +262,17 @@ class AzSortingDatasetDialog(QtWidgets.QDialog):
             self.sort_widgets.append(widget)
             sort_lay.addWidget(widget)
 
+        sort_lay.addWidget(self.button_sort)
+
         # Индикатор соотношения в виде полоски заполненности (train, val, test)
         values_labels_colors = [(widget.spinbox.value(), widget.color, widget.checkbox_text) for widget in
                                 self.sort_widgets]
         self.color_bar = ColorBarWidget(5, values_labels_colors)
+
+        hlay = QtWidgets.QHBoxLayout()  # компоновщик для учета группировки объектов и его шаблона
+        hlay.addWidget(self.chk_group_sort)
+        hlay.addWidget(self.group_sort_pattern)
+        hlay.addSpacing(40)
 
         button_layout = QtWidgets.QHBoxLayout()  # компоновщик для кнопок
         button_layout.addStretch(1)
@@ -250,37 +281,104 @@ class AzSortingDatasetDialog(QtWidgets.QDialog):
 
         self.layout = QtWidgets.QVBoxLayout()  # основной компоновщик
         self.layout.addLayout(sort_lay)
+        self.layout.addLayout(hlay)
         self.layout.addWidget(self.color_bar)
+        self.layout.addWidget(self.sort_info)
         self.layout.addStretch(1)
-        # self.layout.addSpacing(3)
         self.layout.addLayout(button_layout)
         self.setLayout(self.layout)
 
+    def exec_sort(self):
+        """Выполнение сортировки"""
+        start_time = time.time()
+
+        self.result = {}  # очищаем от прошлых результатов
+        if self.chk_group_sort.isChecked():  # определяем требуется ли группировка
+            pattern = self.group_sort_pattern.text()
+        else:
+            pattern = None
+        cols = len(self.sort_cols)  # количество столбцов
+
+        names = list(self.sort_cols.keys())
+        ratios = [val / 100 for val in self.sort_cols.values()]  # приводим к виду 82% = 0.82
+        print("cur_params:", ratios, names, "pattern: '", pattern, "'")
+        # Результат - словарь с именами { names[0]: data0,  names[1]: data1, ratios: };
+
+        if cols < 2:
+            result = optimum_by_greed_with_group(self.data, ratios[0], names=[names[0], names[1]],
+                                                 group_pattern=pattern)
+            train_per, val_per = calc_ratio(result['ratio_summ'][0], result['ratio_summ'][1])
+            end_time = time.time()
+            text = (f"Обработано строк: {len(self.data.keys())}; "
+                    f"занятое время: {format_time(end_time - start_time, 'ru')}, "
+                    f"величина расхождения: {result['error']:.1f};\n"
+                    f"{[names[0]]}: {', '.join([f'{p:.0f}' for p in train_per])}")
+            self.result = result[names[0]].values()
+
+        if cols < 3:
+            result = optimum_by_greed_with_group(self.data, ratios[0], names=[names[0], names[1]],
+                                                 group_pattern=pattern)
+            train_per, val_per = calc_ratio(result['ratio_summ'][0], result['ratio_summ'][1])
+            end_time = time.time()
+            text = (f"Обработано строк: {len(self.data.keys())}; "
+                    f"занятое время: {format_time(end_time - start_time, 'ru')}, "
+                    f"величина расхождения: {result['error']:.1f};\n"
+                    f"{[names[0]]}: {', '.join([f'{p:.0f}' for p in train_per])};\n"
+                    f"{[names[1]]}: {', '.join([f'{p:.0f}' for p in val_per])}")
+        else:
+            text = (f"hard!")
+
+        # train = result[names[0]].values()
+        # val = result[names[1]].values()
+        # print(train)
+        # print(val)
+        #
+        # train_per, val_per = calc_ratio(result['ratio_summ'][0], result['ratio_summ'][1])
+        # text = (f"Обработано строк: {len(test_real_uranium.keys())}; "
+        #         f"занятое время: {format_time(end_time - start_time, 'ru')}, "
+        #         f"error: {result['error']:.1f};\n%t: "
+        #         f"{', '.join([f'{p:.0f}' for p in train_per])};\n%v: "
+        #         f"{', '.join([f'{p:.0f}' for p in val_per])}")
+        self.sort_info.setText(text)
+        if len(self.result) > 0:
+            self.button_ok.setEnabled(True)
+
+    def update_sort_cols(self):
+        """Формируем перечень групп сортировки"""
+        self.sort_cols = {widget.checkbox.text(): widget.spinbox.value() for widget in self.sort_widgets if
+                          widget.checkbox.isChecked()}
+        if len(self.sort_cols) < 1:  # отключаем кнопки или...
+            self.button_sort.setEnabled(False)
+        else:  # ...включаем кнопки
+            self.button_sort.setEnabled(True)
+
     def check_values(self):
+        """Проверка значений перед отправкой на отрисовку"""
         summ = sum(widget.spinbox.value() for widget in self.sort_widgets if widget.checkbox.isChecked())  # общая сумма
         active_numbers = sum(1 for widget in self.sort_widgets if widget.checkbox.isChecked())  # количество объектов
-        [widget.spinbox.setMaximum(100 - active_numbers) for widget in self.sort_widgets]
-        print("active numbers: ", active_numbers)
-        if summ > 100:
-            sender_spinbox = self.sender().spin
-            print(sender_spinbox)
-            sender_value = sender_spinbox
-            excess = summ - 100
+        [widget.spinbox.setMaximum(100 - active_numbers + 1) for widget in self.sort_widgets]  # изменяем максимум
+
+        if summ > 100:  # сумма начала превышать 100, следует это скорректировать
+            sender_spinbox = self.sender().spinbox  # определяем отправителя сигнала
+            sender_value = sender_spinbox.value()
+            excess = summ - 100  # размер превышения
 
             for widget in self.sort_widgets:
                 if widget.spinbox is not sender_spinbox:
-                    if widget.checkbox.isChecked():
+                    if widget.checkbox.isChecked() and widget.spinbox.value() > 1:
                         new_value = widget.spinbox.value() - excess
-                        widget.spinbox.setValue(max(0, new_value))
-            sender_spinbox.setValue(sender_value + excess)
+                        widget.spinbox.setValue(max(1, new_value))
+                        break
 
-        self.update_color_bar()
+            sender_spinbox.setValue(sender_value)
+
+        self.update_sort_cols()  # обновляем внутренние значения групп сортировки
+        self.update_color_bar()  # обновляем виджет-индикатор соотношения
 
     def update_color_bar(self):
-        # Обновление индикатора соотношения при изменении состояния или значения
+        """Обновление индикатора соотношения при изменении состояния или значения"""
         values_labels_colors = [(widget.spinbox.value(), widget.color, widget.checkbox_text) for widget in
                                 self.sort_widgets if widget.checkbox.isChecked()]  # с учетом флага отметки
-        # if values_labels_colors:
         self.color_bar.update_values(values_labels_colors)
 
     def tr(self, text):
@@ -308,9 +406,10 @@ def generate_dict(count: int, length_val: int, max_rand: int = 3) -> dict:
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-
-
 def get_group_objects(data_for_group, pattern=helper.PATTERNS.get("double_underscore")):
+    """Разбиение на группы объектов по заданному паттерну. Принимает данные (data_for_group) и шаблон
+    разбиения (pattern). Возвращает список с перечнем наименований групп"""
+
     objects = []
     for item in data_for_group:
         match = re.search(pattern, item)
@@ -415,7 +514,7 @@ def optimum_by_greed_with_group(data, ratio=0.8, names=["train", "val"], group_p
     # не пробуем оптимизацию
     #  optimization_swap(result[names[0]], result[names[1]], ratio, error)
 
-    result["ratio"] = [train_sums.tolist(), val_sums.tolist()]  # итоговое
+    result["ratio_summ"] = [train_sums.tolist(), val_sums.tolist()]  # итоговое
     result["error"] = error  # значение ошибки
     return result
 

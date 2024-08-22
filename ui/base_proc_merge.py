@@ -1,7 +1,7 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
 from utils import AppSettings, convert_labelme_to_sama, merge_sama_to_sama, UI_COLORS, UI_READ_LINES, config, \
     natural_order
-from ui import new_act, new_text, new_cbx, az_file_dialog, AzButtonLineEdit, coloring_icon
+from ui import new_act, new_text, new_cbx, coloring_icon, az_file_dialog, AzButtonLineEdit
 from datetime import datetime
 import os
 
