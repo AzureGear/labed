@@ -302,31 +302,62 @@ class AzSortingDatasetDialog(QtWidgets.QDialog):
         names = list(self.sort_cols.keys())
         ratios = [val / 100 for val in self.sort_cols.values()]  # приводим к виду 82% = 0.82
         print("cur_params:", ratios, names, "pattern: '", pattern, "'")
-        # Результат - словарь с именами { names[0]: data0,  names[1]: data1, ratios: };
 
-        if cols < 2:
-            result = optimum_by_greed_with_group(self.data, ratios[0], names=[names[0], names[1]],
+        if cols == 1:
+            result = optimum_by_greed_with_group(self.data, ratios[0], names=[names[0], "other"],
                                                  group_pattern=pattern)
-            train_per, val_per = calc_ratio(result['ratio_summ'][0], result['ratio_summ'][1])
+            gr1, gr2 = calc_ratio(result['ratio_summ'][0], result['ratio_summ'][1])
             end_time = time.time()
             text = (f"Обработано строк: {len(self.data.keys())}; "
                     f"занятое время: {format_time(end_time - start_time, 'ru')}, "
                     f"величина расхождения: {result['error']:.1f};\n"
-                    f"{[names[0]]}: {', '.join([f'{p:.0f}' for p in train_per])}")
-            self.result = result[names[0]].values()
+                    f"{names[0]} ({len(result[names[0]])} записей): {', '.join([f'{p:.0f}' for p in gr1])}")
+            self.result[names[0]] = result[names[0]].values()
 
-        if cols < 3:
+        elif cols == 2:
             result = optimum_by_greed_with_group(self.data, ratios[0], names=[names[0], names[1]],
                                                  group_pattern=pattern)
-            train_per, val_per = calc_ratio(result['ratio_summ'][0], result['ratio_summ'][1])
+            gr1, gr2 = calc_ratio(result['ratio_summ'][0], result['ratio_summ'][1])
             end_time = time.time()
             text = (f"Обработано строк: {len(self.data.keys())}; "
                     f"занятое время: {format_time(end_time - start_time, 'ru')}, "
                     f"величина расхождения: {result['error']:.1f};\n"
-                    f"{[names[0]]}: {', '.join([f'{p:.0f}' for p in train_per])};\n"
-                    f"{[names[1]]}: {', '.join([f'{p:.0f}' for p in val_per])}")
-        else:
-            text = (f"hard!")
+                    f"{names[0]} ({len(result[names[0]])} записей): {', '.join([f'{p:.0f}' for p in gr1])};\n"
+                    f"{names[1]} ({len(result[names[1]])} записей): {', '.join([f'{p:.0f}' for p in gr2])}")
+            self.result[names[0]] = result[names[0]].values()
+            self.result[names[1]] = result[names[1]].values()
+
+        elif cols == 3:
+            result = optimum_by_greed_with_group(self.data, ratios[0], names=[names[0], "combined"],
+                                                 group_pattern=pattern)
+            gr1, gr2_3 = calc_ratio(result['ratio_summ'][0], result['ratio_summ'][1])
+
+            corrected_ratio = round(ratios[1] * 100 / (100 - ratios[0] * 100),
+                                    2)  # корректируем новое значение соотношения
+            print("corrected_ratio:", corrected_ratio)
+            result2 = optimum_by_greed_with_group(result["combined"], corrected_ratio,
+                                                  names=[names[1], names[2]], group_pattern=pattern)
+            gr2, gr3 = calc_ratio(result2['ratio_summ'][0], result2['ratio_summ'][1])
+            print(gr2, gr3)
+
+            for i, perc in enumerate(gr2_3):  # пересчитываем проценты с учетом исходного соотношения
+                gr2[i] = gr2[i] * perc / 100
+                gr3[i] = 100 - gr2[i] - gr1[i]
+
+            end_time = time.time()
+
+            text = (f"Обработано записей: {len(self.data.keys())}; "
+                    f"занятое время: {format_time(end_time - start_time, 'ru')}, "
+                    f"величина расхождения: {result['error'] + result2['error']:.1f};\n"
+                    f"{names[0]} ({len(result[names[0]])} записей): {', '.join([f'{p:.0f}' for p in gr1])};\n"
+                    f"{names[1]} ({len(result2[names[1]])} записей): {', '.join([f'{p:.0f}' for p in gr2])};\n"
+                    f"{names[2]} ({len(result2[names[2]])} записей): {', '.join([f'{p:.0f}' for p in gr3])}")
+            self.result[names[0]] = result[names[0]].values()
+            self.result[names[1]] = result2[names[1]].values()
+            self.result[names[2]] = result2[names[2]].values()
+            # print("results:", result[names[0]])
+            # print("results:", result2[names[1]])
+            # print("results:", result2[names[2]])
 
         # train = result[names[0]].values()
         # val = result[names[1]].values()
@@ -464,7 +495,9 @@ def optimum_by_greed_with_group(data, ratio=0.8, names=["train", "val"], group_p
      типа: {"dad": [3, 2, 0, 3], "sister": [1, 3, 1, 1], "mom": [2, 0, 0, 3]}
      names - названия групп, по умолчанию "train", "val" (первая группа имеет распределение ratio)
      ratio - это размер отношения для выборки train от 1 до 0 (70% = 0.7)
-     group_pattern - шаблон образования групп; если None то группировка не используется"""
+     group_pattern - шаблон образования групп; если None то группировка не используется
+
+     Возвращает - словарь с именами:соответствующими данными; суммарным значением соотношений; значением ошибки"""
     if group_pattern:  # есть необходимость использования групп
         group_data, group_links = group_data_by_pattern(data, group_pattern)  # упаковываем данные
         data_array = np.array(list(group_data.values()))
