@@ -4,63 +4,13 @@
 # ----------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------
-import sys
-from PyQt5 import QtWidgets, QtGui, QtCore
+data = []
+test = [1, 2, 3]
 
-class LineWidget(QtWidgets.QWidget):
-    def __init__(self, lines, line_thickness):
-        super().__init__()
-        self.lines = lines
-        self.line_thickness = line_thickness
-        self.initUI()
+row = ["ma", "ba"] + test
+data.append(row)
 
-    def initUI(self):
-        self.setGeometry(100, 100, 400, 300)
-        self.setWindowTitle('Цветные линии с текстом')
-
-    def paintEvent(self, event):
-        painter = QtGui.QPainter(self)
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
-
-        # Определите максимальную длину линии с учетом отступов
-        max_length = self.width() - 40  # 20 пикселей слева и справа
-
-        # Начальная позиция для рисования линий
-        current_x = 20
-
-        # Рисуем линии и текст
-        for length_percent, color, text in self.lines:
-            length = int(max_length * length_percent / 100)
-            pen = QtGui.QPen(color, self.line_thickness)  # Толщина линии
-            painter.setPen(pen)
-            painter.drawLine(current_x, self.height() // 2, current_x + length, self.height() // 2)
-
-            # Рисуем текст над линией
-            font = QtGui.QFont("Tahoma", 12)
-            painter.setFont(font)
-            painter.setPen(color)  # Цвет текста такой же, как и линии
-            text_width = painter.fontMetrics().width(text)
-            text_x = current_x + (length - text_width) // 2
-            text_y = self.height() // 2 - self.line_thickness - 10  # Смещение текста над линией
-            painter.drawText(text_x, text_y, text)
-
-            current_x += length
-
-if __name__ == '__main__':
-    app = QtWidgets.QApplication(sys.argv)
-
-    # Пример данных для линий: (длина в процентах, цвет, текст)
-    lines = [
-        (10, QtCore.Qt.red, "train"),
-        # (20, QtCore.Qt.green, "val"),
-        (15, QtCore.Qt.blue, "test"),
-    ]
-
-    line_thickness = 5  # Толщина линии в пикселях
-
-    main = LineWidget(lines, line_thickness)
-    main.show()
-    sys.exit(app.exec_())
+print(data)
 
 # ----------------------------------------------------------------------------------------------------------------------
 # # При необходимости сделать класс без Дениса

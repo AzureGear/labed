@@ -76,6 +76,16 @@ class DatasetSortHandler:
         """Возвращаем список наименований меток, где порядковый номер элемента соответствует метке"""
         return [self.data["labels"][str(i)] for i in range(self.get_cls_count())]
 
+    def clear_train_val_test(self):
+        """Очистка выборок"""
+        self.data["train"] = {}
+        self.data["val"] = {}
+        self.data["test"] = {}
+
+    def set_data(self, table_name, data):
+        """Установка новых значений таблиц train, val или test"""
+        self.data[table_name] = data
+
     def get_images_names_train_val_test(self):
         """Возвращаем имена изображений из словарей train, val и test"""
         merged = {**self.data["train"], **self.data["val"], **self.data["test"]}

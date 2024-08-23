@@ -19,6 +19,7 @@ from .qt import set_margins_recursive
 from .qt import set_widgets_visible
 
 from .az_table_models import AzTableModel
+from .az_table_models import AzSimpleModel
 from .az_table_models import AzSortTable
 from .az_table_models import AzTableAttributes
 

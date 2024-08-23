@@ -44,7 +44,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.current_file = None  # текущий файл проекта SAMA
         self.sort_file = None  # текущий файл сортировки
         self.sort_mode = False  # режим сортировки
-        self.sort_dialog = None # диалог сортировки
+        self.sort_dialog = None  # диалог сортировки
 
         # Настройка ui
         self.setup_log()
@@ -921,18 +921,31 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     def smart_sort(self):
         """Автоматизированная сортировка"""
-        if not self.sort_data:
+        if not self.sort_file:
+            self.signal_message.emit(self.tr(f"First open or crete sort file."))
             return
 
-        result = None
-        if self.sort_data.is_correct_file and len(self.sort_data.data["full"]) > 2:
-            # sort_dialog = AzSortingDatasetDialog(self, window_title=self.tr("Smart dataset sorting"))
+        if self.sort_data.is_correct_file and len(self.sort_data.data["full"]) > 2:  # исходные данные корректны
             self.sort_dialog = AzSortingDatasetDialog(self.sort_data.data["full"], parent=self,
-                                                 window_title=self.tr("Smart dataset sorting"))
-            if self.sort_dialog.exec_() == QtWidgets.QDialog.Accepted:
-                print("Dialog accepted")
+                                                      window_title=self.tr("Smart dataset sorting"))
+            if self.sort_dialog.exec_() == QtWidgets.QDialog.Accepted:  # сортировка успешна
+                self.sort_data.clear_train_val_test()  # сбросим все установленные выборки
 
-        else:
+                for name, res_dict in self.sort_dialog.result.items():  # проходим по результатам сортировки
+                    self.sort_data.set_data(name, {key: value for key, value in zip(res_dict["img"], res_dict["data"])})
+                    print("data_" + name + ":", self.sort_data.data[name])
+                self.
+                self.update_sort_data_tables()  # обновляем таблицы сортировки train/val
+                self.table_image_filter_changed()  # обновляем таблицу фильтрата
+                    #
+                    # data = self.sort_data.data["full"]
+                    # helper.save(file, data, 'w+')  # сохраняем файл как палитру
+                    # # print(self.sort_data.statistic["train"])
+                    # # print(self.sort_data.statistic["val"])
+                    # # print(self.sort_data.statistic["test"])
+                    # print(self.sort_data.data["full"])
+
+        else:  # запуск сортировки неудачен
             self.signal_message.emit(self.tr("The current data is not correct for smart sorting."))
             return
 

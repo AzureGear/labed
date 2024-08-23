@@ -1,6 +1,6 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
 from utils import format_time, helper, UI_COLORS
-from ui import new_button, new_text
+from ui import new_button, new_text, new_icon, AzSimpleModel
 from itertools import combinations
 import numpy as np
 import random
@@ -216,7 +216,7 @@ class AzSortingDatasetDialog(QtWidgets.QDialog):
         super().__init__(parent)
         # self.setStyleSheet("QWidget { border: 1px solid red; }")
         self.setWindowTitle(window_title)
-        self.setFixedSize(600, 260)  # фиксированные размеры для размещения кастомных виджетов
+        self.setFixedSize(600, 330)  # фиксированные размеры для размещения кастомных виджетов
         self.setWindowFlag(QtCore.Qt.WindowType.Tool)
         self.data = data
         self.setup_ui()
@@ -244,7 +244,10 @@ class AzSortingDatasetDialog(QtWidgets.QDialog):
         self.chk_group_sort.stateChanged.connect(
             lambda state: self.group_sort_pattern.setEnabled(state == QtCore.Qt.CheckState.Checked))
 
+        self.table_view = QtWidgets.QTableView()
         self.sort_info = new_text(self)
+        self.btn_status = new_button(self, "tb", icon="circle_grey", color=None, icon_size=16,
+                                     tooltip=self.tr("Sorting results"))
         self.button_cancel.setMinimumWidth(100)
         self.button_ok.setMinimumWidth(100)
 
@@ -279,11 +282,16 @@ class AzSortingDatasetDialog(QtWidgets.QDialog):
         button_layout.addWidget(self.button_ok)
         button_layout.addWidget(self.button_cancel)
 
+        hlay_info = QtWidgets.QHBoxLayout()  # компоновщик индикатора и информации
+        hlay_info.addWidget(self.btn_status)
+        hlay_info.addWidget(self.sort_info, 1)
+
         self.layout = QtWidgets.QVBoxLayout()  # основной компоновщик
         self.layout.addLayout(sort_lay)
         self.layout.addLayout(hlay)
         self.layout.addWidget(self.color_bar)
-        self.layout.addWidget(self.sort_info)
+        self.layout.addLayout(hlay_info)
+        self.layout.addWidget(self.table_view)
         self.layout.addStretch(1)
         self.layout.addLayout(button_layout)
         self.setLayout(self.layout)
@@ -297,80 +305,68 @@ class AzSortingDatasetDialog(QtWidgets.QDialog):
             pattern = self.group_sort_pattern.text()
         else:
             pattern = None
-        cols = len(self.sort_cols)  # количество столбцов
+        cols = len(self.sort_cols)  # количество выборок
 
         names = list(self.sort_cols.keys())
         ratios = [val / 100 for val in self.sort_cols.values()]  # приводим к виду 82% = 0.82
-        print("cur_params:", ratios, names, "pattern: '", pattern, "'")
+        # stats = {"ratios": ratios, "names": names, "pattern": pattern}  # статистика для вывода
 
         if cols == 1:
             result = optimum_by_greed_with_group(self.data, ratios[0], names=[names[0], "other"],
                                                  group_pattern=pattern)
             gr1, gr2 = calc_ratio(result['ratio_summ'][0], result['ratio_summ'][1])
-            end_time = time.time()
-            text = (f"Обработано строк: {len(self.data.keys())}; "
-                    f"занятое время: {format_time(end_time - start_time, 'ru')}, "
-                    f"величина расхождения: {result['error']:.1f};\n"
-                    f"{names[0]} ({len(result[names[0]])} записей): {', '.join([f'{p:.0f}' for p in gr1])}")
-            self.result[names[0]] = result[names[0]].values()
+            self.result[names[0]] = {"data": result[names[0]].values(), "ratio": gr1, "img": result[names[0]].keys()}
 
         elif cols == 2:
             result = optimum_by_greed_with_group(self.data, ratios[0], names=[names[0], names[1]],
                                                  group_pattern=pattern)
             gr1, gr2 = calc_ratio(result['ratio_summ'][0], result['ratio_summ'][1])
-            end_time = time.time()
-            text = (f"Обработано строк: {len(self.data.keys())}; "
-                    f"занятое время: {format_time(end_time - start_time, 'ru')}, "
-                    f"величина расхождения: {result['error']:.1f};\n"
-                    f"{names[0]} ({len(result[names[0]])} записей): {', '.join([f'{p:.0f}' for p in gr1])};\n"
-                    f"{names[1]} ({len(result[names[1]])} записей): {', '.join([f'{p:.0f}' for p in gr2])}")
-            self.result[names[0]] = result[names[0]].values()
-            self.result[names[1]] = result[names[1]].values()
+
+            self.result[names[0]] = {"data": result[names[0]].values(), "ratio": gr1, "img": result[names[0]].keys()}
+            self.result[names[1]] = {"data": result[names[1]].values(), "ratio": gr2, "img": result[names[1]].keys()}
 
         elif cols == 3:
             result = optimum_by_greed_with_group(self.data, ratios[0], names=[names[0], "combined"],
                                                  group_pattern=pattern)
             gr1, gr2_3 = calc_ratio(result['ratio_summ'][0], result['ratio_summ'][1])
 
-            corrected_ratio = round(ratios[1] * 100 / (100 - ratios[0] * 100),
-                                    2)  # корректируем новое значение соотношения
-            print("corrected_ratio:", corrected_ratio)
+            corrected_ratio = round(ratios[1] * 100 / (100 - ratios[0] * 100), 2)  # корректируем значение в %
             result2 = optimum_by_greed_with_group(result["combined"], corrected_ratio,
                                                   names=[names[1], names[2]], group_pattern=pattern)
             gr2, gr3 = calc_ratio(result2['ratio_summ'][0], result2['ratio_summ'][1])
-            print(gr2, gr3)
 
             for i, perc in enumerate(gr2_3):  # пересчитываем проценты с учетом исходного соотношения
                 gr2[i] = gr2[i] * perc / 100
                 gr3[i] = 100 - gr2[i] - gr1[i]
 
-            end_time = time.time()
+            self.result[names[0]] = {"data": result[names[0]].values(), "ratio": gr1, "img": result[names[0]].keys()}
+            self.result[names[1]] = {"data": result2[names[1]].values(), "ratio": gr2, "img": result2[names[1]].keys()}
+            self.result[names[2]] = {"data": result2[names[2]].values(), "ratio": gr3, "img": result2[names[2]].keys()}
 
-            text = (f"Обработано записей: {len(self.data.keys())}; "
-                    f"занятое время: {format_time(end_time - start_time, 'ru')}, "
-                    f"величина расхождения: {result['error'] + result2['error']:.1f};\n"
-                    f"{names[0]} ({len(result[names[0]])} записей): {', '.join([f'{p:.0f}' for p in gr1])};\n"
-                    f"{names[1]} ({len(result2[names[1]])} записей): {', '.join([f'{p:.0f}' for p in gr2])};\n"
-                    f"{names[2]} ({len(result2[names[2]])} записей): {', '.join([f'{p:.0f}' for p in gr3])}")
-            self.result[names[0]] = result[names[0]].values()
-            self.result[names[1]] = result2[names[1]].values()
-            self.result[names[2]] = result2[names[2]].values()
-            # print("results:", result[names[0]])
-            # print("results:", result2[names[1]])
-            # print("results:", result2[names[2]])
+        end_time = time.time()
 
-        # train = result[names[0]].values()
-        # val = result[names[1]].values()
-        # print(train)
-        # print(val)
-        #
-        # train_per, val_per = calc_ratio(result['ratio_summ'][0], result['ratio_summ'][1])
-        # text = (f"Обработано строк: {len(test_real_uranium.keys())}; "
-        #         f"занятое время: {format_time(end_time - start_time, 'ru')}, "
-        #         f"error: {result['error']:.1f};\n%t: "
-        #         f"{', '.join([f'{p:.0f}' for p in train_per])};\n%v: "
-        #         f"{', '.join([f'{p:.0f}' for p in val_per])}")
-        self.sort_info.setText(text)
+        # информация о результате расчета
+        text = (f"Обработано строк: {len(self.data.keys())}; "
+                f"занятое время: {format_time(end_time - start_time, 'ru')}, "
+                f"величина расхождения: {result['error']:.1f}")
+        headers = ["Выборка", "records"]  # заголовки таблицы результатов
+        headers.extend(f"cls{i:02d}" for i in range(1, len(self.result[names[0]]['ratio']) + 1))
+
+        data = []  # данные для отображения
+        for name, res_dict in self.result.items():
+            row = [name, len(res_dict['data'])] + [round(rat, 0) for rat in res_dict['ratio']]
+            data.append(row)
+
+        model = AzSimpleModel(data, headers)
+        self.table_view.setModel(model)
+        header = self.table_view.horizontalHeader()
+        for col in range(model.columnCount()):  # выравниваем столбцы
+            header.setSectionResizeMode(col, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
+
+        if len(self.result) > 0:
+            self.btn_status.setIcon(new_icon("circle_green"))
+
+        self.sort_info.setText(text)  # отображаем сообщение
         if len(self.result) > 0:
             self.button_ok.setEnabled(True)
 
@@ -544,7 +540,7 @@ def optimum_by_greed_with_group(data, ratio=0.8, names=["train", "val"], group_p
         result[names[0]] = train_dict
         result[names[1]] = val_dict
 
-    # не пробуем оптимизацию
+    # не пробуем оптимизацию, слишком затратно
     #  optimization_swap(result[names[0]], result[names[1]], ratio, error)
 
     result["ratio_summ"] = [train_sums.tolist(), val_sums.tolist()]  # итоговое
