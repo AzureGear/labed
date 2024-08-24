@@ -3,8 +3,7 @@ from utils import AppSettings, UI_COLORS, helper, config, natural_order
 from utils.sama_project_handler import DatasetSAMAHandler
 from utils.az_dataset_sort_handler import DatasetSortHandler
 from ui import new_act, new_button, new_icon, coloring_icon, new_text, new_label_icon, AzButtonLineEdit, \
-    az_file_dialog, AzInputDialog
-from ui import save_via_qtextstream, setup_dock_widgets
+    az_file_dialog, AzInputDialog, setup_dock_widgets
 from ui import AzSortTable, AzTableModel, AzTableAttributes, AzSortingDatasetDialog
 import os
 import shutil
@@ -624,16 +623,53 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.signal_message.emit(self.tr(f"Set GSD for {len(good_files)} images"))
 
     def attrs_export(self):
-        """ Экспорт табличных данных проекта SAMA в текстовый файл """
+        """ Экспорт общей информации о проекте в текстовый файл """
         file = az_file_dialog(self, self.tr("Export table data to text file"), self.settings.read_last_dir(),
                               dir_only=False, remember_dir=False, file_to_save=True, filter="txt (*.txt)",
                               initial_filter="txt (*.txt)")
-        if not helper.check_file(file):
+        if not file:
             return
-        if len(file) > 0:  # сохраняем в файл, при этом пропускаем определенные столбцы
-            # TODO: сделать экспорт данных об разрешении
-            if save_via_qtextstream(self.table_widget, file, [7, 8]):
-                self.signal_message.emit(self.tr(f"Table data export to: {file}"))
+        if len(file) < 2:
+            return
+
+        # сохраняем в файл, при этом пропускаем определенные столбцы
+        export_data = ["-------------- Common info --------------\n"]  # общая информация
+        common_headers = [
+            self.common_model.headerData(i, QtCore.Qt.Orientation.Horizontal, QtCore.Qt.ItemDataRole.DisplayRole)
+            for i in range(self.common_model.columnCount())]
+        common_headers = [item.replace('\n', ' ') for item in common_headers]  # общие заголовки
+        common_data = self.common_data[0]
+        export_data += [f"{key}{value}\n" for key, value in zip(common_headers, common_data)]
+        export_data.append(self.project_label.text() + "\n" + self.project_description.toPlainText() + "\n")
+        export_data += ["-------------- Labels info --------------\n"]
+
+        # Экспорт табличных данных
+        exclude_columns = list(self.table_widget.special_cols.keys())  # сначала определяем столбцы исключений
+        label_headers = []
+        for col in range(self.table_widget.columnCount()):
+            if col not in exclude_columns:  # пропускаем столбцы из списка исключений
+                item = self.table_widget.horizontalHeaderItem(col)
+                if item is not None:
+                    label_headers.append(item.text() + "\t")
+                else:
+                    label_headers.append("\t")
+        export_data.append("".join(label_headers)+"\n")
+
+        for row in range(self.table_widget.rowCount()):
+            label_data = []
+            for col in range(self.table_widget.columnCount()):
+                if col not in exclude_columns:  # пропускаем столбцы из списка исключений
+                    item = self.table_widget.item(row, col)
+                    if item is not None:
+                        label_data.append(item.text() + "\t")
+                    else:
+                        label_data.append("\t")
+            export_data.append("".join(label_data)+"\n")
+        print(export_data)
+
+        helper.save_txt(file, export_data)
+        self.signal_message.emit(self.tr(f"Table data export to: {file}"))
+        # self.signal_message.emit(self.tr(f"An error occurred while exporting data: {file}"))
 
     def load_dataset_info(self):  # общая информация о датасете
         self.common_data.clear()
@@ -924,26 +960,31 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         if not self.sort_file:
             self.signal_message.emit(self.tr(f"First open or crete sort file."))
             return
-
-        if self.sort_data.is_correct_file and len(self.sort_data.data["full"]) > 2:  # исходные данные корректны
-            self.sort_dialog = AzSortingDatasetDialog(self.sort_data.data["full"], parent=self,
+        full_data = self.sort_data.get_data("full")
+        if self.sort_data.is_correct_file and len(full_data) > 2:  # исходные данные корректны
+            self.sort_dialog = AzSortingDatasetDialog(full_data, parent=self,
                                                       window_title=self.tr("Smart dataset sorting"))
             if self.sort_dialog.exec_() == QtWidgets.QDialog.Accepted:  # сортировка успешна
-                self.sort_data.clear_train_val_test()  # сбросим все установленные выборки
+                self.sort_data.clear_train_val_test_unsort()  # сбросим все установленные выборки
 
-                for name, res_dict in self.sort_dialog.result.items():  # проходим по результатам сортировки
+                for name, res_dict in self.sort_dialog.result.items():  # проходим по результатам сортировки...
+                    # ...и формируем словари выборок train, val, test
                     self.sort_data.set_data(name, {key: value for key, value in zip(res_dict["img"], res_dict["data"])})
-                    print("data_" + name + ":", self.sort_data.data[name])
-                self.
+                    # print("data_" + name + ":", self.sort_data.data[name])
+
+                # определяем данные unsort
+                train_val_test = self.sort_data.get_images_names_train_val_test()
+                unsort_data = {key: val for key, val in full_data.items() if key not in train_val_test}
+                self.sort_data.set_data("unsort", unsort_data)
+                self.sort_data.update_stats()  # обновляем статистику
                 self.update_sort_data_tables()  # обновляем таблицы сортировки train/val
                 self.table_image_filter_changed()  # обновляем таблицу фильтрата
-                    #
-                    # data = self.sort_data.data["full"]
-                    # helper.save(file, data, 'w+')  # сохраняем файл как палитру
-                    # # print(self.sort_data.statistic["train"])
-                    # # print(self.sort_data.statistic["val"])
-                    # # print(self.sort_data.statistic["test"])
-                    # print(self.sort_data.data["full"])
+                # data = self.sort_data.data["full"]
+                # helper.save(file, data, 'w+')  # сохраняем файл как палитру
+                # # print(self.sort_data.statistic["train"])
+                # # print(self.sort_data.statistic["val"])
+                # # print(self.sort_data.statistic["test"])
+                # print(self.sort_data.data["full"])
 
         else:  # запуск сортировки неудачен
             self.signal_message.emit(self.tr("The current data is not correct for smart sorting."))

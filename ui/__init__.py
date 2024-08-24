@@ -12,7 +12,6 @@ from .qt import new_button
 from .qt import new_act
 from .qt import new_text
 from .qt import new_cbx
-from .qt import save_via_qtextstream
 from .qt import labelValidator
 from .qt import set_widgets_and_layouts_margins2
 from .qt import set_margins_recursive

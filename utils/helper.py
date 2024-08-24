@@ -61,7 +61,19 @@ def load(file_path):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
+def save_txt(txt_path, data, mode='w', add_line_breaks=False):
+    """Сохранение данных (data) в формате txt (txt_path), для добавления переноса строк использовать
+    флаг add_line_breaks"""
+    if add_line_breaks:
+        for item in data:
+            item += "\n" # добавляем перенос строк
 
+    with open(txt_path, mode) as f:
+        for item in data:
+            f.write(item)
+
+
+# ----------------------------------------------------------------------------------------------------------------------
 def save(json_path, data, mode='w'):
     """Сохранение данных (data) в файл json (json_path)"""
     with open(json_path, mode) as f:

@@ -67,7 +67,6 @@ class DatasetSortHandler:
             try:
                 self.data[dest_dict][item] = self.data[start_dict].pop(item)
             except KeyError:  # если ключ в start_dict не существует сообщаем себе и продолжим работу
-                print(f"Key error при перемещении таблицы в таблице сортировщика значения {item}")
                 continue
 
         self.update_stats()  # обновление статистики
@@ -76,20 +75,30 @@ class DatasetSortHandler:
         """Возвращаем список наименований меток, где порядковый номер элемента соответствует метке"""
         return [self.data["labels"][str(i)] for i in range(self.get_cls_count())]
 
-    def clear_train_val_test(self):
+    def clear_train_val_test_unsort(self):
         """Очистка выборок"""
         self.data["train"] = {}
         self.data["val"] = {}
         self.data["test"] = {}
+        self.data["unsort"] = {}
 
-    def set_data(self, table_name, data):
+    def get_data(self, table_name):
+        """Получить данные выборки"""
+        return self.data[table_name]
+
+    def set_data(self, table_name, new_data):
         """Установка новых значений таблиц train, val или test"""
-        self.data[table_name] = data
+        self.data[table_name] = new_data
 
     def get_images_names_train_val_test(self):
         """Возвращаем имена изображений из словарей train, val и test"""
         merged = {**self.data["train"], **self.data["val"], **self.data["test"]}
         return merged.keys()
+
+    def get_total_train_val_test(self):
+        """Возвращаем суммарный словарь train, val и test"""
+        total = {**self.data["train"], **self.data["val"], **self.data["test"]}
+        return total
 
     def get_images_names(self, dict_name):
         """Возвращаем имена изображений из выбранного (dict_name) словаря"""
@@ -153,10 +162,12 @@ class DatasetSortHandler:
         for y, dict_name in enumerate(dict_names):
             result[1][y] = self.statistic[dict_name]["images_count"]  # статистика изображений
             summ_train_val_test_img += result[1][y]  # общая сумма снимков
-            # x и y: сначала строки (x), затем столбцы/элементы (y)
-            for x in range(cls_count):
-                # сумма по каждому классу в процентах
-                val = round(self.statistic[dict_name]["class_sum"][x] / self.statistic["full"]["class_sum"][x] * 100, 1)
+            for x in range(cls_count):  # x и y: сначала строки (x), затем столбцы/элементы (y)
+                full_class_sum = self.statistic["full"]["class_sum"][x]  # сумма по каждому классу в процентах
+                if full_class_sum != 0:
+                    val = round(self.statistic[dict_name]["class_sum"][x] / full_class_sum * 100, 1)
+                else:
+                    val = 0
                 result[x + 2][y] = val
                 summ_train_val_test_cls[x] += val
         sum_total = 0

@@ -451,38 +451,6 @@ def az_file_dialog(parent=None, caption=None, last_dir=None, dir_only=False, fil
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-def save_via_qtextstream(table_data, path, exclude_columns: list = None):
-    """Экспорт и сохранение табличных данных (table_data) в файл (path),
-    исключая перечень столбцов указанный в exclude_columns"""
-    # Добавить ловлю ошибок при экспорте
-    file = QtCore.QFile(path)
-    result = False
-    if file.open(QtCore.QIODevice.WriteOnly | QtCore.QIODevice.Text):
-        stream = QtCore.QTextStream(file)
-        stream.setCodec("UTF-8")
-
-        if exclude_columns is not None:
-            for row in range(table_data.rowCount()):
-                for col in range(table_data.columnCount()):
-                    if col not in exclude_columns:  # пропускаем столбцы из списка исключений
-                        item = table_data.item(row, col)
-                        if item is not None:
-                            stream << item.text() << "\t"
-                stream << "\n"
-        else:  # если "левых" столбцов нет, то сохраняем таблицу целиком
-            for row in range(table_data.rowCount()):
-                for col in range(table_data.columnCount()):
-                    item = table_data.item(row, col)
-                    if item is not None:
-                        stream << item.text() << "\t"
-                stream << "\n"
-
-        file.close()
-        result = True
-    return result
-
-
-# ----------------------------------------------------------------------------------------------------------------------
 def set_margins_recursive(widget, left, top, right, bottom, spacing):
     # устанавливаем значения setContentsMargins для текущего объекта...
     if isinstance(widget, (QtWidgets.QLayout, QtWidgets.QVBoxLayout, QtWidgets.QHBoxLayout, QtWidgets.QGridLayout)):
