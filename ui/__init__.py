@@ -25,6 +25,7 @@ from .az_table_models import AzTableAttributes
 from .az_slice_manual_crop import AzManualSlice
 from .az_exp_mnist import PageMNIST
 from .az_proc_sorting import AzSortingDatasetDialog
+from .az_proc_export import AzExportDialog
 
 from .base_experiments import ExperimentUI
 from .base_settings import SettingsUI

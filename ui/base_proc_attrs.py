@@ -4,7 +4,7 @@ from utils.sama_project_handler import DatasetSAMAHandler
 from utils.az_dataset_sort_handler import DatasetSortHandler
 from ui import new_act, new_button, new_icon, coloring_icon, new_text, new_label_icon, AzButtonLineEdit, \
     az_file_dialog, AzInputDialog, setup_dock_widgets
-from ui import AzSortTable, AzTableModel, AzTableAttributes, AzSortingDatasetDialog
+from ui import AzSortTable, AzTableModel, AzTableAttributes, AzSortingDatasetDialog, AzExportDialog
 import os
 import shutil
 from datetime import datetime
@@ -22,8 +22,8 @@ color_test = UI_COLORS.get("test_color")
 # TODO: добавить инструмент назначения Разметчика
 # TODO: рассчитать баланс датасета
 
-# ----------------------------------------------------------------------------------------------------------------------
 
+# ----------------------------------------------------------------------------------------------------------------------
 class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     """
     Виджет типа страницы QTabWidget для работы с Атрибутивными данными проектов разметки
@@ -44,6 +44,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.sort_file = None  # текущий файл сортировки
         self.sort_mode = False  # режим сортировки
         self.sort_dialog = None  # диалог сортировки
+        self.export_dialog = None  # диалог экспорта данных
 
         # Настройка ui
         self.setup_log()
@@ -653,7 +654,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                     label_headers.append(item.text() + "\t")
                 else:
                     label_headers.append("\t")
-        export_data.append("".join(label_headers)+"\n")
+        export_data.append("".join(label_headers) + "\n")
 
         for row in range(self.table_widget.rowCount()):
             label_data = []
@@ -664,7 +665,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                         label_data.append(item.text() + "\t")
                     else:
                         label_data.append("\t")
-            export_data.append("".join(label_data)+"\n")
+            export_data.append("".join(label_data) + "\n")
         print(export_data)
 
         helper.save_txt(file, export_data)
@@ -979,33 +980,25 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                 self.sort_data.update_stats()  # обновляем статистику
                 self.update_sort_data_tables()  # обновляем таблицы сортировки train/val
                 self.table_image_filter_changed()  # обновляем таблицу фильтрата
-                # data = self.sort_data.data["full"]
-                # helper.save(file, data, 'w+')  # сохраняем файл как палитру
-                # # print(self.sort_data.statistic["train"])
-                # # print(self.sort_data.statistic["val"])
-                # # print(self.sort_data.statistic["test"])
-                # print(self.sort_data.data["full"])
 
         else:  # запуск сортировки неудачен
             self.signal_message.emit(self.tr("The current data is not correct for smart sorting."))
             return
 
-        # file = az_file_dialog(self, self.tr("save_stats"), self.settings.read_last_dir(),
-        #                       dir_only=False, remember_dir=False, file_to_save=True, filter="json (*.json)",
-        #                       initial_filter="json (*.json)")
-        # if file is None:
-        #     return
-        # if len(file) < 1:  # если всё в порядке...
-        #     return
-        # data = self.sort_data.data["full"]
-        # helper.save(file, data, 'w+')  # сохраняем файл как палитру
-        # # print(self.sort_data.statistic["train"])
-        # # print(self.sort_data.statistic["val"])
-        # # print(self.sort_data.statistic["test"])
-        # print(self.sort_data.data["full"])
-
     def cook_dataset(self):
-        """Сортировка датасета в соответствии с выбранными параметрами"""
+        """Вызов диалога экспорта данных"""
+        if not self.sort_file:
+            self.signal_message.emit(self.tr(f"First open or crete sort file."))
+            return
+
+        split_data = {item: list(self.sort_data.get_images_names(item)) for item in ["train", "val", "test"]}
+        self.export_dialog = AzExportDialog(self.sama_data, split_data, parent=self)
+        if self.export_dialog.exec_() == QtWidgets.QDialog.Accepted:
+            self.signal_message.emit(self.tr(f"Complete!"))
+
+
+        return
+
         # входной каталог:
         input_dir = "d:\\data_sets\\oil_refinery\\tank_exp\\full"
 

@@ -4,6 +4,7 @@ from utils import config, DatasetSAMAHandler
 import copy
 
 
+# ----------------------------------------------------------------------------------------------------------------------
 class AzTableAttributes(QtWidgets.QTableWidget):
     """
     Таблица для взаимодействия с общей статистикой данных проекта SAMA *.json:
@@ -352,7 +353,6 @@ class AzSortTable(QtWidgets.QWidget):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-
 class AzSimpleModel(QtCore.QAbstractTableModel):
     """Перезагруженный абстрактный класс для взаимодействия с QTableView. Поддерживает только обновление данных целиком
     через 'setData' и сортировку"""
@@ -403,9 +403,8 @@ class AzSimpleModel(QtCore.QAbstractTableModel):
         self._headers = headers
         self.headerDataChanged.emit(QtCore.Qt.Orientation.Horizontal, 0, self.columnCount() - 1)
 
+
 # ----------------------------------------------------------------------------------------------------------------------
-
-
 class AzTableModel(QtCore.QAbstractTableModel):
     """
     Модель для отображения табличных данных, принимает лист листов [[x1, y1], [x2, y2]... ]

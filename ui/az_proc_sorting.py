@@ -8,6 +8,7 @@ import time
 import re
 
 the_color = UI_COLORS.get("processing_color")
+# ----------------------------------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Данные для тестирования
@@ -199,11 +200,9 @@ class ColorBarWidget(QtWidgets.QWidget):
         painter.drawText(self.width() - 37, self.height() // 2 + self.font_size // 2, str(summ) + "%")
 
         if summ == 100:  # если получено 100%, то рисуем красивую рамку
-            # pen = QtGui.QPen(QtGui.QColor("green"), 2)
             painter.setPen(QtGui.QPen(QtGui.QColor("green"), 2, QtCore.Qt.PenStyle.DotLine))
             painter.drawRect(0, 0, self.width() - 40, self.minimumHeight())
             painter.drawText(self.width() - 37, self.height() // 2 + self.font_size // 2, "100%")
-            # painter.drawRect(0, -1 * (self.line_thickness + self.font_size + 5), self.width(), self.minimumHeight() - 1)
 
 
 # ----------------------------------------------------------------------------------------------------------------------

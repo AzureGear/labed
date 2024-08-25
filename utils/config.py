@@ -61,6 +61,7 @@ UI_AZ_SLICE_MANUAL = {
     "files_dock": [True, False, True, False, False, False]
 }
 
+
 # az_exp_mnist.py
 UI_AZ_MNIST_ICON_PANEL = 24  # размер иконок для панели инструментов
 UI_AZ_MNIST_DIGITS_SIZE = 24  # размер цифр для вкладки MNIST
@@ -84,5 +85,6 @@ ALPHA = 230  # степень прозрачности заливки у мет�
 
 UI_OUTPUT_TYPES = ["SAMA.json"]  # типы выходных данных
 UI_INPUT_TYPES = ["LabelMe.json", "SAMA.json"]  # типы входных данных
+UI_AZ_EXPORT_TYPES = ["YOLO Seg", "YOLO Box", "COCO", "MMSegmentation"]
 
 UI_READ_LINES = 3  # количество загружаемых строк в проектах *.json для предпросмотра
