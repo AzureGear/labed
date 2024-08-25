@@ -1,15 +1,12 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
 from utils import format_time, helper, UI_COLORS, config, AppSettings
 from ui import new_button, new_cbx, new_text, new_icon, AzButtonLineEdit
+from rasterio import features
+from shapely import Polygon
 import numpy as np
-import datetime
-import ujson
 from PIL import Image
 import shutil
 import os
-import random
-import time
-import re
 
 the_color = UI_COLORS.get("processing_color")
 
@@ -47,7 +44,7 @@ class AzExportDialog(QtWidgets.QDialog):
         """Настройка интерфейса"""
         # Создаем кнопки
         self.button_cancel = new_button(self, "pb", self.tr("Close"), slot=self.reject)
-        self.button_ok = new_button(self, "pb", self.tr("Export"), slot=self.accept)
+        self.button_ok = new_button(self, "pb", self.tr("Export"), slot=self.exec_export)
 
         self.format_cbx = new_cbx(self, config.UI_AZ_EXPORT_TYPES)  # формат выходных данных
         self.format_label = new_text(self, self.tr("Output format:"))
@@ -164,8 +161,8 @@ class Exporter(QtCore.QThread):
             self.exportToYOLO(type="box")
         elif self.format == 'mm_seg':
             self.exportMMSeg()
-        else:
-            self.exportToCOCO()
+        # else:
+        #     self.exportToCOCO()
 
     def get_labels(self):
         return self.data["labels"]
@@ -302,156 +299,156 @@ class Exporter(QtCore.QThread):
                     palette[name] = color
             f.write(f"palette: {palette}\n")
 
-    # def exportMMSeg(self):
-    #     """
-    #     Экспорт датасета в формат MM Segmentation
-    #
-    #     Номер класса для фона - 0
-    #     Нумерация остальных классов начинается с 1
-    #
-    #     my_dataset
-    #     |-- img_dir
-    #     |   |-- train
-    #     |   |   |-- xxx{img_suffix}
-    #     |   |   |-- yyy{img_suffix}
-    #     |   |   |-- zzz{img_suffix}
-    #     |   |-- val
-    #     |-- ann_dir
-    #     |   |-- train
-    #     |   |   |-- xxx{seg_map_suffix}
-    #     |   |   |-- yyy{seg_map_suffix}
-    #     |   |   |-- zzz{seg_map_suffix}
-    #     |   |-- val
-    #     """
-    #
-    #     export_dir = self.export_dir
-    #     export_map = self.export_map
-    #
-    #     if not os.path.isdir(export_dir):
-    #         return
-    #
-    #     images_dir, labels_dir = self.create_images_labels_subdirs(export_dir)
-    #
-    #     self.clear_not_existing_images()
-    #     labels_names = self.get_labels()
-    #
-    #     if not export_map:
-    #         export_map = self.get_export_map(labels_names)
-    #
-    #     is_blur = self.is_blurred_classes(export_map)
-    #
-    #     if is_blur:
-    #         blur_dir = self.create_blur_dir(export_dir)
-    #
-    #     split_names = self.get_split_image_names()
-    #     im_num = 0
-    #
-    #     export_label_names = {}
-    #     unique_values = []
-    #     for k, v in export_map.items():
-    #         if v != 'del' and v != 'blur' and v not in unique_values:
-    #             export_label_names[k] = v
-    #             unique_values.append(v)
-    #
-    #     labels_color = self.data['labels_color']  # dict {name:rgba}
-    #     palette = {k: v[:-1] for k, v in labels_color.items()}
-    #
-    #     self.create_mmseg_readme(f"{self.dataset_name}.yaml", export_dir, list(export_label_names.keys()),
-    #                              dataset_name=self.dataset_name, palette=palette)
-    #
-    #     for split_folder, image_names in split_names.items():
-    #
-    #         for filename, image in self.data["images"].items():
-    #
-    #             if filename not in image_names:
-    #                 continue
-    #
-    #             if not len(image["shapes"]) and self.is_filter_null:  # чтобы не создавать пустых файлов
-    #                 continue
-    #
-    #             fullname = os.path.join(self.data["path_to_images"], filename)
-    #
-    #             if not os.path.exists(fullname):
-    #                 continue
-    #
-    #             width, height = Image.open(fullname).size
-    #             im_shape = [height, width]
-    #
-    #             # Final_mask - маска. На нее по очереди наносятся маски полигонов
-    #             if self.new_image_size:
-    #                 final_mask = np.zeros((self.new_image_size[1], self.new_image_size[0]))
-    #             else:
-    #                 final_mask = np.zeros((height, width))
-    #
-    #             final_mask[:, :] = 0  # сперва вся маска заполнена фоном
-    #
-    #             if is_blur:
-    #                 txt_yolo_name = hf.convert_image_name_to_txt_name(filename)
-    #                 blur_txt_name = os.path.join(blur_dir, txt_yolo_name)
-    #                 blur_f = open(blur_txt_name, 'w')
-    #
-    #             # desc - порядок. По умолчанию - по убыванию площади
-    #             #     Нужно для нанесения сегментов на маску. Сперва большие сегменты, затем маленькие.
-    #             #     Возвращает сортированный список shapes по площади
-    #             sorted_by_area_shapes = hf.sort_shapes_by_area(image['shapes'], True)
-    #
-    #             for shape in sorted_by_area_shapes:
-    #                 cls_num = shape["cls_num"]
-    #
-    #                 points = shape["points"]
-    #
-    #                 if self.new_image_size:
-    #                     # масштабируем полигон
-    #                     new_points = []
-    #                     for point in points:
-    #                         x_scale = 1.0 * self.new_image_size[0] / width
-    #                         y_scale = 1.0 * self.new_image_size[1] / height
-    #                         x = int(point[0] * x_scale)
-    #                         y = int(point[1] * y_scale)
-    #                         new_points.append([x, y])
-    #                     points = new_points
-    #
-    #                 if cls_num == -1 or cls_num > len(labels_names) - 1:
-    #                     continue
-    #
-    #                 label_name = labels_names[cls_num]
-    #                 export_cls_num = export_map[label_name]
-    #
-    #                 if export_cls_num == 'del':
-    #                     continue
-    #
-    #                 elif export_cls_num == 'blur':
-    #                     self.write_yolo_seg_line(shape, im_shape, blur_f, 0)
-    #
-    #                 else:
-    #                     # наносим полигон в виде маски на image_name.png
-    #                     hf.paint_shape_to_mask(final_mask, points,
-    #                                            export_cls_num + 1)  # Нумерация классов начинается с 1. 0 - фон
-    #
-    #             # Сохраняем маску {png_ann_name} в директорию ann_dir/{split_folder}/
-    #             png_ann_name = hf.convert_image_name_to_png_name(filename)
-    #             png_fullpath = os.path.join(labels_dir, split_folder, png_ann_name)
-    #             cv2.imwrite(png_fullpath, final_mask)
-    #
-    #             if is_blur:
-    #                 blur_f.close()
-    #                 mask = get_mask_from_yolo_txt(fullname, blur_txt_name, [0])
-    #                 blurred_image_cv2 = blur_image_by_mask(fullname, mask)
-    #                 if self.new_image_size:
-    #                     blurred_image_cv2 = cv2.resize(blurred_image_cv2, self.new_image_size)
-    #
-    #                 cv2.imwrite(os.path.join(images_dir, split_folder, filename), blurred_image_cv2)
-    #             else:
-    #
-    #                 if self.new_image_size:
-    #                     img = cv2.imread(fullname)
-    #                     new_img = cv2.resize(img, self.new_image_size)
-    #                     cv2.imwrite(os.path.join(images_dir, split_folder, filename), new_img)
-    #                 else:
-    #                     shutil.copy(fullname, os.path.join(images_dir, split_folder, filename))
-    #
-    #             im_num += 1
-    #             self.export_percent_conn.percent.emit(int(100 * im_num / (len(self.data['images']))))
+    def exportMMSeg(self):
+        """
+        Экспорт датасета в формат MM Segmentation
+
+        Номер класса для фона - 0
+        Нумерация остальных классов начинается с 1
+
+        my_dataset
+        |-- img_dir
+        |   |-- train
+        |   |   |-- xxx{img_suffix}
+        |   |   |-- yyy{img_suffix}
+        |   |   |-- zzz{img_suffix}
+        |   |-- val
+        |-- ann_dir
+        |   |-- train
+        |   |   |-- xxx{seg_map_suffix}
+        |   |   |-- yyy{seg_map_suffix}
+        |   |   |-- zzz{seg_map_suffix}
+        |   |-- val
+        """
+
+        export_dir = self.export_dir
+        export_map = self.export_map
+
+        if not os.path.isdir(export_dir):
+            return
+
+        images_dir, labels_dir = self.create_images_labels_subdirs(export_dir)
+
+        self.clear_not_existing_images()
+        labels_names = self.get_labels()
+
+        if not export_map:
+            export_map = self.get_export_map(labels_names)
+
+        is_blur = self.is_blurred_classes(export_map)
+
+        if is_blur:
+            blur_dir = self.create_blur_dir(export_dir)
+
+        split_names = self.split_data
+        im_num = 0
+
+        export_label_names = {}
+        unique_values = []
+        for k, v in export_map.items():
+            if v != 'del' and v != 'blur' and v not in unique_values:
+                export_label_names[k] = v
+                unique_values.append(v)
+
+        labels_color = self.data['labels_color']  # dict {name:rgba}
+        palette = {k: v[:-1] for k, v in labels_color.items()}
+
+        self.create_mmseg_readme(f"{self.dataset_name}.yaml", export_dir, list(export_label_names.keys()),
+                                 dataset_name=self.dataset_name, palette=palette)
+
+        for split_folder, image_names in split_names.items():
+
+            for filename, image in self.data["images"].items():
+
+                if filename not in image_names:
+                    continue
+
+                if not len(image["shapes"]) and self.is_filter_null:  # чтобы не создавать пустых файлов
+                    continue
+
+                fullname = os.path.join(self.data["path_to_images"], filename)
+
+                if not os.path.exists(fullname):
+                    continue
+
+                width, height = Image.open(fullname).size
+                im_shape = [height, width]
+
+                # Final_mask - маска. На нее по очереди наносятся маски полигонов
+                if self.new_image_size:
+                    final_mask = np.zeros((self.new_image_size[1], self.new_image_size[0]))
+                else:
+                    final_mask = np.zeros((height, width))
+
+                final_mask[:, :] = 0  # сперва вся маска заполнена фоном
+
+                if is_blur:
+                    txt_yolo_name = convert_image_name_to_txt_name(filename)
+                    blur_txt_name = os.path.join(blur_dir, txt_yolo_name)
+                    blur_f = open(blur_txt_name, 'w')
+
+                # Desc - порядок. По умолчанию - по убыванию площади
+                #     Нужно для нанесения сегментов на маску. Сперва большие сегменты, затем маленькие.
+                #     Возвращает сортированный список shapes по площади
+                sorted_by_area_shapes = sort_shapes_by_area(image['shapes'], True)
+
+                for shape in sorted_by_area_shapes:
+                    cls_num = shape["cls_num"]
+
+                    points = shape["points"]
+
+                    if self.new_image_size:
+                        # масштабируем полигон
+                        new_points = []
+                        for point in points:
+                            x_scale = 1.0 * self.new_image_size[0] / width
+                            y_scale = 1.0 * self.new_image_size[1] / height
+                            x = int(point[0] * x_scale)
+                            y = int(point[1] * y_scale)
+                            new_points.append([x, y])
+                        points = new_points
+
+                    if cls_num == -1 or cls_num > len(labels_names) - 1:
+                        continue
+
+                    label_name = labels_names[cls_num]
+                    export_cls_num = export_map[label_name]
+
+                    if export_cls_num == 'del':
+                        continue
+
+                    elif export_cls_num == 'blur':
+                        self.write_yolo_seg_line(shape, im_shape, blur_f, 0)
+
+                    else:
+                        # Наносим полигон в виде маски на image_name.png
+                        # нумерация классов начинается с 1. 0 - фон
+                        paint_shape_to_mask(final_mask, points, export_cls_num + 1)
+
+                # Сохраняем маску {png_ann_name} в директорию ann_dir/{split_folder}/
+                png_ann_name = convert_image_name_to_png_name(filename)
+                png_fullpath = os.path.join(labels_dir, split_folder, png_ann_name)
+                cv2.imwrite(png_fullpath, final_mask)
+
+                if is_blur:
+                    blur_f.close()
+                    # mask = get_mask_from_yolo_txt(fullname, blur_txt_name, [0])
+                    # blurred_image_cv2 = blur_image_by_mask(fullname, mask)
+                    # if self.new_image_size:
+                    #     blurred_image_cv2 = cv2.resize(blurred_image_cv2, self.new_image_size)
+
+                    # cv2.imwrite(os.path.join(images_dir, split_folder, filename), blurred_image_cv2)
+                else:
+
+                    if self.new_image_size:
+                        img = cv2.imread(fullname)
+                        new_img = cv2.resize(img, self.new_image_size)
+                        cv2.imwrite(os.path.join(images_dir, split_folder, filename), new_img)
+                    else:
+                        shutil.copy(fullname, os.path.join(images_dir, split_folder, filename))
+
+                im_num += 1
+                self.export_percent_conn.percent.emit(int(100 * im_num / (len(self.data['images']))))
 
     def exportToYOLO(self, type):
         """
@@ -786,6 +783,47 @@ def convert_image_name_to_txt_name(image_name):
         txt_name += splitted_name[i]
 
     return txt_name + ".txt"
+
+
+def sort_shapes_by_area(shapes, desc=True):
+    """
+    shapes - List({'points': List([x1,y1], [x2,y2], ...), 'cls_num' : Int, 'id': Int})
+    desc - порядок. По умолчанию - по убыванию площади
+    Нужно для нанесения сегментов на маску. Сперва большие сегменты, затем маленькие.
+    Возвращает сортированный список shapes по площади
+    """
+    if desc:
+        areas = [-Polygon(shape["points"]).area for shape in shapes]
+    else:
+        areas = [Polygon(shape["points"]).area for shape in shapes]
+    idx = np.argsort(areas)
+    return [shapes[i] for i in idx]
+
+
+def paint_shape_to_mask(mask, points, cls_num):
+    """
+    Добавляет на mask - np.zeros((img_height, img_width))
+    points:[ [x1,y1], ...] - точки граней маски
+    cls_num - номер класса
+    """
+    img_height, img_width = mask.shape
+
+    pol = Polygon(points)
+
+    mask_image = features.rasterize([pol], out_shape=(img_height, img_width),
+                                    fill=0,
+                                    default_value=cls_num)
+
+    mask[mask_image == cls_num] = cls_num
+
+
+def convert_image_name_to_png_name(image_name):
+    splitted_name = image_name.split('.')
+    txt_name = ""
+    for i in range(len(splitted_name) - 1):
+        txt_name += splitted_name[i]
+
+    return txt_name + ".png"
 
 
 # ----------------------------------------------------------------------------------------------------------------------
