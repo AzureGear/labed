@@ -66,6 +66,7 @@ def test_using_sort():
 
 # запускаем тестирование
 if __name__ == '__main__':
-    test_failing()
+    # test_failing()
+    pass
     # pytest -v tests\test.py
 

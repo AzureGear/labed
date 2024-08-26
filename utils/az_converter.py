@@ -97,7 +97,8 @@ def convert_labelme_to_sama(input_files, output_file):
     return True
 
 
-def merge_sama_to_sama(input_files, output_file, copy_files=True):
+# ----------------------------------------------------------------------------------------------------------------------
+def merge_sama_to_sama(input_files, output_file, copy_files=False):
     """
     Слияние файлов проектов формата SAMA с копированием файлов
     """
@@ -109,52 +110,50 @@ def merge_sama_to_sama(input_files, output_file, copy_files=True):
     id_count = 0
     combined_labels = []  # объединенные метки для всех-всех файлов (супер список)
     combined_colors = dict()
+
     for input_file in input_files:  # проходим цикл, чтобы сформировать общий набор классов (имён меток)
         input_data = load(input_file)
         if not input_data:
             error_main_count += 1  # увеличиваем счетчик важных ошибок
         else:
             input_labels = input_data["labels"]  # список имен меток { "label1", "label2", ... }
-            print(input_labels)
+
             for label in input_labels:
                 if label not in combined_labels:  # если метки в нашем объединённом словаре нет...
                     combined_labels.append(label)  # ...то мы её добавляем
                     combined_colors[label] = input_data["labels_color"][label]  # заодно формируем цвета
+
     data["labels"] = combined_labels
     data["labels_color"] = combined_colors
-    print(combined_labels)
+    # print(combined_labels)
     if len(input_files) == error_main_count:
         return 2  # возвращаем код ошибки: чтение файлов неудачно, объединить ничего не выйдет
+
     for input_file in input_files:  # снова проходим все файлы
         input_data = load(input_file)
         if not input_data:
             continue
         input_dir = input_data["path_to_images"]
         input_labels = input_data["labels"]
-        labels_match_dict = dict()  # сопоставляем номера классов объединённому классификатору
-        for i, label in enumerate(input_labels):
-            if label in combined_labels:
-                # когда мы получили карту сопоставления индексов - мы можем переназначить индексы исходных файлов
-                labels_match_dict[i] = combined_labels.index(label)  # key = исходный номер; value = номер супер списка
+        # сопоставляем номера классов объединённому классификатору
+        labels_match_dict = {i: combined_labels.index(label) for i, label in enumerate(input_labels) if
+                             label in combined_labels}
+
         for image, image_dict in input_data["images"].items():  # анализируем словарь изображений
             if image not in images.keys():  # такого изображения нет, значит будем добавлять его в словарь
-                new_image_dict = dict()  # новый словарь для image: { shapes, lrm, status, last_user }
-                new_shapes = list()
+                new_image_dict = {"shapes": [],  # новый словарь для image: { shapes, lrm, status, last_user }
+                                  "lrm": image_dict["lrm"], "status": image_dict["status"], "last_user": None}
+
                 for shape in image_dict["shapes"]:  # shape = { "cls_num":, "id":, "points":[ ] }
-                    new_one_shape = dict()  # новый словарь для shape
-                    new_one_shape["cls_num"] = labels_match_dict[shape["cls_num"]]  # переназначаем индексы классов
-                    new_one_shape["id"] = id_count
-                    new_one_shape["points"] = shape["points"]
+                    new_one_shape = {"cls_num": labels_match_dict[shape["cls_num"]], "id": id_count,
+                                     "points": shape["points"]}
                     id_count += 1
-                    new_shapes.append(new_one_shape)
-                new_image_dict["shapes"] = new_shapes  # передаём новый shapes с переназначенными индексами
-                new_image_dict["lrm"] = image_dict["lrm"]
-                new_image_dict["status"] = image_dict["status"]
-                new_image_dict["last_user"] = None
+                    new_image_dict["shapes"].append(new_one_shape)
+
                 # копируем изображение из исходного в выходной каталог, если оно в наличии
-                if copy_files:
-                    if os.path.exists(os.path.join(input_dir, image)):
-                        shutil.copyfile(os.path.join(input_dir, image), os.path.join(os.path.dirname(output_file), image))
+                if copy_files and os.path.exists(os.path.join(input_dir, image)):
+                    shutil.copyfile(os.path.join(input_dir, image), os.path.join(os.path.dirname(output_file), image))
+
                 images[image] = new_image_dict
             else:
                 error_duplicate_images += 1
@@ -166,16 +165,17 @@ def merge_sama_to_sama(input_files, output_file, copy_files=True):
         return 0
 
 
+# ----------------------------------------------------------------------------------------------------------------------
 def random_color():  # генерируем случайные цвета
     rand_col = [randint(0, 255), randint(0, 255), randint(0, 255), 120]  # оттенок alfa по умолчанию оставляем 120
     return rand_col
 
 
+# ----------------------------------------------------------------------------------------------------------------------
 if __name__ == '__main__':  # заглушка для отладки
-    merge_sama_to_sama(["d:/data_sets/uranium enrichment/test_cut/crude_uranium_enrichment.json",
+    merge_sama_to_sama(["d:/labed/labed/test/test_merge_lableme_data_01.json",
                         "d:/data_sets/uranium enrichment/anno_json_r1024_mc/sliced_2024-06-13--09-04-27_mc.json",
                         "d:/data_sets/oil_refinery/cutter_prj/cut_prj.json"],
                        "d:/data_sets/output_data/_merge.json")
     # convert_labelme_to_sama(my_list, "F:/data_sets/uranium enrichment/_merge.json")
 
-# ----------------------------------------------------------------------------------------------------------------------

@@ -446,7 +446,10 @@ def az_file_dialog(parent=None, caption=None, last_dir=None, dir_only=False, fil
             file, _ = QtWidgets.QFileDialog.getOpenFileNames(parent, caption, last_dir, filter, initial_filter)
             if len(file) > 0:
                 if remember_dir:
-                    settings.write_last_dir(os.path.dirname(file))
+                    if len(file) > 1:
+                        settings.write_last_dir(os.path.dirname(file[0]))
+                    else:
+                        settings.write_last_dir(os.path.dirname(file))
                 return file
 
 

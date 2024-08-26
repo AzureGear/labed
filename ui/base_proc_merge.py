@@ -49,8 +49,7 @@ class TabMergeUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         split.addWidget(self.merge_preview_data)  # ...и пробоотборщик этих файлов
         split.setChildrenCollapsible(False)  # отключаем полное сворачивание виджетов внутри разделителя
         split.setSizes((90, 30))
-        self.merge_files_list.itemSelectionChanged.connect(
-            self.merge_selection_files_change)  # изменение выделенного объекта
+        self.merge_files_list.itemSelectionChanged.connect(self.merge_selection_files_change)  # изменение выделенного объекта
         self.merge_toolbar = QtWidgets.QToolBar(self.tr("Toolbar for merging project files"))
         self.merge_toolbar.setIconSize(
             QtCore.QSize(config.UI_AZ_PROC_MERGE_ICON_PANEL, config.UI_AZ_PROC_MERGE_ICON_PANEL))
@@ -73,6 +72,9 @@ class TabMergeUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         # выходной каталог для Слияния
         hlayout = QtWidgets.QHBoxLayout()  # контейнер QHBoxLayout()
         self.merge_output_file_check = QtWidgets.QCheckBox("Set user output file path other than default:")
+        self.merge_copy_files_check = QtWidgets.QCheckBox("Copy image files when merging SAMA project files")
+        self.merge_copy_files_check.setVisible(False)
+
         self.merge_output_file_path = AzButtonLineEdit("glyph_folder", the_color,
                                                        caption="Output file",
                                                        read_only=True, dir_only=True)
@@ -88,6 +90,7 @@ class TabMergeUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         # Собираем итоговую компоновку
         vlayout = QtWidgets.QVBoxLayout()  # контейнер QVBoxLayout()
         vlayout.addLayout(hlayout)
+        vlayout.addWidget(self.merge_copy_files_check)
         vlayout.addWidget(split)  # добавляем область с разделением
         wid = QtWidgets.QWidget()  # создаём виджет-контейнер...
         wid.setLayout(vlayout)  # ...куда помещаем vlayout (поскольку Central Widget может быть только QWidget)
@@ -95,10 +98,20 @@ class TabMergeUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.setCentralWidget(wid)  # устанавливаем главный виджет страницы "Слияние"
         self.merge_toggle_instruments()  # устанавливаем доступные инструменты
 
+        # Сигналы
+        self.merge_input_list.currentTextChanged.connect(self.on_merge_input_list_change)
+
     @QtCore.pyqtSlot(str)
     def default_dir_changed(self, path):
         if not self.merge_output_file_check.isChecked():
             self.merge_output_file_path.setText(path)
+
+    @QtCore.pyqtSlot(str)
+    def on_merge_input_list_change(self, text):
+        if text == "SAMA.json":
+            self.merge_copy_files_check.setVisible(True)
+        else:
+            self.merge_copy_files_check.setVisible(False)
 
     @QtCore.pyqtSlot()
     def merge_output_file_path_change(self):
@@ -113,20 +126,31 @@ class TabMergeUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     @QtCore.pyqtSlot()
     def merge_selection_files_change(self):  # загрузка данных *.json в предпросмотр
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)  # ставим курсор ожидание
-        if self.merge_files_list.count() > 0:  # количество объектов больше 0
-            if self.merge_files_list.currentItem() is not None:
-                file = self.merge_files_list.currentItem().text()  # считываем текущую строку
-                if os.path.exists(file):
-                    with open(file, "r") as f:
-                        data = [file + ":\n\n"]  # лист для данных из файла
-                        for i in range(0, int(UI_READ_LINES)):  # читаем только первые несколько строк...
-                            data.append(f.readline())  # ...поскольку файлы могут быть большими
-                        data.append("...")
-                        self.merge_label.setText(("".join(data)))  # объединяем лист в строку
-                        self.merge_label.setAlignment(
-                            QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)  # выравниваем надпись
+        # Количество объектов больше 0
+        if self.merge_files_list.count() > 0 and self.merge_files_list.currentItem() is not None:
+            file = self.merge_files_list.currentItem().text()
+            preview_data = self.merge_read_preview(file, int(UI_READ_LINES))
+
+            if preview_data:
+                self.merge_label.setText(preview_data)
+                self.merge_label.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)   # выравниваем надпись
+
         QtWidgets.QApplication.restoreOverrideCursor()
         self.merge_toggle_instruments()
+
+    @staticmethod
+    def merge_read_preview(file_path, lines_to_read):
+        """Чтение файла первых указанных строк из файла, поскольку файлы могут быть большими. Возвращает текст
+        для предпросмотра"""
+        if not os.path.exists(file_path):
+            return None
+
+        with open(file_path, "r") as f:
+            data = [file_path + ":\n\n"]
+            for _ in range(lines_to_read):
+                data.append(f.readline())
+            data.append("...")
+            return "".join(data)
 
     def merge_toggle_instruments(self):
         """Включает/отключает инструменты"""
@@ -136,6 +160,7 @@ class TabMergeUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         if self.merge_files_list.count() > 0:
             self.merge_actions[2].setEnabled(True)  # включаем кнопку "очистить список"
             self.merge_actions[3].setEnabled(True)  # включаем кнопку "выделить всё"
+
         if len(self.merge_files_list.selectedItems()) > 0:  # имеются выбранные файлы
             self.merge_actions[1].setEnabled(True)  # включаем кнопку "удалить выбранные"
             if len(self.merge_files_list.selectedItems()) > 1:  # выбрано более двух файлов
@@ -171,42 +196,40 @@ class TabMergeUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     def merge_combine(self):
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)  # ставим курсор ожидание
-        try:
-            self.signal_message.emit(self.tr("Начинаю процедуру объединения/конвертирования"))
-            sel_items = self.merge_files_list.selectedItems()
-            data = [item.text() for item in sel_items if os.path.isfile(item.text())]
-            unique = sorted(set(data), key=natural_order)
-            if len(unique) <= 1:
-                self.signal_message.emit(self.tr("Выбраны дубликаты"))
-                return
+        self.signal_message.emit(self.tr("Начинаю процедуру объединения/конвертирования"))
 
-            input_type = self.merge_input_list.currentText()  # тип исходных данных
-            if input_type == "LabelMe.json":
-                new_name = os.path.join(self.merge_output_dir,
-                                        "converted_%s.json" % datetime.now().strftime("%Y-%m-%d--%H-%M-%S"))
-                if convert_labelme_to_sama(unique, new_name):  # метод возвращающий True|False в зависимости от успеха
-                    self.merge_files_list.clearSelection()
-                    self.signal_message.emit(self.tr(f"Файлы успешно объединены и конвертированы в файл: '{new_name}'"))
-                else:
-                    self.signal_message.emit(self.tr("Ошибка при конвертации данных. Проверьте исходные файлы."))
+        sel_items = self.merge_files_list.selectedItems()
+        unique_files = sorted(set(item.text() for item in sel_items if os.path.isfile(item.text())), key=natural_order)
 
-            elif input_type == "SAMA.json":
-                new_name = os.path.join(self.merge_output_dir,
-                                        "merged_%s.json" % datetime.now().strftime("%Y-%m-%d--%H-%M-%S"))
-                merge = merge_sama_to_sama(unique, new_name, False)
-                if merge == 0:
-                    self.signal_message.emit(self.tr(f"Файлы успешно объединены в файл: '{new_name}'"))
-                elif merge > 0:
-                    self.signal_message.emit(f"Файлы объединены с ошибками ({merge} ошибок): '{new_name}'")
-                else:
-                    self.signal_message.emit(self.tr(
-                        f"Ошибка при объединении данных. Проверьте исходные файлы либо параметры конвертации.'"))
-
-        except Exception as e:
-            raise e
-            print("Error {}".format(e.args[0]))
-        finally:
+        if len(unique_files) <= 1:
+            self.signal_message.emit(self.tr("Выбраны дубликаты"))
             QtWidgets.QApplication.restoreOverrideCursor()
+            return
+
+        input_type = self.merge_input_list.currentText()
+        output_dir = self.merge_output_dir
+        timestamp = datetime.now().strftime("%Y-%m-%d--%H-%M-%S")
+
+        if input_type == "LabelMe.json":
+            new_name = os.path.join(output_dir, f"converted_{timestamp}.json")
+            if convert_labelme_to_sama(unique_files, new_name):
+                self.merge_files_list.clearSelection()
+                self.signal_message.emit(self.tr(f"Файлы успешно объединены и конвертированы в файл: '{new_name}'"))
+            else:
+                self.signal_message.emit(self.tr("Ошибка при конвертации данных. Проверьте исходные файлы."))
+
+        elif input_type == "SAMA.json":
+            new_name = os.path.join(output_dir, f"merged_{timestamp}.json")
+            merge_result = merge_sama_to_sama(unique_files, new_name, self.merge_copy_files_check.isChecked())
+            if merge_result == 0:
+                self.signal_message.emit(self.tr(f"Файлы успешно объединены в файл: '{new_name}'"))
+            elif merge_result > 0:
+                self.signal_message.emit(self.tr(f"Файлы объединены с ошибками ({merge_result} ошибок): '{new_name}'"))
+            else:
+                self.signal_message.emit(self.tr(
+                    f"Ошибка при объединении данных. Проверьте исходные файлы либо параметры конвертации.'"))
+
+        QtWidgets.QApplication.restoreOverrideCursor()
 
     def merge_select_all(self):
         self.merge_files_list.selectAll()
@@ -227,6 +250,7 @@ class TabMergeUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.merge_actions[5].setText(self.tr("Open output folder"))
         self.merge_output_label.setText(self.tr("Output type:"))
         self.merge_output_file_check.setText(self.tr("Set user output file path other than default:"))
+        self.merge_copy_files_check.setText(self.tr("Copy image files when merging SAMA project files"))
         self.merge_toolbar.setWindowTitle(self.tr("Toolbar for merging project files"))
         self.merge_input_label.setText(self.tr("Input type:"))
 
