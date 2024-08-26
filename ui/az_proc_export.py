@@ -6,6 +6,7 @@ from shapely import Polygon
 import numpy as np
 from PIL import Image
 import shutil
+import cv2
 import os
 
 the_color = UI_COLORS.get("processing_color")
@@ -34,9 +35,10 @@ class AzExportDialog(QtWidgets.QDialog):
 
         # Поток для экспорта
         self.export_worker = Exporter(self.sama_data, export_dir=self.output_dir.text(), split_data=self.split_data,
-                                      format=self.format_cbx.currentText(), dataset_name="need_name")
+                                      format=self.format_cbx.currentText(), dataset_name="Dataset")
 
         # Сигналы
+        self.export_worker.signal_percent_conn.connect(self.worker_percent_change)
         self.export_worker.started.connect(lambda: self.switch_buttons(False))
         self.export_worker.finished.connect(lambda: self.switch_buttons(True))
 
@@ -48,34 +50,22 @@ class AzExportDialog(QtWidgets.QDialog):
 
         self.format_cbx = new_cbx(self, config.UI_AZ_EXPORT_TYPES)  # формат выходных данных
         self.format_label = new_text(self, self.tr("Output format:"))
-        # hlay_format = QtWidgets.QHBoxLayout()   # компоновщик формата
-        # hlay_format.addWidget(self.format_label)
-        # hlay_format.addWidget(self.format_cbx)
 
         self.output_dir_label = new_text(self, self.tr("Output dir:"))
         self.output_dir = AzButtonLineEdit("glyph_folder", the_color, self.tr("Select dir"), True, dir_only=True,
                                            save_dialog=True, parent=self)
         self.output_dir.setText(self.settings.read_default_output_dir())  # по умолчанию выходной каталог из настроек
-        # hlay_output = QtWidgets.QHBoxLayout()   # компоновщик выходного пути
-        # hlay_output.addWidget(self.output_dir_label)
-        # hlay_output.addWidget(self.output_dir) e
 
         self.split_info_label = new_text(self, self.tr("Split settings:"))
         self.split_info = new_text(self)
-        # splitting train (21%), val (81%)
 
-        # self.btn_status = new_button(self, "tb", icon="circle_grey", color=None, icon_size=16,
-        #                              tooltip=self.tr("Sorting results"))
         self.button_cancel.setMinimumWidth(100)
         self.button_ok.setMinimumWidth(100)
         button_layout = QtWidgets.QHBoxLayout()  # компоновщик для кнопок
         button_layout.addStretch(1)
         button_layout.addWidget(self.button_ok)
+        button_layout.addSpacing(10)
         button_layout.addWidget(self.button_cancel)
-
-        # hlay_info = QtWidgets.QHBoxLayout()  # компоновщик индикатора и информации
-        # hlay_info.addWidget(self.btn_status)
-        # hlay_info.addWidget(self.sort_info, 1)
 
         self.layout = QtWidgets.QFormLayout()  # основной компоновщик вида QFormLayout
         self.layout.addRow(self.output_dir_label, self.output_dir)
@@ -84,15 +74,18 @@ class AzExportDialog(QtWidgets.QDialog):
         self.layout.addItem(button_layout)
         self.setLayout(self.layout)
 
+    @QtCore.pyqtSlot(int)
+    def worker_percent_change(self, val):
+        print("Current%:", val)
+
     def switch_buttons(self, flag):
         self.button_ok.setEnabled(flag)
         self.button_cancel.setEnabled(flag)
 
-    def select_output_dir(self):
-        pass
-
     def exec_export(self):
         """Выполнение сортировки"""
+        self.export_worker.export_dir = self.output_dir.text()
+        self.export_worker.format = self.format_cbx.currentText()
         if not self.export_worker.isRunning():
             self.export_worker.start()
 
@@ -114,6 +107,7 @@ class Exporter(QtCore.QThread):
     """Экспортер данных. Реализация Романа Хабарова
         Az+: splits не используется, т.к. передаются уже отсортированные выборки train, val, test (split_data)"""
 
+    signal_percent_conn = QtCore.pyqtSignal(int)
     def __init__(self, project_data, export_dir, format='yolo_seg', export_map=None, dataset_name='dataset',
                  variant_idx=0, splits=None, split_method='names', sim='random',
                  is_filter_null=False, new_image_size=None, split_data=None):
@@ -131,7 +125,7 @@ class Exporter(QtCore.QThread):
         super(Exporter, self).__init__()
 
         # SIGNALS
-        # self.export_percent_conn = LoadPercentConnection()
+        self.export_percent_conn = self.signal_percent_conn
         # self.info_conn = InfoConnection()
         # self.err_conn = ErrorConnection()
 
@@ -155,11 +149,11 @@ class Exporter(QtCore.QThread):
         self.split_data = split_data
 
     def run(self):
-        if self.format == 'yolo_seg':
+        if self.format == "YOLO Seg":
             self.exportToYOLO(type="seg")
-        elif self.format == 'yolo_box':
+        elif self.format == "YOLO Box":
             self.exportToYOLO(type="box")
-        elif self.format == 'mm_seg':
+        elif self.format == "MMSegmentation":
             self.exportMMSeg()
         # else:
         #     self.exportToCOCO()
@@ -448,7 +442,7 @@ class Exporter(QtCore.QThread):
                         shutil.copy(fullname, os.path.join(images_dir, split_folder, filename))
 
                 im_num += 1
-                self.export_percent_conn.percent.emit(int(100 * im_num / (len(self.data['images']))))
+                self.export_percent_conn.emit(int(100 * im_num / (len(self.data['images']))))
 
     def exportToYOLO(self, type):
         """
@@ -557,10 +551,7 @@ class Exporter(QtCore.QThread):
                             shutil.copy(src, dest)
 
                 im_num += 1
-                self.export_percent_conn.percent.emit(int(100 * im_num / (len(self.data['images']))))
-
-    def emit_percent(self, value):
-        self.export_percent_conn.percent.emit(value)
+                self.export_percent_conn.emit(int(100 * im_num / (len(self.data['images']))))
 
     # def exportToCOCO(self):
     #

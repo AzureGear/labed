@@ -5,6 +5,7 @@ from utils.az_dataset_sort_handler import DatasetSortHandler
 from ui import new_act, new_button, new_icon, coloring_icon, new_text, new_label_icon, AzButtonLineEdit, \
     az_file_dialog, AzInputDialog, setup_dock_widgets
 from ui import AzSortTable, AzTableModel, AzTableAttributes, AzSortingDatasetDialog, AzExportDialog
+from collections import defaultdict
 import os
 import shutil
 from datetime import datetime
@@ -15,10 +16,6 @@ color_train = UI_COLORS.get("train_color")
 color_val = UI_COLORS.get("val_color")
 color_test = UI_COLORS.get("test_color")
 
-
-# TODO: случайное выделение указанных% от группы
-# TODO: инструмент добавить объекты уже имеющихся групп
-# TODO: переключить вид на просмотр групп
 # TODO: добавить инструмент назначения Разметчика
 # TODO: рассчитать баланс датасета
 
@@ -43,6 +40,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.current_file = None  # текущий файл проекта SAMA
         self.sort_file = None  # текущий файл сортировки
         self.sort_mode = False  # режим сортировки
+        self.group_mode = False  # режим
         self.sort_dialog = None  # диалог сортировки
         self.export_dialog = None  # диалог экспорта данных
 
@@ -261,6 +259,8 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         # добавляем инструмент "переключения режима сортировки" отдельно, чтобы к нему не применялись общие свойства
         h_layout_instr.addWidget(self.ti_tb_sort_mode)
 
+        self.ti_tb_toggle_groups = new_button(self, "tb", icon="glyph_layers", color=the_color, slot=self.toggle_groups,
+                                              tooltip=self.tr("Toggle groups"), checkable=True)
         self.ti_tb_sort_new = new_button(self, "tb", icon="glyph_add", color=the_color, slot=self.new_sort_file,
                                          tooltip=self.tr("New train-val sorting project"))
         self.ti_tb_toggle_tables = new_button(self, "tb", icon="glyph_toggle_cols", color=the_color,
@@ -280,9 +280,9 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         v_line.setFrameShape(QtWidgets.QFrame.Shape.VLine)
         v_line2 = QtWidgets.QFrame()
         v_line2.setFrameShape(QtWidgets.QFrame.Shape.VLine)
-        self.ti_instruments = [self.sort_project_name, self.ti_tb_sort_open, self.ti_tb_sort_new, v_line,
-                               self.ti_tb_toggle_tables, self.ti_tb_sort_save, v_line2, self.ti_tb_sort_smart,
-                               self.ti_tb_sort_cook]
+        self.ti_instruments = [self.ti_tb_toggle_groups, self.sort_project_name,
+                               self.ti_tb_sort_open, self.ti_tb_sort_new, v_line, self.ti_tb_toggle_tables,
+                               self.ti_tb_sort_save, v_line2, self.ti_tb_sort_smart, self.ti_tb_sort_cook]
 
         for tool in self.ti_instruments:
             h_layout_instr.addWidget(tool)
@@ -472,6 +472,24 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.fill_image_data_filters()  # заполняем параметрами для сортировки (фильтрами)
         self.set_image_data_model(data)  # загружаем и устанавливаем модель
 
+    def toggle_groups(self):
+        """Включение и выключение режима сортировщика"""
+        if not self.sort_mode:
+            return
+
+        flag = not self.ti_tb_toggle_groups.isChecked()
+        self.group_mode = not flag
+        for wid in self.sort_tables:
+            wid.ti_tb_sort_add_to.setEnabled(flag)
+            wid.ti_tb_sort_remove_from.setEnabled(flag)
+        if flag:
+            self.signal_message.emit(self.tr("Toggle group mode off"))
+        else:
+            self.signal_message.emit(self.tr("Toggle group mode on"))
+
+        self.update_sort_data_tables()  # обновляем таблицы сортировки и...
+        self.table_image_filter_changed()  # ...таблицу фильтрата
+
     @QtCore.pyqtSlot(int)
     def table_image_filter_changed(self):
         """Загрузка данных в таблицу фильтрата при изменении фильтров. Если включен режим сортировки, то также
@@ -480,12 +498,29 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             return
         # выбираем новые результаты в соответствии с доступными фильтрами
         data = self.get_filtered_model_data(self.ti_cbx_sel_obj.currentText(), self.ti_cbx_sel_class.currentText())
+
         if self.ti_tb_sort_mode.isChecked() and self.sort_file:
             # Если сортировщик включён, то:
             # данные = data[all] - train[data] - val[data] - test[data] = unsort[data] in data[all]
             exclusions = list(self.sort_data.get_images_names_train_val_test())  # недопустимые для вывода данные
             # фильтруем данные с учетом недопустимых элементов
             data = [item for item in data if item[1] not in exclusions]
+
+            if self.group_mode:  # режим "только группы"
+                cnt_dict = defaultdict(lambda: [set(), set(), 0])  # используем библиотеку коллекций
+
+                # Структура count_dict: set, set и счетчик для 2, 3 и 4 столбцов соответственно
+                for row in data:  # считаем количество
+                    key = row[0]
+                    cnt_dict[key][0].add(row[1])
+                    cnt_dict[key][1].add(row[2])
+                    cnt_dict[key][2] += 1
+
+                # Приводим словарь-счетчик к списку и определяем длину по разделам
+                data = [[key, len(cnt_dict[key][0]), len(cnt_dict[key][1]), cnt_dict[key][2]] for key in cnt_dict]
+
+                # print(result)
+
         self.set_image_data_model(data)  # загружаем и устанавливаем модель
 
     def fill_image_data_filters(self):
@@ -778,7 +813,10 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                 return None, None
             if not self.sort_file:  # данных для сортировки не загружено
                 return None, None
-            sel_rows = self.get_selected_rows(self.image_table, 1)  # нас интересуют выделенные строки 2 столбца
+            if self.group_mode:  # при режиме группировки - строки 0 столбца
+                sel_rows = self.get_selected_rows(self.image_table, 0)
+            else:  # иначе нас интересуют выделенные строки 1 столбца
+                sel_rows = self.get_selected_rows(self.image_table, 1)
             return sender, sel_rows
 
         if check_out:
@@ -789,21 +827,36 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             sel_rows = self.get_selected_rows(wid.table_view, 0)  # для удаления - 1 столбец
             return sender, sel_rows
 
+    def get_rows_in_group_mode(self, data, source):
+        source_table = None
+        if source == "unsort":
+            source_table = "unsort"  # источник - несортированные данные
+        else:
+            for wid in self.sort_tables:
+                if source == wid.sort_type:
+                    source_table = wid.sort_type  # источник - данные таблицы выборки
+
+        filtered_rows = self.sort_data.get_images_by_group(source_table, list(data))
+        return filtered_rows
+
     def get_rows_by_group(self, data, source):
         import re
         # сначала определяем таблицу
         source_table = None
         if source == "unsort":
             source_table = self.image_table
-            target_column = 1  # значащий столбец таблицы
+            target_column = 1
+
         else:
             for wid in self.sort_tables:
                 if source == wid.sort_type:
                     source_table = wid.table_view
                     target_column = 0  # значащий столбец таблицы
 
+        print("data:", data, "\nsource:", source)
         pattern = helper.PATTERNS.get("double_underscore")
         unique_groups = set()  # набор групп
+
         for image in data:
             match = re.search(pattern, image)  # ищем имя объекта
             if match:
@@ -819,12 +872,17 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             for row in range(proxy_model.rowCount()):
                 index = proxy_model.index(row, target_column)  # получаем индекс в зависимости от таблицы
                 filtered_rows.add(index.data(QtCore.Qt.ItemDataRole.DisplayRole))
+
         return filtered_rows
 
     def transfer_data(self, source, target, data, use_group=False):
         """Перенос данных и обновление виджетов; source, target = 'unsort', 'train', 'val' или 'test' """
+
         if use_group:  # необходимо переместить всю группу объектов
-            data = self.get_rows_by_group(data, source)
+            if self.group_mode:  # включен режим группового перемещения
+                data = self.get_rows_in_group_mode(data, source)
+            else:
+                data = self.get_rows_by_group(data, source)  # {'129c_FRA_0.jpg',  '129c_FRA_1.jpg'}
         self.sort_data.move_rows_by_images_names(source, target, data, use_group)  # переносим объекты
         self.update_sort_data_tables()  # обновляем таблицы сортировки train/val
         self.table_image_filter_changed()  # обновляем таблицу фильтрата
@@ -869,7 +927,10 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         """Заполнение таблиц сортировки данными сортировщика DatasetSortHandler"""
         for wid in self.sort_tables:  # устанавливаем последовательно для каждой таблицы
             # нам нужны данные [[data1], [data2], ...], а не [data1, data2, ...]
-            wid.core_model.setData([[item] for item in self.sort_data.get_images_names(wid.sort_type)])
+            if self.group_mode:
+                wid.core_model.setData([[item] for item in self.sort_data.get_group_names(wid.sort_type)])
+            else:
+                wid.core_model.setData([[item] for item in self.sort_data.get_images_names(wid.sort_type)])
             wid.table_view.sortByColumn(0, QtCore.Qt.SortOrder.AscendingOrder)  # сортируем по возрастанию
 
             wid.align_rows_and_cols()  # выровняем строки и столбцы
@@ -992,10 +1053,9 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             return
 
         split_data = {item: list(self.sort_data.get_images_names(item)) for item in ["train", "val", "test"]}
-        self.export_dialog = AzExportDialog(self.sama_data, split_data, parent=self)
+        self.export_dialog = AzExportDialog(self.sama_data.data, split_data, parent=self)
         if self.export_dialog.exec_() == QtWidgets.QDialog.Accepted:
             self.signal_message.emit(self.tr(f"Complete!"))
-
 
         return
 
@@ -1079,7 +1139,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     def remove_imgs_records(self):
         """Удаление записей изображений по шаблону, например: '125s_FRA, 147s_DEU', возвращает количество
         удалённых записей"""
-        dialog = AzInputDialog(self, 1, [self.tr("Enter pattern ('125s_FRA, 147s_DEU', for example)")],
+        dialog = AzInputDialog(self, 1, [self.tr("Enter pattern (125s_FRA, 147s_DEU, for example)")],
                                input_type=[0],
                                window_title=self.tr("Delete records images with pattern"),
                                cancel_text=self.tr("Cancel"))

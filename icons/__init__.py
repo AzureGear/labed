@@ -42,6 +42,7 @@
 # glyph_data_graph: Mohamed Mbarki
 # glyph_train: me & Cuputo
 
+
 # glyph_add_image: Pixel perfect
 # glyph_crop: me & Pixel perfect
 # glyph_image: Pixel perfect
@@ -61,6 +62,7 @@
 # glyph_point_universal: me & Pixel perfect
 # glyph_clear_selection: Pixel perfect
 # glyph_grid: Pixel perfect
+# glyph_layers: Pixel perfect
 
 
 # glyph_upload: KP Arts

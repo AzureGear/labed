@@ -1,4 +1,6 @@
+from utils import helper
 import ujson
+import re
 
 
 class DatasetSortHandler:
@@ -63,6 +65,7 @@ class DatasetSortHandler:
 
     def move_rows_by_images_names(self, start_dict, dest_dict, images_names, use_group=False):
         """Перемещение записей из start_dict (начального) словаря в dest_dict (конечный)"""
+        print()
         for item in images_names:
             try:
                 self.data[dest_dict][item] = self.data[start_dict].pop(item)
@@ -103,6 +106,28 @@ class DatasetSortHandler:
     def get_images_names(self, dict_name):
         """Возвращаем имена изображений из выбранного (dict_name) словаря"""
         return self.data[dict_name].keys()
+
+    def get_group_names(self, table_name, pattern=helper.PATTERNS.get("double_underscore")):
+        """
+        Извлечение перечня сгруппированных по шаблону изображений.
+        """
+        objects = []
+        for image in self.data[table_name].keys():
+            match = re.search(pattern, image)
+            if match is not None:
+                if match.group(0) not in objects:
+                    objects.append(match.group(0))
+        return objects
+
+    def get_images_by_group(self, table_name, groups):
+        """
+        Извлечение изображений, которые начинаются на значения из списка (groups)
+        """
+        images = []
+        for image in self.data[table_name].keys():
+            if any(image.startswith(group) for group in groups):
+                images.append(image)
+        return images
 
     def calc_init_stats(self):
         """Рассчитывает и записывает статистику по всем изображениям и меткам в self.statistic["full"]"""

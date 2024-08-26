@@ -523,7 +523,8 @@ def optimum_by_greed_with_group(data, ratio=0.8, names=["train", "val"], group_p
     result = {}  # словарь выходных данных
     if group_pattern:  # если были использованы группы
         unpack_train, unpack_val = {}, {}  # имеем набор данных train и val, которые надо распаковать
-
+        print("train:", train_keys)
+        print("val:", val_keys)
         for group in train_keys:  # просматриваем список групп: '022_AUT', '030_BEL'...)
             for item in group_links[group]:  # смотрим словарь связей: {'022_AUT': "aut_01.jpg", "aut_02.jpg", ... }
                 unpack_train[item] = data[item]
