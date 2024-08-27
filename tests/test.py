@@ -9,6 +9,9 @@ def test_passing():
 def test_failing():
     assert (1, 2, 3) == (3, 2, 1)
 
+def test_failing():
+    assert (1, 2, 3) == (3, 2, 1)
+
 class BaseProcMerge(unittest.TestCase): # класс тестирования
     # функция, которая проверит, как формируется приветствие
     def test_passing(self):
