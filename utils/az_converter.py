@@ -125,6 +125,7 @@ def merge_sama_to_sama(input_files, output_file, copy_files=False):
 
     data["labels"] = combined_labels
     data["labels_color"] = combined_colors
+
     # print(combined_labels)
     if len(input_files) == error_main_count:
         return 2  # возвращаем код ошибки: чтение файлов неудачно, объединить ничего не выйдет
