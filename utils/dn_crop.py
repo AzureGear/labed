@@ -196,6 +196,19 @@ class DNjson:
             NamesImgs.append(NameImg)
         return NamesImgs
 
+    # Проверка полигонов на самопересечение
+    def FilterBadPol(self):
+        BadPols = []
+        for i in range(len(self.ImgsName)):
+            Polys = self.ReadPolygons(i)
+            PolysSHP = self.PolysToShp(Polys['Polys'])
+            for j in range(len(PolysSHP)):
+                if not PolysSHP[j].is_simple:
+                    BadPols.append({"ImgName": self.ImgsName[i],
+                                    "NameCls": self.DataDict['labels'][Polys['ClsNums'][j]],
+                                    "Centroid": PolysSHP[j].centroid})
+        return BadPols
+
     # Функции, использующиеся во внешней программе, относящиеся к отдельному изображению
     # Функция чтения всех полигонов на конкретном изображении
     def ReadPolygons(self, NumImg: int):
@@ -242,22 +255,7 @@ class DNjson:
         return Polys
 
 
-# Отладочная функция вывода контуров полигонов на изображение
-# @classmethod
-# def PrintPolys(cls,Polys:[],Img:Image):
-#     RGBMAss=np.array(Img).astype("uint8")
-#     for Poly in Polys:
-#         for i in range(len(Poly)):
-#             j = i + 1
-#             if j == len(Poly): j = 0
-#             p1 = [int(Poly[i][0]),int(Poly[i][1])]
-#             p2 = [int(Poly[j][0]),int(Poly[j][1])]
-#             cv.line(RGBMAss, p1, p2, (255, 255, 0), 5)
-#     return RGBMAss
-
-
 # ----------------------------------------------------------------------------------------------------------------------
-
 class DNImgCut(QtCore.QObject):
     """ Класс работы с изображениями:
         PathToImg - каталог входной файла json
@@ -538,7 +536,6 @@ class DNImgCut(QtCore.QObject):
         положению их центров масс (по территориальному признаку)
             eps - минимальное расстояние между центрами масс полигонов, чтобы их можно было отнести в один кластер
             считаем, что если центры масс укладываются в размеры сканирующего окна, то это - один кластер """
-
         # Копируем массив полигонов, чтобы с исходным ни дай бог ничего не случилось
         PolsSHPCop = copy.copy(PolsSHP)
         NumClsPolsCop = copy.copy(NumClsPols)
@@ -629,9 +626,8 @@ class DNImgCut(QtCore.QObject):
 
                     # Генерируем из окна SHP полигон
                     WPolSHP = cls.CreateWPolSHP([pnX, pnY], WW, HW)
-
                     # Проверяем полигоны на пересечение с окном сканирования
-                    PolsOV = cls.FindPolyOverload(WPolSHP, PolsSHPCop, ProcOverlapPol, NumClsPols)
+                    PolsOV = cls.FindPolyOverload(WPolSHP, PolsSHPCop, ProcOverlapPol, NumClsPolsCop)
 
                     # Ставим соответствие положение сканирующего окна и пересекающихся полигонов
                     # только для непустых окон
@@ -827,7 +823,6 @@ class DNImgCut(QtCore.QObject):
             return None
         # Если какие-то полигоны пересекаются с окном
         elif len(Indx) > 0:
-
             # Получаем пересекающиеся полигоны и номера их классов
             P_OV = [PolsSHP[j[0]] for j in Indx]
             Cls_OV = [NumClsPols[j[0]] for j in Indx]
@@ -911,7 +906,8 @@ class DNImgCut(QtCore.QObject):
         data = Img.read()
         data_arr = np.frombuffer(data, dtype=np.uint8)
         Img = cv.imdecode(data_arr, cv.IMREAD_COLOR)
-
+        global IMG
+        IMG = Img
         # Определяем размеры картинки
         H = Img.shape[0]
         W = Img.shape[1]
@@ -1040,6 +1036,20 @@ class DNImgCut(QtCore.QObject):
         DKray:int - минимальное расстояние от края сканирующего окна до полигона (чтоб не впритычечку), в пикселях
         IsSmartCut - выбор между хитрожопой функцией нарезки и тупой
         IsHandCut - выбор между ручной нарезкой и автоматической"""
+
+        BadPols = self.JsonObj.FilterBadPol()
+        if len(BadPols) > 0:
+            errors = ";".join(
+                [f"Изображение: {BadPol['ImgName']}, класс: {BadPol['NameCls']}, <x, y>: {BadPol['Centroid']}" for
+                 BadPol in BadPols])
+
+            for BadPol in BadPols:
+                print("Херовый полигон на изображении: ", BadPol['ImgName'],
+                      " класса: ", BadPol['NameCls'],
+                      " с координатами: ", BadPol["Centroid"])
+            print("Дальше не работается")
+            self.signal_progress.emit(errors)
+            return -1
 
         # Если нарезка в автоматическом режиме
         if not IsHandCut:
@@ -1235,6 +1245,7 @@ class DNImgCut(QtCore.QObject):
         return {'ImgNames': NameCropImgs, 'Pols': PolsImg, 'ClsNums': ClsNumsImg}
 
 
+# ----------------------------------------------------------------------------------------------------------------------
 def az_calc_stats(path_to_dir, images):
     """Az: Расчет статистики обрабатываемых данных и ориентировочного времени работы"""
     count = 0  # количество реальных файлов
@@ -1247,7 +1258,33 @@ def az_calc_stats(path_to_dir, images):
     return summ_size, count
 
 
+# ----------------------------------------------------------------------------------------------------------------------
 def az_calc_size(file, degree=2):
     """Az: Расчет размера файла и перевод его в нужную размерность. degree: 1 - Килобайты; 2 - Мб; 3 - Гб и т.д."""
     size = os.path.getsize(file) / (1024 ** degree)
     return size
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+if __name__ == '__main__':
+    # Отладочная функция вывода контуров полигонов на изображение
+    #     @classmethod
+    #     def PrintPolys(cls,Polys:[],Img:Image):
+    #         RGBMAss=np.array(Img).astype("uint8")
+    #         for Poly in Polys:
+    #             for i in range(len(Poly)):
+    #                 j = i + 1
+    #                 if j == len(Poly): j = 0
+    #                 p1 = [int(Poly[i][0]),int(Poly[i][1])]
+    #                 p2 = [int(Poly[j][0]),int(Poly[j][1])]
+    #                 cv.line(RGBMAss, p1, p2, (255, 255, 0), 5)
+    #         return RGBMAss
+
+    A = [0.2] * 30
+    PathData = 'D:/Beatls/NIR_S/Крамола/2024/Imgs/Oil Refinery/Исходные/Проверить/'
+    JsonNameFile = 'summ_no_olga_crude_edit_tanks2.json'
+    ImgCutObj = DNImgCut(PathData, JsonNameFile)
+    ImgCutObj.CutAllImgs(1280, A, 0.95,
+                         'D:/Beatls/NIR_S/Крамола/2024/Progs/Замечания пожелания/test_cut/res/res.json', 5, True, False)
+    # print(ImgCutObj.JsonObj.ImgsName.index("126_FRA_2016-03.jpg"))
+    # ImgCutObj.CutImg(467,1280,A,0.95,'D:/Beatls/NIR_S/Крамола/2024/Imgs/Oil Refinery/Исходные/Проверить/01',0,True)

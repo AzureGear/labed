@@ -35,7 +35,7 @@ class AzExportDialog(QtWidgets.QDialog):
 
         # Поток для экспорта
         self.export_worker = Exporter(self.sama_data, export_dir=self.output_dir.text(), split_data=self.split_data,
-                                      format=self.format_cbx.currentText(), dataset_name="Dataset")
+                                      format=self.format_cbx.currentText(), dataset_name="dataset")
 
         # Сигналы
         self.export_worker.signal_percent_conn.connect(self.worker_percent_change)

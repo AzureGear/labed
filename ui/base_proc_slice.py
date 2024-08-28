@@ -148,6 +148,7 @@ class TabSliceUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.slice_overlap_window.valueChanged.connect(self.slice_options_for_crop_update)  # window overlap
         self.slice_edge.valueChanged.connect(self.slice_options_for_crop_update)  # edge
         self.slice_smart_crop.toggled.connect(self.slice_options_for_crop_update)  # smart
+
         # Соединения для потока
         self.autocrop_worker.finished.connect(self.autocrop_on_finished)  # завершение работы autocrop worker
         self.autocrop_worker.signal_progress.connect(self.show_progress)  # прогресс работы autocrop worker
@@ -159,8 +160,11 @@ class TabSliceUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             if self.autocrop_worker.result > 0:
                 self.signal_message.emit(
                     "Авто-кадрирование завершено. Общее количество изображений: %s" % self.autocrop_worker.result)
-            elif self.autocrop_worker.result == 0:
+            elif self.autocrop_worker.result < 0:
+                self.signal_message.emit("В проекте разметке присутствуют ошибки. Авто-кадрирование невозможно.")
+            else:  # self.autocrop_worker.result == 0:
                 self.signal_message.emit("Авто-кадрирование изображений не выполнено. Изображения отсутствуют")
+
         else:
             self.signal_message.emit("Авто-кадрирование не выполнено")
 
