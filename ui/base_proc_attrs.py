@@ -731,8 +731,9 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         images_count = self.sama_data.get_images_num()  # количество снимков в датасете
         labels_count = self.sama_data.get_labels_count()  # количество меток
         # округляем всё с точностью до 2 знаков после запятой
-        lrm = f"{round(summ / count, 2):.2f}"  # среднее ЛРМ
-        min_max_lrm = f"{round(min_lrm, 2):.2f}-{round(max_lrm, 2):.2f}"  # девиация ЛРМ
+        if count > 0:
+            lrm = f"{round(summ / count, 2):.2f}"  # среднее ЛРМ
+            min_max_lrm = f"{round(min_lrm, 2):.2f}-{round(max_lrm, 2):.2f}"  # девиация ЛРМ
         if all_count != no_lrm:  # данные в наличии
             self.common_data = [[images_count, labels_count, lrm, min_max_lrm]]
         else:  # данных нет, ставим прочерк
