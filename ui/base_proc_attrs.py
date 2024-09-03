@@ -43,6 +43,8 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.group_mode = False  # режим
         self.sort_dialog = None  # диалог сортировки
         self.export_dialog = None  # диалог экспорта данных
+        self.common_model = None  # модель таблицы для отображения общих данных
+        self.model_image = None  # модель для данных фильтрата
 
         # Настройка ui
         self.setup_log()
@@ -1166,10 +1168,12 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             [self.tr("Label name"), self.tr("Labels count"), self.tr("Frequency per 100 images"),
              self.tr("% total labels"), self.tr("Average area, pixels"), self.tr('SD of area, pixels'),
              self.tr("Balance"), self.tr("Color"), self.tr("Action")])
-        self.common_model.setHorizontalHeaderLabels([self.tr("Count of\nimages: "), self.tr("Count of\nlabels: "),
-                                                     self.tr("Average\nGSD: "), self.tr("Deviation\nGSD: ")])
-        self.model_image.setHorizontalHeaderLabels([self.tr("Group"), self.tr("Images"), self.tr("Label"),
-                                                    self.tr("Number")])
+        if self.common_model:
+            self.common_model.setHorizontalHeaderLabels([self.tr("Count of\nimages: "), self.tr("Count of\nlabels: "),
+                                                         self.tr("Average\nGSD: "), self.tr("Deviation\nGSD: ")])
+        if self.model_image:
+            self.model_image.setHorizontalHeaderLabels([self.tr("Group"), self.tr("Images"), self.tr("Label"),
+                                                        self.tr("Number")])
         self.sort_widget_train.translate_ui()
         self.sort_widget_val.translate_ui()
         self.sort_widget_test.translate_ui()

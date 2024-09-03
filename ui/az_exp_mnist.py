@@ -38,7 +38,7 @@ class PageMNIST(QtWidgets.QWidget):
         self.mnist_worker.started.connect(self.mnist_on_started)  # начало работы mnist worker
         self.mnist_worker.finished.connect(self.mnist_on_finished)  # завершение работы mnist worker
         # сигнал mnist_worker'a о текущих действиях
-        self.mnist_worker.inner_signal.connect(self.mnist_on_change, QtCore.Qt.ConnectionType.QueuedConnection)
+        self.mnist_worker.inner_signal.connect(self.mnist_on_change, QtCore.Qt.QueuedConnection)
         self.mnist_worker.signal_model.connect(self.mnist_handler.set_model)
         self.mnist_handler.signal_mnist_handler.connect(self.toggle_use_model)
         # сигналы интерфейса
@@ -98,15 +98,16 @@ class PageMNIST(QtWidgets.QWidget):
         # инструменты: загрузить случайное изображение
         self.tb_get_random = new_button(self, "tb", self.tr("Load random image"), "glyph_dice", the_color,
                                         self.get_random_image, False, False, tooltip=self.tr("Load random image"))
-        # инструменты: очистить лог
-        self.tb_clear_log = new_button(self, "tb", self.tr("Clear log"), "glyph_clear", the_color,
-                                       lambda: self.info.clear(), tooltip=self.tr("Clear log"))
+        # инструменты: прогнать модель по тестовому набору MNIST
+        self.tb_test_model = new_button(self, "tb", self.tr("Test model with MNIST"), "glyph_pen_code", the_color,
+                                        self.test_model, tooltip=self.tr("Test model with MNIST"))
         # инструменты: обработать изображение с помощью модели
         self.tb_use_model = new_button(self, "tb", self.tr("Use model"), "glyph_data_graph", the_color,
                                        self.use_model, tooltip=self.tr("Use model for current image"))
 
-        tools = [self.tb_use_model, self.tb_get_random, self.tb_clear_log, self.tb_start_train]
-        self.tb_use_model.setEnabled(False)  # По умолчанию отключаем, т.к. никакой модели не загружено
+        tools = [self.tb_use_model, self.tb_get_random, self.tb_test_model, self.tb_start_train]
+        self.tb_use_model.setEnabled(False)  # Т.к. изначально никакой модели не загружено, отключаем использование...
+        self.tb_test_model.setEnabled(False)  # ...и тестирование
         for tool in tools:
             panel_lay.addWidget(tool)
             tool.setIconSize(QtCore.QSize(config.UI_AZ_MNIST_ICON_PANEL, config.UI_AZ_MNIST_ICON_PANEL))
@@ -118,6 +119,18 @@ class PageMNIST(QtWidgets.QWidget):
         h_layout.addWidget(self.gb_preview)
         h_layout.addLayout(panel_lay)
 
+        # инструменты 2: очистить лог
+        self.tb_clear_log = new_button(self, "tb", self.tr("Clear log"), "glyph_clear", the_color,
+                                       lambda: self.info.clear(), tooltip=self.tr("Clear log"))
+        self.tb_show_model_data = new_button(self, "tb", self.tr("Show model data"), "glyph_clear", the_color,
+                                             self.show_model_data, True, tooltip=self.tr("Show model data"))
+        panel_lay2 = QtWidgets.QVBoxLayout()
+        tools2 = [self.tb_clear_log]
+        for tool2 in tools2:
+            panel_lay2.addWidget(tool2)
+            tool2.setIconSize(QtCore.QSize(config.UI_AZ_MNIST_ICON_PANEL, config.UI_AZ_MNIST_ICON_PANEL))
+        panel_lay2.addStretch(1)
+
         # настройка цифр
         h_layout2 = QtWidgets.QHBoxLayout()  # компоновщик для "Цифр" и их вероятностей
         self.digits = {}  # словарь цифр, например 6: RoundProgressbar
@@ -128,7 +141,7 @@ class PageMNIST(QtWidgets.QWidget):
             digit_v.setContentsMargins(0, 0, 0, 0)
             digit_lbl = QtWidgets.QLabel(f"{(i * 10 + 10):.0f}%")
             digit_lbl.setFixedHeight(14)
-            digit_lbl.setAlignment(QtCore.Qt.AlignBottom | QtCore.Qt.AlignmentFlag.AlignHCenter)
+            digit_lbl.setAlignment(QtCore.Qt.AlignmentFlag.AlignBottom | QtCore.Qt.AlignmentFlag.AlignHCenter)
             digit_lbl.setIndent(0)
 
             the_digit = RoundProgressbar(self, QtGui.QColor(the_color), thickness=2, value=10 * i + 10,
@@ -176,7 +189,7 @@ class PageMNIST(QtWidgets.QWidget):
         lay_result = self.ui_result()
         self.gb_result.setLayout(lay_result)
 
-        # Итоговая сборка
+        # Итоговый компоновщик
         v_layout = QtWidgets.QVBoxLayout()
         v_layout.addLayout(h_layout)  # компонуем рисовальщика, предпросмотр
         v_layout.addLayout(h_layout2)  # и результат расчёта
@@ -184,6 +197,7 @@ class PageMNIST(QtWidgets.QWidget):
         h_layout3 = QtWidgets.QHBoxLayout()
         h_layout3.addLayout(v_layout)
         h_layout3.addWidget(self.gb_model)
+        h_layout3.addLayout(panel_lay2)
         h_layout3.addWidget(self.info, 1)  # делаем вывод максимальным
         layout.addWidget(self.gb_settings)
         layout.addLayout(h_layout3)
@@ -232,7 +246,7 @@ class PageMNIST(QtWidgets.QWidget):
 
     def ui_perceptron(self):
         self.platform_label = new_text(self.tr("Platform:"))
-        self.cbx_platform = new_cbx(self, ["numpy", "keras", "tensorflow"])
+        self.cbx_platform = new_cbx(self, ["numpy"])
         self.epochs_label = new_text(self.tr("Epoch:"))
         self.cbx_epochs = new_cbx(self, ["1", "2", "3", "4", "5", "10", "20"], True, QtGui.QIntValidator(1, 30))
         self.activ_func_label = new_text(self.tr("Activation function:"))
@@ -286,6 +300,24 @@ class PageMNIST(QtWidgets.QWidget):
         pixmap = QtGui.QPixmap.fromImage(q_img)
         self.preview_show_mnist(pixmap)  # отправляем на отрисовку
 
+    def load_test(path):
+        with np.load(path) as file:
+            x_test = file['x_test'].astype("float32") / 255  # конвертация из RGB в Unit RGB
+            # преобразование массива из (60000, 28, 28) в формат (60000, 784)
+            x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1] * x_test.shape[2]))
+            # выходные данные
+            y_test = file['y_test']
+            # y_test = y_test[sel_inx]  # ограничиваем набор датасета при 100% = 60000
+            y_test = np.eye(10)[y_test]
+            return x_test, y_test
+
+    def test_model(self):
+        x_test, y_test = self.load_test(self.settings.read_dataset_mnist())
+        print("in progress...")
+
+    def show_model_data(self):
+        print("show model...")
+
     def set_digits(self, result):
         """Установка значений цифры и её вероятности"""
         for i, dig in enumerate(self.digits):
@@ -317,11 +349,13 @@ class PageMNIST(QtWidgets.QWidget):
         """Обработка событий модели"""
         if msg == "model_is_set":
             self.tb_use_model.setEnabled(True)
+            self.tb_test_model.setEnabled(True)
         elif msg == "model_is_saved":
             self.signal_info.emit(self.tr(f"Model saved: {self.mnist_handler.model_params['uniq_id']}"))
         elif msg == "model_was_load":
             self.signal_info.emit(self.tr(f"Model loaded: {self.mnist_handler.model_params['uniq_id']}"))
         else:
+            self.tb_test_model.setEnabled(False)
             self.tb_use_model.setEnabled(False)
 
     def start_training(self):
@@ -339,6 +373,7 @@ class PageMNIST(QtWidgets.QWidget):
                     "shuffle_data": self.chk_use_random_data.isChecked(),
                     "learning_rate": self.cbx_learning_rate.currentText(),
                     }
+
         self.store_settings()  # запоминаем выбранные настройки
         self.add_message_info("\n", False)
 
@@ -872,7 +907,7 @@ class MNISTWorker(QtCore.QThread):
         self.training_info = self.tr(f"type: {self.params['nn_type']}; "
                                      f"epochs: {self.params['epochs']}; "
                                      f"activation: {self.params['activ_funct']}; "
-                                     f"layers: {self.params['number_of_layers']}; "
+                                     f"layers count: {self.params['number_of_layers']}; "
                                      f"shuffle mnist: {self.params['shuffle_data']}; "
                                      f"learning rate: {self.params['learning_rate']}; "
                                      f"dataset limit: {self.params['dataset_using']}%; "
@@ -961,7 +996,8 @@ class MNISTWorker(QtCore.QThread):
             self.epochs.append((epoch_loss, epoch_correct))  # добавляем данные об ошибках этой эпохи
 
         # Подготавливаем данные для отправки
-
+        self.params["layers"] = str(self.params["layers"])
+        # self.params["layers"] = "; ".join(self.params["layers"])
         # структура данных: ({словарь параметров}, {данные обученной модели})
         data = (self.params, {"data": [(layer.bias, layer.weights, layer.act_func) for layer in self.layers],
                               "unused_inx": unused_inx})
@@ -1026,8 +1062,9 @@ class MNISTWorker(QtCore.QThread):
                 bias_layer_1 += -learning_rate * delta_hidden
 
                 # 4. Расчёт ошибок
-                self.params["loss"] = str(round((e_loss[0] / images.shape[0]) * 100, 2)) + "%"
-                self.params["accuracy"] = str(round((e_correct / images.shape[0]) * 100, 2)) + "%"
+                loss = str(round((e_loss[0] / images.shape[0]) * 100, 2)) + "%"
+                acc = str(round((e_correct / images.shape[0]) * 100, 2)) + "%"
+                print(f"loss: {loss}; accuracy: {acc}")
             # Обучение завершено
 
             self.inner_signal.emit(self.tr(f"Epoch {epoch + 1}: loss {round((e_loss[0] / images.shape[0]) * 100, 2)}%"
@@ -1090,7 +1127,7 @@ def load_dataset(path, using_percent=100, shuffle=False):
     """
     Загрузка датасета MNIST, возвращает перечень изображений, значений для них и перечень неиспользуемых индексов:
     x_train - изображения в формате: яркость 255 для ячейки, где есть контур цифры; 0 для пустого значения
-    y_train - соответствующая изображению цифра в формате int.
+    y_train - метка, соответствующая изображению цифра в формате int.
     Параметры: path - путь к файлу *.npz; using_percent - объем используемого датасета;
     shuffle - использование данных в случайном порядке
     """
