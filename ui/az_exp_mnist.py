@@ -300,6 +300,7 @@ class PageMNIST(QtWidgets.QWidget):
         pixmap = QtGui.QPixmap.fromImage(q_img)
         self.preview_show_mnist(pixmap)  # отправляем на отрисовку
 
+    @staticmethod
     def load_test(path):
         with np.load(path) as file:
             x_test = file['x_test'].astype("float32") / 255  # конвертация из RGB в Unit RGB
@@ -313,6 +314,7 @@ class PageMNIST(QtWidgets.QWidget):
 
     def test_model(self):
         x_test, y_test = self.load_test(self.settings.read_dataset_mnist())
+
         print("in progress...")
 
     def show_model_data(self):
