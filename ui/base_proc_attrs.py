@@ -16,6 +16,7 @@ color_train = UI_COLORS.get("train_color")
 color_val = UI_COLORS.get("val_color")
 color_test = UI_COLORS.get("test_color")
 
+
 # TODO: добавить инструмент назначения Разметчика
 # TODO: рассчитать баланс датасета
 
@@ -1058,7 +1059,8 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         split_data = {item: list(self.sort_data.get_images_names(item)) for item in ["train", "val", "test"]}
         self.export_dialog = AzExportDialog(self.sama_data.data, split_data, parent=self)
         if self.export_dialog.exec_() == QtWidgets.QDialog.Accepted:
-            self.signal_message.emit(self.tr(f"Complete!"))
+            self.signal_message.emit(
+                self.tr(f"Dataset export complete to '{self.export_dialog.export_worker.export_dir}'"))
 
         return
 
@@ -1149,7 +1151,6 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         if dialog.exec_() == QtWidgets.QDialog.DialogCode.Rejected:  # нажата "Отмена"
             return
         result = dialog.get_inputs()  # получаем введенные данные
-        print(result)
         pattern_list = [item.strip() for item in result[0].split(',')]  # разделяем по запятым, удаляем пробелы
         deleted = self.sama_data.remove_records_with_pattern(pattern_list)  # удаляем записи из проекта
         if deleted:

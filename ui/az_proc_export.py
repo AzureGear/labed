@@ -12,6 +12,8 @@ import os
 the_color = UI_COLORS.get("processing_color")
 
 
+# TODO: доделать интерфейс
+
 # ----------------------------------------------------------------------------------------------------------------------
 class AzExportDialog(QtWidgets.QDialog):
     """
@@ -27,10 +29,11 @@ class AzExportDialog(QtWidgets.QDialog):
         super().__init__(parent)
         self.settings = AppSettings()  # настройки программы
         self.setWindowTitle(window_title)
-        self.setFixedSize(600, 300)  # фиксированные размеры для размещения кастомных виджетов
+        self.setFixedSize(600, 150)  # фиксированные размеры для размещения кастомных виджетов
         self.setWindowFlag(QtCore.Qt.WindowType.Tool)
         self.sama_data = sama_data  # исходный проект SAMA
         self.split_data = split_data  # отсортированные данные
+        self.export_complete = False
         self.setup_ui()
 
         # Поток для экспорта
@@ -40,7 +43,7 @@ class AzExportDialog(QtWidgets.QDialog):
         # Сигналы
         self.export_worker.signal_percent_conn.connect(self.worker_percent_change)
         self.export_worker.started.connect(lambda: self.switch_buttons(False))
-        self.export_worker.finished.connect(lambda: self.switch_buttons(True))
+        self.export_worker.finished.connect(self.finish)
 
     def setup_ui(self):
         """Настройка интерфейса"""
@@ -76,11 +79,17 @@ class AzExportDialog(QtWidgets.QDialog):
 
     @QtCore.pyqtSlot(int)
     def worker_percent_change(self, val):
-        print("Current%:", val)
+        if val == 100:
+            self.export_complete = True
 
     def switch_buttons(self, flag):
         self.button_ok.setEnabled(flag)
         self.button_cancel.setEnabled(flag)
+
+    def finish(self):
+        self.switch_buttons(True)
+        if self.export_complete:
+            self.accept()
 
     def exec_export(self):
         """Выполнение сортировки"""
@@ -88,7 +97,6 @@ class AzExportDialog(QtWidgets.QDialog):
         self.export_worker.format = self.format_cbx.currentText()
         if not self.export_worker.isRunning():
             self.export_worker.start()
-
 
     def tr(self, text):
         return QtCore.QCoreApplication.translate("AzExportDialog", text)
@@ -108,6 +116,7 @@ class Exporter(QtCore.QThread):
         Az+: splits не используется, т.к. передаются уже отсортированные выборки train, val, test (split_data)"""
 
     signal_percent_conn = QtCore.pyqtSignal(int)
+
     def __init__(self, project_data, export_dir, format='yolo_seg', export_map=None, dataset_name='dataset',
                  variant_idx=0, splits=None, split_method='names', sim='random',
                  is_filter_null=False, new_image_size=None, split_data=None):
@@ -745,8 +754,8 @@ class Exporter(QtCore.QThread):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-def create_yaml(yaml_short_name, save_folder, label_names, dataset_name='Dataset', use_test=None):
-    """"""
+def create_yaml(yaml_short_name, save_folder, label_names, dataset_name='dataset', use_test=None):
+    """Создание файла yaml для датасета"""
     yaml_full_name = os.path.join(save_folder, yaml_short_name)
     with open(yaml_full_name, 'w') as f:
         f.write(f"# {dataset_name}\n")
