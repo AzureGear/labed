@@ -79,6 +79,7 @@ class AzExportDialog(QtWidgets.QDialog):
 
     @QtCore.pyqtSlot(int)
     def worker_percent_change(self, val):
+        # заглушка под индикатор прогресса
         if val == 100:
             self.export_complete = True
 
@@ -88,8 +89,7 @@ class AzExportDialog(QtWidgets.QDialog):
 
     def finish(self):
         self.switch_buttons(True)
-        if self.export_complete:
-            self.accept()
+        self.accept()
 
     def exec_export(self):
         """Выполнение сортировки"""

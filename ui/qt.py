@@ -443,14 +443,14 @@ def az_file_dialog(parent=None, caption=None, last_dir=None, dir_only=False, fil
 
         else:
             # открытие файла
-            file, _ = QtWidgets.QFileDialog.getOpenFileNames(parent, caption, last_dir, filter, initial_filter)
-            if len(file) > 0:
+            files, _ = QtWidgets.QFileDialog.getOpenFileNames(parent, caption, last_dir, filter, initial_filter)
+            if len(files) > 0:
                 if remember_dir:
-                    if len(file) > 1:
-                        settings.write_last_dir(os.path.dirname(file[0]))
+                    if len(files) > 0:  # при слиянии возможно выбрать несколько файлов и он возвращает список файлов
+                        settings.write_last_dir(os.path.dirname(files[0]))
                     else:
-                        settings.write_last_dir(os.path.dirname(file))
-                return file
+                        settings.write_last_dir(os.path.dirname(files))
+                return files
 
 
 # ----------------------------------------------------------------------------------------------------------------------
