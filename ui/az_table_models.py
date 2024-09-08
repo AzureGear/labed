@@ -107,7 +107,8 @@ class AzTableAttributes(QtWidgets.QTableWidget):
             self.set_special_cols()
             self.col_color = next((k for k, v in self.special_cols.items() if v == "color"), None)  # номер столбца
 
-        stat = self.my_data.calc_stat()  # рассчитываем статистику
+        stat = self.my_data.calc_stat()  # рассчитываем статистику, включая баланс
+
         self.setSortingEnabled(False)  # обязательно отключить сортировку, иначе случится дичь
         for row, name in enumerate(labels):
             if self.col_color:  # заполнение кнопки цветом
@@ -122,6 +123,14 @@ class AzTableAttributes(QtWidgets.QTableWidget):
             self.add_item_number(row, 3, stat[name]['percent'], 2)  # проценты от общего
             self.add_item_number(row, 4, stat[name]['size']['mean'], 1)  # средний размер
             self.add_item_number(row, 5, stat[name]['size']['std'], 1)  # СКО размера
+            # сбалансированность класса по количеству меток: чем ближе к 0, тем более сбалансирован;
+            # отрицательные значения говорят о дисбалансе в сторону этого класса
+            if type(stat[name]['balance']) == float:
+                self.add_item_number(row, 6, stat[name]['balance'], 2)
+            else:
+                self.add_item_text(row, 6, stat[name]['balance'],
+                                   QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
+
         self.setSortingEnabled(True)
         for row in range(self.rowCount()):  # выравниваем высоту
             self.setRowHeight(row, self.row_h)

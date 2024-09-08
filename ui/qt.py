@@ -78,8 +78,6 @@ class AzButtonLineEdit(QtWidgets.QLineEdit):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-
-
 class AzInputDialog(QtWidgets.QDialog):
     def __init__(self, parent, num_rows, labels, window_title, has_ok=True, has_cancel=True, ok_text="OK",
                  cancel_text="Cancel", input_type=[0], combo_inputs=None):
@@ -90,6 +88,7 @@ class AzInputDialog(QtWidgets.QDialog):
         Тип данных (input_type): 0 - QLineEdit, 1 - QComboBox, и во втором случае данные из (combo_inputs) закладываются
         в combobox. combo_inputs должен передавать лист листов [["mom","dad","grandpa"]["like","like","smells"]]
         dialog = AzInputDialog(self, 2, ["age", "stage"], "Your status")
+        input_type - 1 combobox; все остальное;
         """
         super().__init__(parent)
         # заголовок окна
@@ -112,6 +111,8 @@ class AzInputDialog(QtWidgets.QDialog):
                     input_field.addItems(combo_inputs[i])
             else:  # во всех остальных случаях
                 input_field = QtWidgets.QLineEdit()  # тип QLineEdit()
+                if combo_inputs is not None:
+                    input_field.setText(combo_inputs[i])
             form_layout.addRow(label, input_field)
             self.inputs.append(input_field)  # добавляем всё в перечень
 
@@ -152,7 +153,6 @@ class AzInputDialog(QtWidgets.QDialog):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-
 class AzAction(QtWidgets.QAction):
     """
     Кастомизация QAction, в виде зажимаемой кнопки с переменой цвета иконки, когда она активна
@@ -174,7 +174,6 @@ class AzAction(QtWidgets.QAction):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-
 class AzSpinBox(QtWidgets.QSpinBox):
     """
     Упрощённая реализация числового виджета
@@ -196,6 +195,78 @@ class AzSpinBox(QtWidgets.QSpinBox):
             self.setSuffix(suffix)
         if prefix is not None:
             self.setPrefix(prefix)
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+def az_custom_dialog(caption, message, yes=True, no=True, back=False, custom_button=False, custom_text="",
+                     parent=None):
+    """
+    Кастомизация диалоговых окон (вопросы, диалоги)
+    Возвращает int: 1 - Да, 2 - Нет, 3 - Назад, 4 - <пользовательский вариант>
+    """
+    dlg = QtWidgets.QMessageBox(parent)
+    dlg.setWindowTitle(caption)
+    dlg.setInformativeText(message)
+    if yes:
+        yes_button = dlg.addButton("Yes", QtWidgets.QMessageBox.ButtonRole.YesRole)
+        yes_button.setFixedSize(80, config.BUTTON_H)
+    if no:
+        no_button = dlg.addButton("No", QtWidgets.QMessageBox.ButtonRole.NoRole)
+        no_button.setFixedSize(80, config.BUTTON_H)
+    if back:
+        back_button = dlg.addButton("Back", QtWidgets.QMessageBox.ButtonRole.ResetRole)
+        back_button.setFixedSize(80, config.BUTTON_H)
+    if custom_button:
+        back_button = dlg.addButton("Back", QtWidgets.QMessageBox.ButtonRole.ResetRole)
+        back_button.setFixedSize(80, config.BUTTON_H)
+        dlg.addButton(custom_text, QtWidgets.QMessageBox.ButtonRole.ActionRole)
+    dlg.exec()
+    m = dlg.buttonRole(dlg.clickedButton())
+    if m == QtWidgets.QMessageBox.ButtonRole.YesRole:
+        return 1
+    elif m == QtWidgets.QMessageBox.ButtonRole.NoRole:
+        return 2
+    elif m == QtWidgets.QMessageBox.ButtonRole.ResetRole:
+        return 3
+    elif m == QtWidgets.QMessageBox.ButtonRole.ActionRole:
+        return 4
+    else:
+        return -1
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+def az_file_dialog(parent=None, caption=None, last_dir=None, dir_only=False, filter=None, initial_filter=None,
+                   remember_dir=True, file_to_save=False):
+    """ Базовые варианты диалоговых окон (открыть, сохранить, указать путь и т.п.)"""
+    settings = AppSettings()  # чтение настроек
+    if not last_dir:  # если исходный каталог не настроен
+        last_dir = settings.read_last_dir()  # вспоминаем прошлый открытый каталог
+    if dir_only:  # выбрать только каталог
+        select_dir = QtWidgets.QFileDialog.getExistingDirectory(parent, caption, last_dir)
+        if select_dir:
+            if remember_dir:
+                settings.write_last_dir(select_dir)
+            return select_dir
+    else:
+
+        if file_to_save:
+            # сохранение файла
+            file, _ = QtWidgets.QFileDialog.getSaveFileName(parent, caption, last_dir, filter, initial_filter)
+            if len(file) > 1:
+                if remember_dir:
+                    settings.write_last_dir(os.path.dirname(file))
+                return file
+
+        else:
+            # открытие файла
+            files, _ = QtWidgets.QFileDialog.getOpenFileNames(parent, caption, last_dir, filter, initial_filter)
+            if len(files) > 0:
+                if remember_dir:
+                    if len(files) > 0:  # при слиянии возможно выбрать несколько файлов и он возвращает список файлов
+                        settings.write_last_dir(os.path.dirname(files[0]))
+                    else:
+                        settings.write_last_dir(os.path.dirname(files))
+                return files
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -292,8 +363,8 @@ def new_button(parent, obj="pb", text=None, icon=None, color=None, slot=None, ch
                icon_size=None, tooltip=None):
     """
     Создание и настройка кнопки PyQt5 (основа реализована из LabelMe)
-    obj (тип кнопки): pb (QPushButton), tb (QToolButton); lb (QPushButton) но выглядящая как label
-    text - надпись; icon - имя иконки из каталога "icons" без расширения; color - цвет; icon_size - размер иконок
+    obj (тип кнопки): pb (QPushButton), tb (QToolButton), lb (QPushButton) но выглядящая как label;
+    text - надпись; icon - имя иконки из каталога 'icons' без расширения; color - цвет; icon_size - размер иконок
     checkable - возможность активации/деактивации; checked - активна/неактивная, если выбрано "checkable"
     tooltip - выплывающая подсказка
     """
@@ -379,78 +450,6 @@ def setup_dock_widgets(parent, docks, settings):
         if dock_settings[5]:  # 5 - no_actions - "close"
             getattr(parent, dock).toggleViewAction().setVisible(False)
         getattr(parent, dock).setFeatures(features)  # применяем настроенные атрибуты [1-3]
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-def az_custom_dialog(caption, message, yes=True, no=True, back=False, custom_button=False, custom_text="",
-                     parent=None):
-    """
-    Кастомизация диалоговых окон (вопросы, диалоги)
-    Возвращает int: 1 - Да, 2 - Нет, 3 - Назад, 4 - <пользовательский вариант>
-    """
-    dlg = QtWidgets.QMessageBox(parent)
-    dlg.setWindowTitle(caption)
-    dlg.setInformativeText(message)
-    if yes:
-        yes_button = dlg.addButton("Yes", QtWidgets.QMessageBox.ButtonRole.YesRole)
-        yes_button.setFixedSize(80, config.BUTTON_H)
-    if no:
-        no_button = dlg.addButton("No", QtWidgets.QMessageBox.ButtonRole.NoRole)
-        no_button.setFixedSize(80, config.BUTTON_H)
-    if back:
-        back_button = dlg.addButton("Back", QtWidgets.QMessageBox.ButtonRole.ResetRole)
-        back_button.setFixedSize(80, config.BUTTON_H)
-    if custom_button:
-        back_button = dlg.addButton("Back", QtWidgets.QMessageBox.ButtonRole.ResetRole)
-        back_button.setFixedSize(80, config.BUTTON_H)
-        dlg.addButton(custom_text, QtWidgets.QMessageBox.ButtonRole.ActionRole)
-    dlg.exec()
-    m = dlg.buttonRole(dlg.clickedButton())
-    if m == QtWidgets.QMessageBox.ButtonRole.YesRole:
-        return 1
-    elif m == QtWidgets.QMessageBox.ButtonRole.NoRole:
-        return 2
-    elif m == QtWidgets.QMessageBox.ButtonRole.ResetRole:
-        return 3
-    elif m == QtWidgets.QMessageBox.ButtonRole.ActionRole:
-        return 4
-    else:
-        return -1
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-def az_file_dialog(parent=None, caption=None, last_dir=None, dir_only=False, filter=None, initial_filter=None,
-                   remember_dir=True, file_to_save=False):
-    """ Базовые варианты диалоговых окон (открыть, сохранить, указать путь и т.п.)"""
-    settings = AppSettings()  # чтение настроек
-    if not last_dir:  # если исходный каталог не настроен
-        last_dir = settings.read_last_dir()  # вспоминаем прошлый открытый каталог
-    if dir_only:  # выбрать только каталог
-        select_dir = QtWidgets.QFileDialog.getExistingDirectory(parent, caption, last_dir)
-        if select_dir:
-            if remember_dir:
-                settings.write_last_dir(select_dir)
-            return select_dir
-    else:
-
-        if file_to_save:
-            # сохранение файла
-            file, _ = QtWidgets.QFileDialog.getSaveFileName(parent, caption, last_dir, filter, initial_filter)
-            if len(file) > 1:
-                if remember_dir:
-                    settings.write_last_dir(os.path.dirname(file))
-                return file
-
-        else:
-            # открытие файла
-            files, _ = QtWidgets.QFileDialog.getOpenFileNames(parent, caption, last_dir, filter, initial_filter)
-            if len(files) > 0:
-                if remember_dir:
-                    if len(files) > 0:  # при слиянии возможно выбрать несколько файлов и он возвращает список файлов
-                        settings.write_last_dir(os.path.dirname(files[0]))
-                    else:
-                        settings.write_last_dir(os.path.dirname(files))
-                return files
 
 
 # ----------------------------------------------------------------------------------------------------------------------

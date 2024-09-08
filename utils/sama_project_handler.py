@@ -133,15 +133,24 @@ class DatasetSAMAHandler:
         if im:
             return im.get("last_user", None)
 
-    def set_image_last_user(self, image_name, last_user):
+    def set_image_last_user(self, image_name, last_user, add_if_empty=False):
+        """Az: установка пользователя для заданного изображения
+        Az+: если флаг add_if_empty True, то для пустых изображений создается формальный заголовок и
+        назначается пользователь.
+        Возвращает True, если успешно установлено изображение"""
         im = self.get_image_data(image_name)
         if im:
             im["last_user"] = last_user
             self.data["images"][image_name] = im
+            return True
         else:
-            im = create_blank_image()
-            im["last_user"] = last_user
-            self.data["images"][image_name] = im
+            if add_if_empty:
+                im = create_blank_image()
+                im["last_user"] = last_user
+                self.data["images"][image_name] = im
+                return True
+            else:
+                return False
 
     def set_lrm_for_all_images(self, lrms_data, no_image_then_continue=False):
         """Az: установка ЛРМ для изображений функция Романа, с дополнением"""
@@ -495,8 +504,9 @@ class DatasetSAMAHandler:
 
     def calc_stat(self):  # Реализация Романа Хабарова + кое-что из моего
         labels = self.data['labels']
-        stats = {lbl: {'count': 0, 'percent': 0, 'frequency': 0, 'size': {'mean': 0, 'second': 0, 'std': 0}} for lbl in
-                 labels}
+        stats = {lbl: {'count': 0, 'percent': 0, 'frequency': 0, 'balance': 0,
+                       'size': {'mean': 0, 'second': 0, 'std': 0}} for lbl in labels}
+        # balance = {label: '-' for label in labels}  # Az+: создаем словарь "имя метки: баланс"
         frequency = {label: 0 for label in labels}  # Az+: создаем словарь "имя метки: число появлений метки"
         total_label_count = 0
         size_mass = {lbl: [] for lbl in labels}  # Az: создаем словарь "имя метки: []"
@@ -525,12 +535,22 @@ class DatasetSAMAHandler:
                 if key in frequency:
                     frequency[key] += appears[key]
 
+        non_zero_count = 0  # Az+: определяем количество классов для которых имеются метки
+        for label_name in labels:
+            if stats[label_name]['count'] > 0:
+                non_zero_count += 1
+
         number_of_images = len(self.data['images'])
         for label_name in labels:
             if total_label_count == 0:
                 stats[label_name]['percent'] = 0
+                stats[label_name]['balance'] = '-'
             else:
                 stats[label_name]['percent'] = float(stats[label_name]['count']) / total_label_count * 100
+                if stats[label_name]['count'] == 0:
+                    stats[label_name]['balance'] = '-'
+                else:
+                    stats[label_name]['balance'] = 1 - (stats[label_name]['percent'] * non_zero_count / 100)
             mass = np.array(size_mass[label_name])
 
             if len(mass) > 0:

@@ -41,7 +41,7 @@
 # glyph_clear: LAFS
 # glyph_data_graph: Mohamed Mbarki
 # glyph_train: me & Cuputo
-
+# glyph_user_check: Md Tanvirul Haque
 
 # glyph_add_image: Pixel perfect
 # glyph_crop: me & Pixel perfect
@@ -63,7 +63,7 @@
 # glyph_clear_selection: Pixel perfect
 # glyph_grid: Pixel perfect
 # glyph_layers: Pixel perfect
-
+# glyph_file-cabinet: Pixel perfect
 
 # glyph_upload: KP Arts
 # glyph_add: KP Arts
@@ -77,7 +77,6 @@
 # glyph_attributes: KP Arts
 # glyph_search-folder: KP Arts
 # glyph_setups: KP Arts
-
 
 # glyph_editing: Freepik
 # glyph_merge: Freepik
@@ -96,3 +95,4 @@
 # glyph_pen_code: Freepik
 # glyph_clear_filter: Freepik
 # glyph_cook: Freepik
+# glyph_depth: Freepik

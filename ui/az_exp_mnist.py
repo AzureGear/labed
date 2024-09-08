@@ -122,10 +122,10 @@ class PageMNIST(QtWidgets.QWidget):
         # инструменты 2: очистить лог
         self.tb_clear_log = new_button(self, "tb", self.tr("Clear log"), "glyph_clear", the_color,
                                        lambda: self.info.clear(), tooltip=self.tr("Clear log"))
-        self.tb_show_model_data = new_button(self, "tb", self.tr("Show model data"), "glyph_clear", the_color,
+        self.tb_show_model_data = new_button(self, "tb", self.tr("Show model data"), "glyph_depth", the_color,
                                              self.show_model_data, True, tooltip=self.tr("Show model data"))
         panel_lay2 = QtWidgets.QVBoxLayout()
-        tools2 = [self.tb_clear_log]
+        tools2 = [self.tb_show_model_data, self.tb_clear_log]
         for tool2 in tools2:
             panel_lay2.addWidget(tool2)
             tool2.setIconSize(QtCore.QSize(config.UI_AZ_MNIST_ICON_PANEL, config.UI_AZ_MNIST_ICON_PANEL))
@@ -845,6 +845,7 @@ class MNISTHandler(QtWidgets.QWidget):
             layer = bias + weights @ current_layer
             activ_layer = get_activ_func(activ_func, layer)
             current_layer = activ_layer
+            print(f"type: bias {type(bias)}; weights {type(weights)}; activ {type(activ_func)}")
         result = [elem[0] * 100 for elem in current_layer]  # формируем результаты
         return result
 

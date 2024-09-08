@@ -17,10 +17,6 @@ color_val = UI_COLORS.get("val_color")
 color_test = UI_COLORS.get("test_color")
 
 
-# TODO: добавить инструмент назначения Разметчика
-# TODO: рассчитать баланс датасета
-
-
 # ----------------------------------------------------------------------------------------------------------------------
 class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     """
@@ -137,32 +133,49 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         vlay_table_descr.addLayout(hlay_descr)
         vlay_table_descr.addWidget(self.project_description)
 
-        self.btn_copy = new_button(self, "tb", icon="glyph_duplicate", slot=self.attrs_copy_project, color=the_color,
-                                   icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE,
-                                   tooltip=self.tr("Make copy of current project"))
-        self.btn_export = new_button(self, "tb", icon="glyph_check_all", slot=self.attrs_export, color=the_color,
-                                     icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE,
-                                     tooltip=self.tr("Export current project info"))
-        self.btn_save_palette = new_button(self, "tb", icon="glyph_palette", slot=self.attrs_save_palette,
-                                           color=the_color, icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE,
-                                           tooltip=self.tr("Save original project palette"))
-        self.btn_apply_palette = new_button(self, "tb", icon="glyph_paint_brush", slot=self.attrs_apply_palette,
-                                            color=the_color, icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE,
-                                            tooltip=self.tr("Apply palette for current project and reload it"))
-        self.btn_apply_lrm = new_button(self, "tb", icon="glyph_sat_image", slot=self.attrs_apply_lrm_from_folder,
-                                        color=the_color, icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE,
-                                        tooltip=self.tr("Set GSD data from map files in folder to current project"))
         self.btn_save = new_button(self, "tb", icon="glyph_save2", tooltip=self.tr("Save changes to the project"),
                                    slot=self.save, color=the_color, icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE)
-        self.btn_remove_empty = new_button(self, "tb", icon="glyph_clear", slot=self.remove_empty, color=the_color,
-                                           tooltip=self.tr("Remove image entries with missing markup"),
-                                           icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE)
-        self.btn_remove_imgs_records = new_button(self, "tb", icon="glyph_delete", slot=self.remove_imgs_records,
-                                                  color=the_color, tooltip=self.tr("Remove image with pattern"),
-                                                  icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE)
+        self.btn_project_tools = new_button(self, "tb", icon="glyph_file-cabinet", color=the_color,
+                                            tooltip=self.tr("Project tools"),
+                                            icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE)
 
-        self.common_buttons = [self.btn_save, self.btn_save_palette, self.btn_apply_palette, self.btn_export,
-                               self.btn_apply_lrm, self.btn_copy, self.btn_remove_empty, self.btn_remove_imgs_records]
+        self.btn_copy = new_act(self, self.tr("Make copy of current project"), "glyph_duplicate", the_color,
+                                self.attrs_copy_project, tip=self.tr("Make copy of current project"))
+        self.btn_export = new_act(self, self.tr("Export current project info"), "glyph_check_all", the_color,
+                                  self.attrs_export, tip=self.tr("Export current project info"))
+        self.btn_save_palette = new_act(self, self.tr("Save original project palette"), "glyph_palette", the_color,
+                                        self.attrs_save_palette, tip=self.tr("Save original project palette"))
+
+        self.btn_apply_palette = new_act(self, self.tr("Apply palette for current project"), color=the_color,
+                                         icon="glyph_paint_brush", slot=self.attrs_apply_palette,
+                                         tip=self.tr("Apply palette for current project and reload it"))
+        self.btn_apply_lrm = new_act(self, self.tr("Set GSD data via folder"), icon="glyph_sat_image", color=the_color,
+                                     slot=self.attrs_apply_lrm_from_folder,
+                                     tip=self.tr("Set GSD data from map files in folder to current project"))
+        self.btn_remove_empty = new_act(self, self.tr("Remove image entries with missing markup"), icon="glyph_clear",
+                                        color=the_color, slot=self.remove_empty,
+                                        tip=self.tr("Remove image entries with missing markup"))
+        self.btn_remove_imgs_records = new_act(self, self.tr("Remove image with pattern"), icon="glyph_delete",
+                                               color=the_color, slot=self.remove_imgs_records,
+                                               tip=self.tr("Remove image with pattern"))
+        self.btn_assign_user = new_act(self, self.tr("Assign user for data"), icon="glyph_user_check",
+                                       color=the_color, slot=self.assign_user,
+                                       tip=self.tr("Assign user for data"))
+
+        # перечень инструментов проекта
+        self.tools_for_project = [self.btn_copy, self.btn_remove_empty, self.btn_remove_imgs_records,
+                                  self.btn_assign_user, self.btn_apply_lrm, self.btn_save_palette,
+                                  self.btn_apply_palette, self.btn_export]
+        menu_project = QtWidgets.QMenu(self)
+        menu_project.addActions(self.tools_for_project)
+        self.btn_project_tools.setMenu(menu_project)  # устанавливаем меню
+        self.btn_project_tools.setPopupMode(QtWidgets.QToolButton.ToolButtonPopupMode.InstantPopup)
+
+        self.btn_change_balance_calc = new_button(self, "tb", icon="glyph_data_graph", slot=self.change_balance_calc,
+                                                  tooltip=self.tr("Select dataset balance method"),
+                                                  color=the_color, icon_size=config.UI_AZ_PROC_ATTR_ICON_SIZE)
+
+        self.common_buttons = [self.btn_save, self.btn_project_tools, self.btn_change_balance_calc]
 
         v_lay_buttons = QtWidgets.QVBoxLayout()
         for button in self.common_buttons:
@@ -196,7 +209,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                 self.table_widget.setColumnWidth(column, 60)
                 header.setSectionResizeMode(column, QtWidgets.QHeaderView.Fixed)
             # else:
-            #     header.setSectionResizeMode(column, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)  # ResizeToContents
+            # header.setSectionResizeMode(column, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)  # ResizeToContents
         header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Stretch)
 
         # итоговая настройка ui центрального виджета
@@ -406,6 +419,35 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         else:
             icon = "circle_grey"
         self.btn_log_and_status.setIcon(new_icon(icon))
+
+    def assign_user(self):
+        all_images = ", ".join(list(self.sama_data.data["images"].keys()))  # перечень изображений
+        dialog = AzInputDialog(self, 2, [self.tr("Set username for dataset:"), self.tr(
+            "Leave it as is or correct the assigned image\nlist (for example, 'img006, img028'):")],
+                               self.tr("Assign user for for data"), input_type=[0, 0],
+                               combo_inputs=["Unknown", all_images], cancel_text=self.tr("Cancel"))
+        if dialog.exec_() == QtWidgets.QDialog.DialogCode.Rejected:  # нажата "Отмена"
+            return
+        result = dialog.get_inputs()  # получаем результат: ["User_name", "img06, img28"]
+        items = [item.strip() for item in result[1].split(',')]
+        count = 0
+        for item in items:
+            if self.sama_data.get_image_data(item):  # изображение существует
+                if self.sama_data.set_image_last_user(item, result[0]):  # проверяем можно ли установить
+                    count += 1
+        self.log_change_data(self.tr(f"Set user '{result[0]}' for {count} images"))
+        self.signal_message.emit(self.tr(f"Set user '{result[0]}' for {count} images"))
+
+
+    def change_balance_calc(self):
+        # do i need to complete dataset evaluate for balance?
+        methods = ["Shannon entropy"]
+        dialog = AzInputDialog(self, 1, [self.tr("Using method:")],
+                               self.tr("Select dataset balance method"), input_type=[1],
+                               combo_inputs=[methods], cancel_text=self.tr("Cancel"))
+        if dialog.exec_() == QtWidgets.QDialog.DialogCode.Rejected:  # нажата "Отмена"
+            return
+        result = dialog.get_inputs()
 
     def save(self):
         self.save_and_reload(self.current_file, self.tr(f"Project was saved and reload: {self.current_file}"))
@@ -663,9 +705,9 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     def attrs_export(self):
         """ Экспорт общей информации о проекте в текстовый файл """
-        file = az_file_dialog(self, self.tr("Export table data to text file"), self.settings.read_last_dir(),
-                              dir_only=False, remember_dir=False, file_to_save=True, filter="txt (*.txt)",
-                              initial_filter="txt (*.txt)")
+        file = az_file_dialog(self, self.tr("Export table and dataset data to text file"),
+                              self.settings.read_last_dir(), dir_only=False, remember_dir=False, file_to_save=True,
+                              filter="txt (*.txt)", initial_filter="txt (*.txt)")
         if not file:
             return
         if len(file) < 2:
@@ -897,7 +939,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         DatasetSortHandler из "unsort" в выбранную таблицу Train, Sort или Val.
         """
         sender, sel_rows = self.identify_sender_get_rows(check_in=True)
-        if sel_rows:
+        if sel_rows and self.sort_data:
             self.transfer_data("unsort", sender, sel_rows)
 
     def add_group_to_sort_table(self):
@@ -907,7 +949,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         к выбранной группе.
         """
         sender, sel_rows = self.identify_sender_get_rows(check_in=True)
-        if sel_rows:
+        if sel_rows and self.sort_data:
             self.transfer_data("unsort", sender, sel_rows, use_group=True)
 
     def remove_from_sort_table(self):
@@ -915,7 +957,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         Удаление строк из сортировочной таблицы и в классе DatasetSortHandler. Перемещение удаленных строк в table_image
         """
         sender, sel_rows = self.identify_sender_get_rows(check_out=True)  # получаем отправителя и строки
-        if sel_rows:
+        if sel_rows and self.sort_data:
             self.transfer_data(sender, "unsort", sel_rows)
 
     def remove_group_from_sort_table(self):
@@ -924,7 +966,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         в table_image.
         """
         sender, sel_rows = self.identify_sender_get_rows(check_out=True)  # получаем отправителя и строки
-        if sel_rows:
+        if sel_rows and self.sort_data:
             self.transfer_data(sender, "unsort", sel_rows, use_group=True)
 
     def update_sort_data_tables(self):
@@ -1062,33 +1104,6 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             self.signal_message.emit(
                 self.tr(f"Dataset export complete to '{self.export_dialog.export_worker.export_dir}'"))
 
-        return
-
-        # входной каталог:
-        input_dir = "d:\\data_sets\\oil_refinery\\tank_exp\\full"
-
-        # выходной каталог:
-        output_dir = "d:\\data_sets\\oil_refinery\\yolo_seg\\tanks_1280"
-        os.makedirs(output_dir, exist_ok=True)
-
-        # сначала базовые каталоги "images" и "labels"
-        images_dir = os.path.join(output_dir, 'images')
-        os.makedirs(images_dir, exist_ok=True)
-        labels_dir = os.path.join(output_dir, 'labels')
-        os.makedirs(labels_dir, exist_ok=True)
-
-        # создаем каталоги "test", "train" и "val"
-        for subdir in ['test', 'train', 'val']:
-            images_subdir = os.path.join(images_dir, subdir)
-            os.makedirs(images_subdir, exist_ok=True)
-            labels_subdir = os.path.join(labels_dir, subdir)
-            os.makedirs(labels_subdir, exist_ok=True)
-
-        train = self.move_sorting_files(input_dir, output_dir, "train", self.sort_data.get_images_names("train"))
-        val = self.move_sorting_files(input_dir, output_dir, "val", self.sort_data.get_images_names("val"))
-        self.signal_message.emit(self.tr(f"Moving complete. Success moved {train[0] + val[0]} files. "
-                                         f"Errors for {train[1] + val[1]} files"))
-
     @staticmethod
     def get_selected_rows(table, column):
         """Получение выделенных строк таблицы"""
@@ -1182,6 +1197,18 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         if self.sort_dialog:
             self.sort_dialog.translate_ui()
         self.label_project.setText(self.tr("Path to file project (*.json):"))
+        self.btn_project_tools.setToolTip(self.tr("Project tools"))
+
+        self.btn_copy.setText(self.tr("Make copy of current project"))
+        self.btn_export.setText(self.tr("Export current project info"))
+        self.btn_save_palette.setText(self.tr("Save palette from current project"))
+        self.btn_apply_palette.setText(self.tr("Apply palette for current project"))
+        self.btn_save.setText(self.tr("Save changes to the project"))
+        self.btn_apply_lrm.setText(self.tr("Set GSD data via folder with *.map"))
+        self.btn_remove_empty.setText(self.tr("Remove image entries with missing markup"))
+        self.btn_remove_imgs_records.setText(self.tr("Remove image with pattern"))
+        self.btn_assign_user.setText(self.tr("Assign user for data"))
+
         self.btn_copy.setToolTip(self.tr("Make copy of current project"))
         self.btn_export.setToolTip(self.tr("Export current project info"))
         self.btn_save_palette.setToolTip(self.tr("Save palette from current project"))
@@ -1190,6 +1217,8 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.btn_apply_lrm.setToolTip(self.tr("Set GSD data from map files in folder to current project"))
         self.btn_remove_empty.setToolTip(self.tr("Remove image entries with missing markup"))
         self.btn_remove_imgs_records.setToolTip(self.tr("Remove image with pattern"))
+        self.btn_change_balance_calc.setToolTip(self.tr("Select dataset balance method"))
+        self.btn_assign_user.setToolTip(self.tr("Assign user for data"))
 
         self.tb_edit_project_descr.setToolTip(self.tr("Toggle edit project description"))
         self.project_label.setText(self.tr("Project description:"))
