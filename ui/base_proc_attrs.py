@@ -470,11 +470,17 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     def image_table_toggle_sort_mode(self, silent=False):
         """Включение и выключение режима сортировщика"""
         self.sort_mode = self.ti_tb_sort_mode.isChecked()  # устанавливаем текущий режим
+        print("try")
         for ti_instr in self.ti_instruments:
             ti_instr.setEnabled(self.sort_mode)
 
+        if self.sort_file:
+            flag_wid = self.sort_mode
+        else:
+            flag_wid = False
+
         for wid in self.sort_tables:  # устанавливаем флаг для виджетов таблиц сортировки
-            wid.setEnabled(self.sort_mode)
+            wid.setEnabled(flag_wid)
 
         if not silent:
             if self.sort_mode:
@@ -520,6 +526,9 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     def toggle_groups(self):
         """Включение и выключение режима сортировщика"""
         if not self.sort_mode:
+            for wid in self.sort_tables:
+                wid.ti_tb_sort_add_to.setEnabled(False)
+                wid.ti_tb_sort_remove_from.setEnabled(False)
             return
 
         flag = not self.ti_tb_toggle_groups.isChecked()
@@ -1066,7 +1075,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     def smart_sort(self):
         """Автоматизированная сортировка"""
         if not self.sort_file:
-            self.signal_message.emit(self.tr(f"First open or crete sort file."))
+            self.signal_message.emit(self.tr(f"First open or create sort file."))
             return
         full_data = self.sort_data.get_data("full")
         if self.sort_data.is_correct_file and len(full_data) > 2:  # исходные данные корректны
@@ -1095,7 +1104,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     def cook_dataset(self):
         """Вызов диалога экспорта данных"""
         if not self.sort_file:
-            self.signal_message.emit(self.tr(f"First open or crete sort file."))
+            self.signal_message.emit(self.tr(f"First open or create sort file."))
             return
 
         split_data = {item: list(self.sort_data.get_images_names(item)) for item in ["train", "val", "test"]}

@@ -331,7 +331,7 @@ class AzSortTable(QtWidgets.QWidget):
         self.table_view.setSelectionMode(QtWidgets.QTableView.SelectionMode.MultiSelection)
         self.align_rows_and_cols()  # высота строк и ширина столбцов единообразна
 
-    def init_sort_models(self, data=[["aaa"], ["bbb"]]):
+    def init_sort_models(self, data=[]):
         self.core_model = AzSimpleModel(data, self.table_headers)  # с тестовыми данными
         self.model = QtCore.QSortFilterProxyModel()  # создаём второстепенную модель, которая позволяет сортировку
         self.model.setSourceModel(self.core_model)
