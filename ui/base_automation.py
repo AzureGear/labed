@@ -1,5 +1,5 @@
-from PyQt5 import QtCore, QtWidgets
-from utils import AppSettings, UI_COLORS
+from PyQt5 import QtCore, QtWidgets, QtGui
+from utils import AppSettings, UI_COLORS, helper
 from utils.helper import load, save, check_files
 from ui import az_file_dialog
 import cv2
@@ -25,16 +25,16 @@ class AutomationUI(QtWidgets.QWidget):
         self.button01 = QtWidgets.QPushButton("Get palette")
         self.button02 = QtWidgets.QPushButton("Apply palette")
         self.button03 = QtWidgets.QPushButton("Cut images in dir")
-        self.button04 = QtWidgets.QPushButton("--- NONE ----")
+        self.button04 = QtWidgets.QPushButton("Create txt files in dir")
 
         main_win = QtWidgets.QMainWindow()
         main_win.setCentralWidget(self.log)
 
         g_layout = QtWidgets.QGridLayout()
         g_layout.addWidget(self.button01, 0, 0)
-        g_layout.addWidget(self.button02, 0, 1)
-        g_layout.addWidget(self.button03, 1, 0)
-        g_layout.addWidget(self.button04, 1, 1)
+        g_layout.addWidget(self.button02, 1, 0)
+        g_layout.addWidget(self.button03, 2, 0)
+        g_layout.addWidget(self.button04, 3, 0)
 
         h_layout = QtWidgets.QHBoxLayout()
         h_layout.addLayout(g_layout)
@@ -47,7 +47,25 @@ class AutomationUI(QtWidgets.QWidget):
         self.button01.clicked.connect(self.palette_get)
         self.button02.clicked.connect(self.palette_apply)
         self.button03.clicked.connect(self.split_images_in_dir)
-        self.button04.clicked.connect(self.none)
+        self.button04.clicked.connect(self.create_text_files_in_dir)
+
+    def create_text_files_in_dir(self):
+        """Создание для изображения пустых текстовых файлов (как дополнительные данные в валидацию при обучении)"""
+        sel_dir = az_file_dialog(self, self.tr("Каталог с изображениями, для которых создаются txt"),
+                                 self.settings.read_last_dir(), dir_only=True)
+        if not os.path.exists(sel_dir):
+            return
+        # используем только поддерживаемые QImageReader расширения
+        types = [".%s" % fmt.data().decode().lower() for fmt in QtGui.QImageReader.supportedImageFormats()]
+        text_files = []  # перечень возвращаемых изображений
+        for root, dirs, files in os.walk(sel_dir):
+            for file in files:
+                if file.lower().endswith(tuple(types)):
+                    relative_path = os.path.normpath(os.path.join(root, os.path.splitext(os.path.basename(file))[0] + ".txt"))
+                    text_files.append(relative_path)
+            break
+        [helper.save_txt(txt, "") for txt in text_files]  # создаем пустышки
+
 
     def palette_get(self):
         pass # перемещено в Attrs
@@ -94,10 +112,11 @@ class AutomationUI(QtWidgets.QWidget):
         if not ok:
             return
         # получаем случайные снимки...
+        # TODO: не сохранять остатки от нарезки
         random_filenames = self.get_random_files(sel_dir, int(files_count))
         if random_filenames:  # ...и режем их на заданные размеры
             for file in random_filenames:
-                self.split_image(file, int(size), int(size), save)
+                self.split_image(file, int(size), int(size), save, False)
 
     def none(self):
         pass
@@ -133,7 +152,7 @@ class AutomationUI(QtWidgets.QWidget):
         return random.sample(image_filenames, count)
 
     @staticmethod
-    def split_image(image_path, split_width, split_height, save_path):
+    def split_image(image_path, split_width, split_height, save_path, save_not_full=True):
         """
         Разбивка изображения (image_path) заданного размера w x h (width, height) в каталог (save_path).
         split_image("d:/data_sets/test.jpg", 200, 200 "d:/output")
@@ -144,11 +163,13 @@ class AutomationUI(QtWidgets.QWidget):
         tile_height = split_height
         count = 0  # счётчик
         filename = os.path.splitext(os.path.basename(image_path))[0]
-        # если обрезка имеет остаток - добавляем до заданного размера область черного цвета
-        pad_width = tile_width - (width % tile_width) if width % tile_width else 0
-        pad_height = tile_height - (height % tile_height) if height % tile_height else 0
 
-        img = cv2.copyMakeBorder(img, 0, pad_height, 0, pad_width, cv2.BORDER_CONSTANT, value=(0, 0, 0))
+        # флаг сохранять и обрезанные границы
+        if save_not_full: # если обрезка имеет остаток - добавляем до заданного размера область черного цвета
+            pad_width = tile_width - (width % tile_width) if width % tile_width else 0
+            pad_height = tile_height - (height % tile_height) if height % tile_height else 0
+
+            img = cv2.copyMakeBorder(img, 0, pad_height, 0, pad_width, cv2.BORDER_CONSTANT, value=(0, 0, 0))
 
         width, height, _ = img.shape
 

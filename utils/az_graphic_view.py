@@ -153,8 +153,6 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
                 self.viewport().setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ClosedHandCursor))
             return
 
-        print(modifierName)
-
         # режим перемещения "ручкой"
         if self.view_state == ViewState.hand_move:
             if not self.hand_start_point:
@@ -185,14 +183,12 @@ class AzImageViewer(QtWidgets.QGraphicsView):  # Реализация Роман
                 return
 
             if 'Right Click' in modifierName:
-                print("you are right")
                 self.add_mc_point(sp, self.scan_size)
                 if self.points_mc:
                     self.signal_list_mc_changed.emit(True)  # сигнализируем об изменении перечня точек РК
                 return
 
             if 'Left Click' in modifierName:
-                print("you are left")
                 super(AzImageViewer, self).mousePressEvent(event)  # инициируем событие для класса QGraphicsView
                 self.click_point = lp  # запоминаем точку старта
                 return

@@ -440,6 +440,8 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
 
     def change_balance_calc(self):
+        self.del_all_but_ex()
+        return
         # do i need to complete dataset evaluate for balance?
         methods = ["Shannon entropy"]
         dialog = AzInputDialog(self, 1, [self.tr("Using method:")],
@@ -1176,9 +1178,9 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             return
         result = dialog.get_inputs()  # получаем введенные данные
         pattern_list = [item.strip() for item in result[0].split(',')]  # разделяем по запятым, удаляем пробелы
-        deleted = self.sama_data.remove_records_with_pattern(pattern_list)  # удаляем записи из проекта
-        if deleted:
-            message = self.tr(f"Removed: {len(deleted)} images records")
+        deleted = self.sama_data.remove_images_with_pattern(pattern_list)  # удаляем записи из проекта
+        if deleted > 0:
+            message = self.tr(f"Removed: {deleted} images records")
             self.log_change_data(message)
             self.signal_message.emit(message)
         else:
@@ -1260,6 +1262,14 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         val = "04-cat_crack"
         mylist = self.sama_data.get_images_by_label(val)
         print("list: ", mylist)
+
+    # todo: перенести в другое место
+    def del_all_but_ex(self):
+        exclusions = ""
+        excl = [item.strip() for item in exclusions.split(',')]
+        deleted = self.sama_data.remove_images(excl, True)  # удаляем записи из проекта
+        if deleted:
+            print(deleted)
 
 
 # ----------------------------------------------------------------------------------------------------------------------

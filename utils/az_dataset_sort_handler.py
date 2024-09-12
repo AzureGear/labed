@@ -1,6 +1,7 @@
 from utils import helper
 import ujson
 import re
+# TODO: исправить расчет статистики; добавить переключение между количеством и процентажем
 
 
 class DatasetSortHandler:
