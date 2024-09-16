@@ -16,6 +16,8 @@ color_train = UI_COLORS.get("train_color")
 color_val = UI_COLORS.get("val_color")
 color_test = UI_COLORS.get("test_color")
 
+# TODO: add calc mean, sd, for channels
+# TODO: add path for images
 
 # ----------------------------------------------------------------------------------------------------------------------
 class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
@@ -440,7 +442,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
 
     def change_balance_calc(self):
-        self.del_all_but_ex()
+        self.find_by_label()
         return
         # do i need to complete dataset evaluate for balance?
         methods = ["Shannon entropy"]
@@ -472,7 +474,6 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
     def image_table_toggle_sort_mode(self, silent=False):
         """Включение и выключение режима сортировщика"""
         self.sort_mode = self.ti_tb_sort_mode.isChecked()  # устанавливаем текущий режим
-        print("try")
         for ti_instr in self.ti_instruments:
             ti_instr.setEnabled(self.sort_mode)
 
@@ -1259,7 +1260,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     # todo: перенести в другое место
     def find_by_label(self):
-        val = "04-cat_crack"
+        val = "03-gas_frac"
         mylist = self.sama_data.get_images_by_label(val)
         print("list: ", mylist)
 
