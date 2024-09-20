@@ -1056,6 +1056,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             for wid in self.sort_tables:  # инициализируем модели при первой загрузке
                 wid.init_sort_models()
             self.update_sort_data_tables()  # заполняем таблицы
+            self.image_table_toggle_sort_mode()
             self.signal_message.emit(self.tr(f"Train-val sorting project load: {path}"))
         else:
             self.ti_tb_sort_open.clear()  # Очищаем поле с файлом, что выбрал пользователь, т.к. файл не корректен
@@ -1113,8 +1114,9 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         split_data = {item: list(self.sort_data.get_images_names(item)) for item in ["train", "val", "test"]}
         self.export_dialog = AzExportDialog(self.sama_data.data, split_data, parent=self)
         if self.export_dialog.exec_() == QtWidgets.QDialog.Accepted:
-            self.signal_message.emit(
-                self.tr(f"Dataset export complete to '{self.export_dialog.export_worker.export_dir}'"))
+            message = self.tr(f"Dataset export complete to '{self.export_dialog.export_worker.export_dir}'")
+            self.log_change_data(message)
+            self.signal_message.emit(message)
 
     @staticmethod
     def get_selected_rows(table, column):

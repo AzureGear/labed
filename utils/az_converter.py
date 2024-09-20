@@ -142,8 +142,12 @@ def merge_sama_to_sama(input_files, output_file, copy_files=False):
 
         for image, image_dict in input_data["images"].items():  # анализируем словарь изображений
             if image not in images.keys():  # такого изображения нет, значит будем добавлять его в словарь
+                if "last_user" not in image_dict.keys():  # если записи о last_user нет, то будет "None"
+                    image_dict["last_user"] = None
                 new_image_dict = {"shapes": [],  # новый словарь для image: { shapes, lrm, status, last_user }
-                                  "lrm": image_dict["lrm"], "status": image_dict["status"], "last_user": None}
+                                  "lrm": image_dict["lrm"],
+                                  "status": image_dict["status"],
+                                  "last_user": image_dict["last_user"]}
 
                 for shape in image_dict["shapes"]:  # shape = { "cls_num":, "id":, "points":[ ] }
                     new_one_shape = {"cls_num": labels_match_dict[shape["cls_num"]], "id": id_count,

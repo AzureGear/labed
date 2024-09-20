@@ -192,7 +192,7 @@ class Exporter(QtCore.QThread):
 
     def create_images_labels_subdirs(self, export_dir, is_labels_need=True):
 
-        if self.format == "mm_seg":
+        if self.format == "MMSegmentation":
 
             images_dir = os.path.join(export_dir, 'img_dir')
             if not os.path.exists(images_dir):
