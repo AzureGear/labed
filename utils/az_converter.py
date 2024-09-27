@@ -3,43 +3,49 @@ from utils.helper import load, save
 import shutil
 import os
 
+# TODO: как объединять разметку для одинаковых изображений...
+# 1) вариант: проверить, есть ли там вообще разметка, если нет, то заменить всё новым
+# 2) вариант: проверять есть ли такой класс (через название меток) и если нет, то добавлять новый класс к существующим
+# ----------------------------------------------------------------------------------------------------------------------
+"""
+Структура *.json файла SAMA (Романа Хабарова)
 
+"path_to_images": "F:\\data_sets\\test_oil_ref\\"
+data["path_to_images"] = "only_one_path"
+ ├- data["images"] = {"one.jpg":{ }, "two.jpg":{ }, ... , "n.jpg":{ } }
+ |                               └- {shapes: [ { } ] }
+ |                                              └- "cls_num":, "id":, "points":[ ]
+ |                                                                              └- [[x1, y1], [x2, y2], ... [xn, yn]]
+ ├- data["labels"] = ["name_one", "name_two", ... , "name_n"]
+ └- data["labels_color"] = {"name_one", "name_two", ... , "name_n": [ ] }
+                                                                     └- label [r, g, b]
+"""
 # ----------------------------------------------------------------------------------------------------------------------
-# Структура *.json файла SAMA (Романа Хабарова)
-#
-# "path_to_images": "F:\\data_sets\\test_oil_ref\\"
-# data["path_to_images"] = "only_one_path"
-#  ├- data["images"] = {"one.jpg":{ }, "two.jpg":{ }, ... , "n.jpg":{ } }
-#  |                               └- {shapes: [ { } ] }
-#  |                                              └- "cls_num":, "id":, "points":[ ]
-#  |                                                                              └- [[x1, y1], [x2, y2], ... [xn, yn]]
-#  ├- data["labels"] = ["name_one", "name_two", ... , "name_n"]
-#  └- data["labels_color"] = {"name_one", "name_two", ... , "name_n": [ ] }
-#                                                                      └- label [r, g, b]
-#
+""" Структура *.json  файла LabelMe (Michael Pitidis, Hussein Abdulwahid, Kentaro Wada)
+
+"version": "",
+"flags": {},
+"shapes": [{ }, { } ... { } ]
+            ├- "label" : "name",
+            ├- "points" : [ ],
+            |              └- [ [x1, y1], [x2, y2], ... [xn, yn] ]
+            ├- "group_id" : null,
+            ├- "description" : "descr",
+            ├- "shape_type" : "polygon",
+            ├- "flags" : { },
+            └- "mask" : null
+"imagePath": "some_name.jpg",
+"imageData": "...<data>..."
+"""
 # ----------------------------------------------------------------------------------------------------------------------
-# Структура *.json  файла LabelMe (Michael Pitidis, Hussein Abdulwahid, Kentaro Wada)
-#
-# "version": "",
-# "flags": {},
-# "shapes": [{ }, { } ... { } ]
-#             ├- "label" : "name",
-#             ├- "points" : [ ],
-#             |              └- [ [x1, y1], [x2, y2], ... [xn, yn] ]
-#             ├- "group_id" : null,
-#             ├- "description" : "descr",
-#             ├- "shape_type" : "polygon",
-#             ├- "flags" : { },
-#             └- "mask" : null
-# "imagePath": "some_name.jpg",
-# "imageData": "...<data>..."
-#
-# ----------------------------------------------------------------------------------------------------------------------
+"""
 # Структура файла хранения проекта точек Визуального ручного кадрирования (AzManualSlice):
-# "filename" = "D:/data_sets/uranium enrichment/test_cut/crude_uranium_enrichment.json"
-# "scan_size" = 1280
-#  "images" = { "125n_FRA_2019-09.jpg" : [ ], ... }
-# 		                                  └-  "points" : { [x1, y1], [x2, y2], ... , [xN, yN] }
+
+"filename" = "D:/data_sets/uranium enrichment/test_cut/crude_uranium_enrichment.json"  # 
+"scan_size" = 1280  # размер окна кадрирования
+"images" = { "125n_FRA_2019-09.jpg" : [ ], ... }
+	                                   └-  "points" : { [x1, y1], [x2, y2], ... , [xN, yN] }
+"""
 # ----------------------------------------------------------------------------------------------------------------------
 
 def convert_labelme_to_sama(input_files, output_file):

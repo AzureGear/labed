@@ -1262,7 +1262,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     # todo: перенести в другое место
     def find_by_label(self):
-        val = "03-gas_frac"
+        val = "04-cat_crack"
         mylist = self.sama_data.get_images_by_label(val)
         print("list: ", mylist)
 
