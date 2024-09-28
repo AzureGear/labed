@@ -31,16 +31,15 @@ class TabGeometryUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         pass
 
     def tr(self, text):
-        return QtCore.QCoreApplication.translate("TabMergeUI", text)
+        return QtCore.QCoreApplication.translate("TabGeometryUI", text)
 
     def translate_ui(self):  # переводим текущие тексты и добавленные/вложенные вкладки
-        # Processing - Merge
+        # Processing - Geometry
         pass
 
 
 if __name__ == "__main__":
     import sys
-
     app = QtWidgets.QApplication(sys.argv)
     w = TabGeometryUI()
     w.show()

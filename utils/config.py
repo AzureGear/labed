@@ -36,7 +36,7 @@ UI_COLORS = {
 
 # настройка Интерфейса доступных модулей:
 UI_ENABLE = {
-    "process": {"merge": True, "slice": True, "attributes": True, "geometry": True},
+    "process": {"merge": True, "slice": True, "attributes": True, "sort": True, "geometry": True},
     "automation": True,
     "experiment": {"mnist": True, "nor": True},
 }
@@ -60,7 +60,6 @@ UI_AZ_SLICE_MANUAL = {
     "top_dock": [True, False, False, False, True, True],
     "files_dock": [True, False, True, False, False, False]
 }
-
 
 # az_exp_mnist.py
 UI_AZ_MNIST_ICON_PANEL = 24  # размер иконок для панели инструментов

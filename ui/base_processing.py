@@ -44,6 +44,10 @@ class ProcessingUI(QtWidgets.QWidget):
             from ui import base_proc_attrs
             self.add_tab("attributes", base_proc_attrs.TabAttributesUI)
 
+        if config.UI_ENABLE.get("process", {}).get("sort", None):
+            from ui import base_proc_sort
+            self.add_tab("sort", base_proc_sort.TabSortUI)
+
         if config.UI_ENABLE.get("process", {}).get("geometry", None):
             from ui import base_proc_geom
             self.add_tab("geometry", base_proc_geom.TabGeometryUI)
@@ -91,10 +95,12 @@ class ProcessingUI(QtWidgets.QWidget):
         names = {"merge": self.tr("Merge"),
                  "slice": self.tr("Slice"),
                  "attributes": self.tr("Attributes"),
+                 "sort": self.tr("Sorting"),
                  "geometry": self.tr("Geometry")}
         tooltips = {"merge": self.tr("Merging and converting markup projects"),
                     "slice": self.tr("Manual and automatic dataset cropping"),
-                    "attributes": self.tr("View and edit dataset attributes, statistic and train/val/test sorting"),
+                    "attributes": self.tr("View and edit dataset attributes and statistic"),
+                    "sort": self.tr("Sorting dataset to train/val/test"),
                     "geometry": self.tr("Changing the geometry of markup project objects")}
 
         i = 0  # мы же не знаем сколько вкладок разрешено активировать
