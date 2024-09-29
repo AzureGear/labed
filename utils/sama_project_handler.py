@@ -107,6 +107,13 @@ class DatasetSAMAHandler:
             self.set_image_status(image_name, 'empty')
             return 'empty'
 
+    def get_images_list(self):
+        """Az+: возвращение перечня изображений текущих данных"""
+        if self.get_images_num() > 0:
+            return self.data["images"].keys()
+        else:
+            return None
+
     def get_all_images_info(self):
         res = {}
         for image_name, im_data in self.data["images"].items():

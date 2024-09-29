@@ -46,6 +46,8 @@ data["path_to_images"] = "only_one_path"
 "images" = { "125n_FRA_2019-09.jpg" : [ ], ... }
 	                                   └-  "points" : { [x1, y1], [x2, y2], ... , [xN, yN] }
 """
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 
 def convert_labelme_to_sama(input_files, output_file):
@@ -108,19 +110,23 @@ def merge_sama_to_sama(input_files, output_file, copy_files=False):
     """
     Слияние файлов проектов формата SAMA с копированием файлов
     """
-    error_main_count = 0  # счетчик серьезных ошибок
-    error_duplicate_images = 0  # счетчик ошибок дублирования изображений
+    result = {"error_no_data": [], "error_duplicate": []}
+
+    error_no_data = []  # список ошибок отсутствия данных
+    error_duplicate_images = []  # список ошибок дублирования изображений
     data = dict()  # выходные данные
     data["path_to_images"] = os.path.dirname(output_file)  # путь каталога выходного файла
     images = dict()  # словарь всех изображений
     id_count = 0
     combined_labels = []  # объединенные метки для всех-всех файлов (супер список)
     combined_colors = dict()
+    combined_descr = ""  # объединенное описание проекта
 
     for input_file in input_files:  # проходим цикл, чтобы сформировать общий набор классов (имён меток)
         input_data = load(input_file)
         if not input_data:
-            error_main_count += 1  # увеличиваем счетчик важных ошибок
+            error_no_data.append(input_file)
+
         else:
             input_labels = input_data["labels"]  # список имен меток { "label1", "label2", ... }
 
@@ -128,13 +134,17 @@ def merge_sama_to_sama(input_files, output_file, copy_files=False):
                 if label not in combined_labels:  # если метки в нашем объединённом словаре нет...
                     combined_labels.append(label)  # ...то мы её добавляем
                     combined_colors[label] = input_data["labels_color"][label]  # заодно формируем цвета
+            if "description" in input_data.keys():
+                combined_descr += input_data["description"] + "\n"
 
     data["labels"] = combined_labels
     data["labels_color"] = combined_colors
 
+    result["error_no_data"] = error_no_data  # ошибки отсутствия данных
+
     # print(combined_labels)
-    if len(input_files) == error_main_count:
-        return 2  # возвращаем код ошибки: чтение файлов неудачно, объединить ничего не выйдет
+    if len(input_files) == len(error_no_data):
+        return result  # возвращаем словарь ошибок: чтение файлов неудачно, объединить ничего не выйдет
 
     for input_file in input_files:  # снова проходим все файлы
         input_data = load(input_file)
@@ -148,8 +158,10 @@ def merge_sama_to_sama(input_files, output_file, copy_files=False):
 
         for image, image_dict in input_data["images"].items():  # анализируем словарь изображений
             if image not in images.keys():  # такого изображения нет, значит будем добавлять его в словарь
-                if "last_user" not in image_dict.keys():  # если записи о last_user нет, то будет "None"
-                    image_dict["last_user"] = None
+                image_dict.setdefault("last_user", None)
+                image_dict.setdefault("lrm", None)
+                image_dict.setdefault("status", None)
+
                 new_image_dict = {"shapes": [],  # новый словарь для image: { shapes, lrm, status, last_user }
                                   "lrm": image_dict["lrm"],
                                   "status": image_dict["status"],
@@ -167,13 +179,14 @@ def merge_sama_to_sama(input_files, output_file, copy_files=False):
 
                 images[image] = new_image_dict
             else:
-                error_duplicate_images += 1
+                error_duplicate_images.append(image)
+
     data["images"] = images
+    data["description"] = combined_descr
     save(output_file, data, 'w+')  # записываем результат
-    if error_main_count != 0 or error_duplicate_images != 0:  # сигнализируем об ошибках
-        return error_main_count + error_duplicate_images
-    else:
-        return 0
+
+    result["error_duplicate_images"] = error_duplicate_images  # ошибки отсутствия данных
+    return result
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -189,4 +202,3 @@ if __name__ == '__main__':  # заглушка для отладки
                         "d:/data_sets/oil_refinery/cutter_prj/cut_prj.json"],
                        "d:/data_sets/output_data/_merge.json")
     # convert_labelme_to_sama(my_list, "F:/data_sets/uranium enrichment/_merge.json")
-

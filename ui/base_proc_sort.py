@@ -34,7 +34,6 @@ class TabSortUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             self.icon_active = coloring_icon("glyph_objects", color_active)
         if color_inactive:
             self.icon_inactive = coloring_icon("glyph_objects", color_inactive)
-        self.setCentralWidget(QtWidgets.QPushButton("text"))
 
         self.current_file = None  # текущий файл проекта SAMA
         self.sort_file = None  # текущий файл сортировки
@@ -43,13 +42,14 @@ class TabSortUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.sort_dialog = None  # диалог сортировки
         self.export_dialog = None  # диалог экспорта данных
         self.model_image = None  # модель для данных фильтрата
+        self.sama_data = DatasetSAMAHandler()  # данные из проекта SAMA инициализируем пустым
 
         caption = self.setup_caption_widget()  # возвращает QHBoxLayout, настроенный компоновщик
         container_down = self.setup_down_central_widget()  # настройка ui, таблица фильтрата, возвращает виджет
 
         central_layout = QtWidgets.QVBoxLayout(self)  # главный Layout, наследуемый класс
         central_layout.addLayout(caption)
-        central_layout.addWidget(container_down)
+        central_layout.addWidget(container_down, 1)
         wid = QtWidgets.QWidget()
         wid.setLayout(central_layout)
         self.setCentralWidget(wid)
@@ -132,7 +132,7 @@ class TabSortUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
         # для настройки группы
         self.ti_sel_obj_text = QtWidgets.QLabel(self.tr("Selected\ngroup:"))
-        self.ti_sel_obj_icon = new_label_icon("glyph_objects", the_color, config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
+        self.ti_sel_obj_icon = new_label_icon("glyph_filter", the_color, config.UI_AZ_PROC_ATTR_IM_ICON_SIZE)
 
         self.ti_cbx_sel_class = QtWidgets.QComboBox()
         self.ti_cbx_sel_obj = QtWidgets.QComboBox()
@@ -259,9 +259,7 @@ class TabSortUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         return splitter
 
     def toggle_tool_buttons(self, flag):
-        """Переключаем базовые и особые инструменты"""
-        # for button in self.common_buttons:
-        #     button.setEnabled(flag)
+        """Переключаем инструменты"""
         for item in self.special_tools:
             item.setEnabled(flag)
 
@@ -440,8 +438,6 @@ class TabSortUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         # Все загружено и всё корректно, поэтому записываем его в реестр и начинаем процедуру загрузки
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)
         self.file_json.setText(filename)
-        if self.sama_data.get_project_description() is not None:  # загрузка описания проекта
-            self.project_description.setText(self.sama_data.get_project_description())
         self.current_file = filename
         self.settings.write_attributes_input(filename)
         self.toggle_tool_buttons(True)
@@ -701,6 +697,46 @@ class TabSortUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             if wid.sort_type == name:
                 return wid
 
+    @staticmethod
+    def get_selected_rows(table, column):
+        """Получение выделенных строк таблицы"""
+        indexes = table.selectionModel().selectedIndexes()
+        sel_rows = set()
+        for index in indexes:
+            if index.column() == column:
+                sel_rows.add(index.data(QtCore.Qt.ItemDataRole.DisplayRole))  # получаем набор уникальных значений
+        return sel_rows
+
+    @staticmethod
+    def move_sorting_files(input_dir, output_dir, train_val_test, data):
+        """
+        input_dir - исходный каталог, где размещены файлы изображений и файлы txt
+        output_dir - выходной каталог экспорта
+        train_val_test - конкретизируйте тип данных: "train", "val", "test"
+        data - перечень файлов изображений, которые будут перемещаться
+        """
+        output_txt_dir = os.path.join(output_dir, "labels", train_val_test)
+        output_jpg_dir = os.path.join(output_dir, "images", train_val_test)
+
+        good_counts = 0
+        bad_counts = 0
+
+        for filename in data:
+            txt_name = os.path.splitext(os.path.basename(filename))[0] + ".txt"
+            src_txt = os.path.join(input_dir, txt_name)
+            dst_txt = os.path.join(output_txt_dir, txt_name)
+
+            src_jpg = os.path.join(input_dir, filename)
+            dst_jpg = os.path.join(output_jpg_dir, filename)
+
+            try:  # перемещение
+                shutil.move(src_txt, dst_txt)
+                shutil.move(src_jpg, dst_jpg)
+                good_counts += 1
+            except FileNotFoundError:  # счетчик не перемещенных файлов
+                bad_counts += 1
+        return [good_counts, bad_counts]
+
     def smart_sort(self):
         """Автоматизированная сортировка"""
         if not self.sort_file:
@@ -748,8 +784,40 @@ class TabSortUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     def translate_ui(self):  # переводим текущие тексты и добавленные/вложенные вкладки
         # Processing - Dataset Sorting
-        pass
 
+        if self.model_image:
+            self.model_image.setHorizontalHeaderLabels([self.tr("Group"), self.tr("Images"), self.tr("Label"),
+                                                        self.tr("Number")])
+        self.sort_widget_train.translate_ui()
+        self.sort_widget_val.translate_ui()
+        self.sort_widget_test.translate_ui()
+        if self.sort_dialog:
+            self.sort_dialog.translate_ui()
+
+        self.label_project.setText(self.tr("Path to file project (*.json):"))
+
+        self.ti_sel_class_text.setText(self.tr("Selected\nlabel:"))
+        self.ti_sel_obj_text.setText(self.tr("Selected\ngroup:"))
+        self.ti_pb_sel_clear_selection.setToolTip(self.tr("Reset selection"))
+        self.ti_pb_sel_clear_filters.setToolTip(self.tr("Clear filters"))
+
+        self.ti_tb_sort_mode.setText(self.tr(" Toggle sort\n train/val"))
+        self.ti_tb_sort_mode.setToolTip(self.tr("Enable sort mode for train/val"))
+        self.ti_tb_sort_new.setToolTip(self.tr("New train-val sorting project"))
+        self.ti_tb_toggle_tables.setToolTip(self.tr("Toggle tables"))
+        self.ti_tb_sort_save.setToolTip(self.tr("Save train-val sorting project"))
+        self.ti_tb_sort_smart.setToolTip(self.tr("Smart dataset sort"))
+        self.ti_tb_sort_cook.setToolTip(self.tr("Cook dataset"))
+        self.sort_project_name.setText(self.tr("Path to sorting project (*.sort):"))
+        self.ti_tb_sort_open.button.setToolTip(self.tr("Open file"))
+
+        self.test_val_stats_label.setText(self.tr("Statistic for train/val data:"))
+        self.toggle_train.setText(self.tr(f"Toggle train"))
+        self.toggle_train.setToolTip(self.tr("Show or hide table train"))
+        self.toggle_val.setText(self.tr(f"Toggle val"))
+        self.toggle_val.setToolTip(self.tr("Show or hide table val"))
+        self.toggle_test.setText(self.tr(f"Toggle test"))
+        self.toggle_test.setToolTip(self.tr("Show or hide table test"))
 
 if __name__ == "__main__":
     import sys

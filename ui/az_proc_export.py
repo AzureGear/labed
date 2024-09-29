@@ -1,6 +1,6 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
-from utils import format_time, helper, UI_COLORS, config, AppSettings
-from ui import new_button, new_cbx, new_text, new_icon, AzButtonLineEdit
+from utils import UI_COLORS, config, AppSettings
+from ui import new_button, new_cbx, new_text, AzButtonLineEdit
 from rasterio import features
 from shapely import Polygon
 import numpy as np
@@ -18,7 +18,7 @@ the_color = UI_COLORS.get("processing_color")
 class AzExportDialog(QtWidgets.QDialog):
     """
     Диалоговое окно для экспорта данных. Использованы реализации экспорта Романа Хабарова
-    sama_file - исходный файл проекта SAMA
+    sama_data - объект класса DatasetSAMAHandler файла проекта SAMA
     data - отсортированные данные по выборкам, например:
         {'train': ['02_GBR_2015.jpg', '03_DEU_2022.jpg'],
         'val': ['03_DEU_2023.jpg', '03_DEU_2020.jpg', '03_DEU_2022.jpg'],
@@ -60,7 +60,7 @@ class AzExportDialog(QtWidgets.QDialog):
         self.output_dir.setText(self.settings.read_default_output_dir())  # по умолчанию выходной каталог из настроек
 
         self.split_info_label = new_text(self, self.tr("Split settings:"))
-        self.split_info = new_text(self)
+        self.split_info = new_text(self, "TADA!")
 
         self.button_cancel.setMinimumWidth(100)
         self.button_ok.setMinimumWidth(100)
@@ -829,8 +829,14 @@ def convert_image_name_to_png_name(image_name):
 # ----------------------------------------------------------------------------------------------------------------------
 if __name__ == "__main__":
     import sys
-
+    from utils.sama_project_handler import DatasetSAMAHandler
     app = QtWidgets.QApplication(sys.argv)
-    w = AzExportDialog(sama_file="D:/data_sets/uranium enrichment/anno_json_r800/anno_sama_r800.json", data="as")
+    sama_data = DatasetSAMAHandler()
+    sama_data.load("D:/data_sets/uranium enrichment/anno_json_r800/anno_sama_r800.json")
+    split = {'train': ['01_bra_resende_2023-08_02_000.jpg', '01_bra_resende_bing_03_000.jpg'],
+        'val': ['02_gbr_capenhurst_2018-03_000.jpg', '02_gbr_capenhurst_2018-03_001.jpg', '03_DEU_2022.jpg'],
+        'test': []}
+    w = AzExportDialog(sama_data, split_data=split)
     w.show()
     app.exec()
+

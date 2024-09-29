@@ -44,7 +44,6 @@ class AppSettings:
 
     def read_ui_position(self):
         """Позиция, размер и состояние окна приложения [r]"""
-        # if len(screeninfo.get_monitors()) == 1: # TODO: что если отключили монитор?
         position = self.settings.value('ui/base_gui_position', QtCore.QPoint(250, 250))
         size = self.settings.value('ui/base_gui_size', QtCore.QSize(900, 565))
         state = self.settings.value('ui/base_gui_state', QtCore.Qt.WindowState.WindowNoState)  # QWindow

@@ -49,7 +49,8 @@ class TabMergeUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         split.addWidget(self.merge_preview_data)  # ...и пробоотборщик этих файлов
         split.setChildrenCollapsible(False)  # отключаем полное сворачивание виджетов внутри разделителя
         split.setSizes((90, 30))
-        self.merge_files_list.itemSelectionChanged.connect(self.merge_selection_files_change)  # изменение выделенного объекта
+        self.merge_files_list.itemSelectionChanged.connect(
+            self.merge_selection_files_change)  # изменение выделенного объекта
         self.merge_toolbar = QtWidgets.QToolBar(self.tr("Toolbar for merging project files"))
         self.merge_toolbar.setIconSize(
             QtCore.QSize(config.UI_AZ_PROC_MERGE_ICON_PANEL, config.UI_AZ_PROC_MERGE_ICON_PANEL))
@@ -133,7 +134,7 @@ class TabMergeUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
             if preview_data:
                 self.merge_label.setText(preview_data)
-                self.merge_label.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)   # выравниваем надпись
+                self.merge_label.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)  # выравниваем надпись
 
         QtWidgets.QApplication.restoreOverrideCursor()
         self.merge_toggle_instruments()
@@ -220,14 +221,14 @@ class TabMergeUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
         elif input_type == "SAMA.json":
             new_name = os.path.join(output_dir, f"merged_{timestamp}.json")
-            merge_result = merge_sama_to_sama(unique_files, new_name, self.merge_copy_files_check.isChecked())
-            if merge_result == 0:
+            result = merge_sama_to_sama(unique_files, new_name, self.merge_copy_files_check.isChecked())
+            if len(result["error_no_data"]) == 0 and len(result["error_duplicate_images"]) == 0:
                 self.signal_message.emit(self.tr(f"Файлы успешно объединены в файл: '{new_name}'"))
-            elif merge_result > 0:
-                self.signal_message.emit(self.tr(f"Файлы объединены с ошибками ({merge_result} ошибок): '{new_name}'"))
-            else:
-                self.signal_message.emit(self.tr(
-                    f"Ошибка при объединении данных. Проверьте исходные файлы либо параметры конвертации.'"))
+            elif len(result["error_no_data"]) == len(unique_files):
+                self.signal_message.emit(self.tr(f"Ошибка при объединении данных. Проверьте исходные файлы."))
+            elif len(result["error_duplicate_images"]) > 0:
+                self.signal_message.emit(self.tr(f"Было обнаружено {len(result['error_duplicate_images'])} дубликатов. "
+                                                 f"Объединение завершено в файл '{new_name}'"))
 
         QtWidgets.QApplication.restoreOverrideCursor()
 

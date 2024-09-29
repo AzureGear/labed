@@ -42,6 +42,7 @@
 # glyph_data_graph: Mohamed Mbarki
 # glyph_train: me & Cuputo
 # glyph_user_check: Md Tanvirul Haque
+# glyph_data-modeling: HAJICON
 
 # glyph_add_image: Pixel perfect
 # glyph_crop: me & Pixel perfect
@@ -96,3 +97,4 @@
 # glyph_clear_filter: Freepik
 # glyph_cook: Freepik
 # glyph_depth: Freepik
+# glyph_filter: Freepik

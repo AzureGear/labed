@@ -26,7 +26,6 @@ class AzButtonLineEdit(QtWidgets.QLineEdit):
         self.button = QtWidgets.QToolButton(self)  # создаём кнопку
         self.button.setIcon(coloring_icon(icon_name, color))  # устанавливаем иконку
         # принимаем и устанавливаем атрибуты:
-        self.slot = slot
         self.last_dir = self.settings.read_last_dir()  # вспоминаем прошлый открытый каталог
         self.dir_only = dir_only
         self.save_dialog = save_dialog
@@ -73,8 +72,8 @@ class AzButtonLineEdit(QtWidgets.QLineEdit):
                 if self.save_dir:  # сохраняем последний используемый каталог
                     self.settings.write_last_dir(os.path.dirname(filename))
                 self.setText(filename)
-            if self.slot:
-                self.slot()
+                if self.slot:
+                    self.slot()
 
 
 # ----------------------------------------------------------------------------------------------------------------------
