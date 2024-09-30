@@ -15,6 +15,7 @@ color_test = UI_COLORS.get("test_color")
 
 
 # TODO: add calc mean, sd, for channels
+# TODO: функцию переименования изображения - для изменения группировки и т.п.
 
 # ----------------------------------------------------------------------------------------------------------------------
 class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
@@ -216,6 +217,15 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         container_up = QtWidgets.QWidget()
         container_up.setLayout(layout_up)
         return container_up
+
+    def setup_down_central_widget(self):
+        layout_down = QtWidgets.QHBoxLayout()  # главный Layout, наследуемый класс
+        # layout_down.addWidget(tab2, 1)  # делаем доминантным
+        # layout_down.addLayout(tab1, 1)  # добавляем ему расположение с кнопками и QLabel
+
+        container_down = QtWidgets.QWidget()
+        container_down.setLayout(layout_down)
+        return container_down
 
     def setup_log(self):
         """ Настройка интерфейса для лога """

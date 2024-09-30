@@ -149,8 +149,11 @@ class TabMergeUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         with open(file_path, "r") as f:
             data = [file_path + ":\n\n"]
             for _ in range(lines_to_read):
-                data.append(f.readline())
-            data.append("...")
+                line = f.readline()
+                if len(line) > 300:
+                    line = line[:300] + "..."
+                data.append(line)
+            data.append("\n...")
             return "".join(data)
 
     def merge_toggle_instruments(self):
@@ -229,6 +232,8 @@ class TabMergeUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             elif len(result["error_duplicate_images"]) > 0:
                 self.signal_message.emit(self.tr(f"Было обнаружено {len(result['error_duplicate_images'])} дубликатов. "
                                                  f"Объединение завершено в файл '{new_name}'"))
+                print(result["error_duplicate_images"])
+                print(result["error_no_data"])
 
         QtWidgets.QApplication.restoreOverrideCursor()
 

@@ -3,9 +3,7 @@ from utils.helper import load, save
 import shutil
 import os
 
-# TODO: как объединять разметку для одинаковых изображений...
-# 1) вариант: проверить, есть ли там вообще разметка, если нет, то заменить всё новым
-# 2) вариант: проверять есть ли такой класс (через название меток) и если нет, то добавлять новый класс к существующим
+
 # ----------------------------------------------------------------------------------------------------------------------
 """
 Структура *.json файла SAMA (Романа Хабарова)
@@ -179,7 +177,33 @@ def merge_sama_to_sama(input_files, output_file, copy_files=False):
 
                 images[image] = new_image_dict
             else:
-                error_duplicate_images.append(image)
+                # имеется такое же точно изображение; сперва попробуем объединить разметку
+                exist_image_dict = images[image]  # анализируем имеющуюся разметку
+                exist_cls = set(shape["cls_num"] for shape in exist_image_dict["shapes"])  # список классов правильный
+                new_cls = set(labels_match_dict[shape["cls_num"]] for shape in image_dict["shapes"])
+                common_cls = exist_cls & new_cls
+
+                if len(common_cls) > 0:  # для изображения есть разметка, которая может конфликтовать
+                    error_duplicate_images.append(image)  # не стоит объединять, добавляем в ошибку
+
+                else:  # иначе объединяем разметку для снимка
+                    exist_shape = exist_image_dict["shapes"]
+                    for shape in image_dict["shapes"]:  # сама разметка
+                        new_one_shape = {"cls_num": labels_match_dict[shape["cls_num"]], "id": id_count,
+                                         "points": shape["points"]}
+                        exist_shape.append(new_one_shape)
+                        id_count += 1
+
+                    keys_check = ["last_user", "lrm", "status"]  # перечень ключей, которые следует проверить
+                    for key in keys_check:
+                        if exist_image_dict.get(key):  # если они не пустые...
+                            image_dict[key] = exist_image_dict[key]  # ...то они заменяться реальными значениями
+
+                    new_image_dict = {"shapes": exist_shape,  # объединенный словарь для image
+                                      "lrm": image_dict["lrm"],
+                                      "status": image_dict["status"],
+                                      "last_user": image_dict["last_user"]}
+                    images[image] = new_image_dict
 
     data["images"] = images
     data["description"] = combined_descr
@@ -197,8 +221,7 @@ def random_color():  # генерируем случайные цвета
 
 # ----------------------------------------------------------------------------------------------------------------------
 if __name__ == '__main__':  # заглушка для отладки
-    merge_sama_to_sama(["d:/labed/labed/test/test_merge_lableme_data_01.json",
-                        "d:/data_sets/uranium enrichment/anno_json_r1024_mc/sliced_2024-06-13--09-04-27_mc.json",
-                        "d:/data_sets/oil_refinery/cutter_prj/cut_prj.json"],
+    merge_sama_to_sama(["d:/data_sets/oil_refinery/tests/test_for_sama_merge/proj1/proj_one.json",
+                        "d:/data_sets/oil_refinery/tests/test_for_sama_merge/proj2/proj_two.json"],
                        "d:/data_sets/output_data/_merge.json")
     # convert_labelme_to_sama(my_list, "F:/data_sets/uranium enrichment/_merge.json")
