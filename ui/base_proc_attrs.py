@@ -336,10 +336,13 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.signal_message.emit(self.tr(f"Set user '{result[0]}' for {count} images"))
 
     def calc_std_mean(self):
+        # TODO: он будет брать все изображения или только те, что записаны в JSON'e?
+        # Добавить диалоговое окно раcчета и галочку "только для изображений в датасете"
+        # Рассчитывать для всех изображений в каталоге
+
         import numpy as np
         import cv2
 
-        # TODO: он будет брать все изображения или только те, что записаны в JSON'e?
         path_dir = self.sama_data.get_image_path()
         print(path_dir)
         if not helper.check_file(path_dir):
@@ -359,7 +362,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                 std[channel] = std[channel] * (1.0 - (1.0 / (i + 1))) + s[channel] / (i + 1)
 
         print("mean: ", mean, " std: ", std)
-        self.sama_data.set_dataset_mean_std_for_channels(mean, std)
+        self.sama_data.set_dataset_mean_std_for_channels(list(mean), list(std))
         self.log_change_data(self.tr(f"The mean and standard deviation of the image channels of the dataset are "
                                      f"calculated and written to the project file"))
         self.signal_message.emit(self.tr(f"The mean and standard deviation of the image channels of the dataset are "
