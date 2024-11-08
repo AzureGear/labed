@@ -776,7 +776,6 @@ class TabSortUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.export_dialog = AzExportDialog(self.sama_data.data, split_data, parent=self)
         if self.export_dialog.exec_() == QtWidgets.QDialog.Accepted:
             message = self.tr(f"Dataset export complete to '{self.export_dialog.export_worker.export_dir}'")
-            self.log_change_data(message)
             self.signal_message.emit(message)
 
     def tr(self, text):

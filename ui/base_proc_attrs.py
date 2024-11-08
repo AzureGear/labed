@@ -15,7 +15,7 @@ color_test = UI_COLORS.get("test_color")
 
 
 # TODO: add calc mean, sd, for channels
-# TODO: функцию переименования изображения - для изменения группировки и т.п.
+# TODO: функцию переименования изображения - для изменения группировки и т.п., т.е. копирование и удаление старой разметки
 
 # ----------------------------------------------------------------------------------------------------------------------
 class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
@@ -113,11 +113,14 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.btn_assign_user = new_act(self, self.tr("Assign user for data"), icon="glyph_user_check",
                                        color=the_color, slot=self.assign_user,
                                        tip=self.tr("Assign user for data"))
+        self.btn_calc_std_mean = new_act(self, self.tr("Calculate mean and std for dataset"), icon="glyph_donut-chart",
+                                         color=the_color, slot=self.calc_std_mean,
+                                         tip=self.tr("Calculate mean and std for dataset"))
 
         # перечень инструментов проекта
         self.tools_for_project = [self.btn_copy, self.btn_remove_empty, self.btn_remove_imgs_records,
                                   self.btn_assign_user, self.btn_apply_lrm, self.btn_save_palette,
-                                  self.btn_apply_palette, self.btn_export]
+                                  self.btn_apply_palette, self.btn_calc_std_mean, self.btn_export]
         menu_project = QtWidgets.QMenu(self)
         menu_project.addActions(self.tools_for_project)
         self.btn_project_tools.setMenu(menu_project)  # устанавливаем меню
@@ -211,7 +214,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Stretch)
 
         # итоговая настройка ui центрального виджета
-        layout_up = QtWidgets.QHBoxLayout()  # главный Layout, наследуемый класс
+        layout_up = QtWidgets.QHBoxLayout()
         layout_up.addWidget(self.table_widget, 15)  # делаем доминантным
         layout_up.addLayout(vlay_table_descr, 9)  # добавляем ему расположение с кнопками и QLabel
         container_up = QtWidgets.QWidget()
@@ -219,10 +222,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         return container_up
 
     def setup_down_central_widget(self):
-        layout_down = QtWidgets.QHBoxLayout()  # главный Layout, наследуемый класс
-        # layout_down.addWidget(tab2, 1)  # делаем доминантным
-        # layout_down.addLayout(tab1, 1)  # добавляем ему расположение с кнопками и QLabel
-
+        layout_down = QtWidgets.QHBoxLayout()
         container_down = QtWidgets.QWidget()
         container_down.setLayout(layout_down)
         return container_down
@@ -334,6 +334,36 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                     count += 1
         self.log_change_data(self.tr(f"Set user '{result[0]}' for {count} images"))
         self.signal_message.emit(self.tr(f"Set user '{result[0]}' for {count} images"))
+
+    def calc_std_mean(self):
+        import numpy as np
+        import cv2
+
+        # TODO: он будет брать все изображения или только те, что записаны в JSON'e?
+        path_dir = self.sama_data.get_image_path()
+        print(path_dir)
+        if not helper.check_file(path_dir):
+            self.log_change_data(self.tr(f"Check the directory location and validity"))
+            self.signal_message.emit(self.tr(f"Check the directory location and validity"))
+
+        img_names = [image for image in os.listdir(path_dir) if helper.check_ext(image)]
+        mean = np.zeros(3)  # mean in (0,1,2) channels
+        std = np.zeros(3)
+
+        for i in range(len(img_names)):
+            im_name = img_names[i]
+            im = cv2.imread(os.path.join(path_dir, im_name))
+            m, s = cv2.meanStdDev(im)
+            for channel in range(3):
+                mean[channel] = mean[channel] * (1.0 - (1.0 / (i + 1))) + m[channel] / (i + 1)
+                std[channel] = std[channel] * (1.0 - (1.0 / (i + 1))) + s[channel] / (i + 1)
+
+        print("mean: ", mean, " std: ", std)
+        self.sama_data.set_dataset_mean_std_for_channels(mean, std)
+        self.log_change_data(self.tr(f"The mean and standard deviation of the image channels of the dataset are "
+                                     f"calculated and written to the project file"))
+        self.signal_message.emit(self.tr(f"The mean and standard deviation of the image channels of the dataset are "
+                                         f"calculated and written to the project file"))
 
     def change_balance_calc(self):
         self.find_by_label()
@@ -630,6 +660,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.btn_remove_imgs_records.setText(self.tr("Remove image with pattern"))
         self.btn_change_balance_calc.setText(self.tr("Select dataset balance method"))
         self.btn_assign_user.setText(self.tr("Assign user for data"))
+        self.btn_calc_std_mean.setText(self.tr("Calculate mean and std for dataset"))
 
         self.btn_copy.setToolTip(self.tr("Make copy of current project"))
         self.btn_export.setToolTip(self.tr("Export current project info"))
@@ -641,6 +672,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.btn_remove_imgs_records.setToolTip(self.tr("Remove image with pattern"))
         self.btn_change_balance_calc.setToolTip(self.tr("Select dataset balance method"))
         self.btn_assign_user.setToolTip(self.tr("Assign user for data"))
+        self.btn_calc_std_mean.setToolTip(self.tr("Calculate mean and std for dataset"))
 
         self.tb_edit_project_descr.setToolTip(self.tr("Toggle edit project description"))
         self.project_label.setText(self.tr("Project description:"))

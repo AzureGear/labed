@@ -66,7 +66,7 @@ def save_txt(txt_path, data, mode='w', add_line_breaks=False):
     флаг add_line_breaks"""
     if add_line_breaks:
         for item in data:
-            item += "\n" # добавляем перенос строк
+            item += "\n"  # добавляем перенос строк
 
     with open(txt_path, mode) as f:
         if data == "":
@@ -111,6 +111,29 @@ def check_files(args):
     if not os.path.exists(args[0]):  # ...и открытие
         return False
     return True
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+def check_ext(file_path, template="image", extensions=None):
+    """
+    Проверка окончания файла: принимает имя файла и возвращает True, если в сете расширений такое имеется.
+    Есть готовые шаблоны "image", "text". Для кастомных запросов в extensions передать свой список расширений.
+    """
+
+    if template == "text" and extensions is None:
+        extensions = {".log", ".txt"}
+    elif template == "image" and extensions is None:
+        extensions = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".svg", ".webp"}
+    if extensions is None:
+        extensions = set()
+
+    if len(extensions) > 0:
+        extensions = [ext_low.lower() for ext_low in extensions]
+
+    _, file_ext = os.path.splitext(file_path)
+
+    return file_ext.lower() in extensions
+
 
 
 # ----------------------------------------------------------------------------------------------------------------------

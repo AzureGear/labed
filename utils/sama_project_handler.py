@@ -620,8 +620,13 @@ class DatasetSAMAHandler:
         return self.data.get("description")
 
     def set_project_description(self, text):
-        """Az+: занесение описания проекта"""
+        """Az+: запись описания проекта"""
         self.data["description"] = text
+
+    def set_dataset_mean_std_for_channels(self, mean, std):
+        """Az+: запись СКО и среднего значений яркости для изображений в датасете"""
+        self.data["mean"] = mean
+        self.data["std"] = std
 
     def get_model_data(self, object_name=None, label_name=None, count=-1, pattern=PATTERNS.get("double_underscore")):
         """Az+: Извлечение строк для заполнения таблицы модели"""
