@@ -17,6 +17,8 @@ from .qt import set_widgets_and_layouts_margins2
 from .qt import set_margins_recursive
 from .qt import set_widgets_visible
 
+from .base_proc_attrs_calc_mean_std import AzCalcStdMean
+
 from .az_table_models import AzTableModel
 from .az_table_models import AzSimpleModel
 from .az_table_models import AzSortTable

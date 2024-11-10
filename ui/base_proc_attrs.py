@@ -2,7 +2,7 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 from utils import AppSettings, UI_COLORS, helper, config
 from utils.sama_project_handler import DatasetSAMAHandler
 from ui import new_act, new_button, new_icon, coloring_icon, new_text, AzButtonLineEdit, \
-    az_file_dialog, AzInputDialog, setup_dock_widgets
+    az_file_dialog, AzInputDialog, AzCalcStdMean, setup_dock_widgets
 from ui import AzTableModel, AzTableAttributes
 import os
 from datetime import datetime
@@ -291,7 +291,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.signal_message.emit(self.tr(f"Set new directory for images '{self.images_dir.text()}'"))
 
     def check_path_images(self, status="default", path=None):
-        """Проверка 'директории изображений' для проверки """
+        """Проверка 'директории изображений' """
         if status == "empty":
             self.images_dir_helper.setIcon(new_icon("circle_grey"))
             self.images_dir.clear()
@@ -336,32 +336,17 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.signal_message.emit(self.tr(f"Set user '{result[0]}' for {count} images"))
 
     def calc_std_mean(self):
-        # TODO: он будет брать все изображения или только те, что записаны в JSON'e?
-        # Добавить диалоговое окно раcчета и галочку "только для изображений в датасете"
-        # Рассчитывать для всех изображений в каталоге
-
-        import numpy as np
-        import cv2
-
+        """Запуск расчета среднего и СКО поканальной яркости датасета. Передается файл SAMA"""      
         path_dir = self.sama_data.get_image_path()
-        print(path_dir)
+
         if not helper.check_file(path_dir):
-            self.log_change_data(self.tr(f"Check the directory location and validity"))
-            self.signal_message.emit(self.tr(f"Check the directory location and validity"))
+            self.log_change_data(self.tr(f"Check the dataset images files directory"))
+            self.signal_message.emit(self.tr(f"Check the dataset images files directory"))
+        dialog = AzCalcStdMean(self.current_file) 
+        if dialog.exec_() == QtWidgets.QDialog.DialogCode.Rejected:  # нажата "Отмена"
+            return
 
-        img_names = [image for image in os.listdir(path_dir) if helper.check_ext(image)]
-        mean = np.zeros(3)  # mean in (0,1,2) channels
-        std = np.zeros(3)
-
-        for i in range(len(img_names)):
-            im_name = img_names[i]
-            im = cv2.imread(os.path.join(path_dir, im_name))
-            m, s = cv2.meanStdDev(im)
-            for channel in range(3):
-                mean[channel] = mean[channel] * (1.0 - (1.0 / (i + 1))) + m[channel] / (i + 1)
-                std[channel] = std[channel] * (1.0 - (1.0 / (i + 1))) + s[channel] / (i + 1)
-
-        print("mean: ", mean, " std: ", std)
+        print("mean: ", dialog.mean_dataset, " std: ", dialog.std_dataset)
         self.sama_data.set_dataset_mean_std_for_channels(list(mean), list(std))
         self.log_change_data(self.tr(f"The mean and standard deviation of the image channels of the dataset are "
                                      f"calculated and written to the project file"))
