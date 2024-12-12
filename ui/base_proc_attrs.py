@@ -342,12 +342,13 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         if not helper.check_file(path_dir):
             self.log_change_data(self.tr(f"Check the dataset images files directory"))
             self.signal_message.emit(self.tr(f"Check the dataset images files directory"))
-        dialog = AzCalcStdMean(self.current_file) 
+        # dialog = AzCalcStdMean(self.current_file)  # по умолчанию выбирается проект
+        dialog = AzCalcStdMean(self.current_file, input_type=0, user_dir_or_file="D:/data_sets/output_dir/01.jpg" )
         if dialog.exec_() == QtWidgets.QDialog.DialogCode.Rejected:  # нажата "Отмена"
             return
 
         print("mean: ", dialog.mean_dataset, " std: ", dialog.std_dataset)
-        self.sama_data.set_dataset_mean_std_for_channels(list(mean), list(std))
+        self.sama_data.set_dataset_mean_std_for_channels(list(dialog.mean_dataset), list(dialog.std_dataset))
         self.log_change_data(self.tr(f"The mean and standard deviation of the image channels of the dataset are "
                                      f"calculated and written to the project file"))
         self.signal_message.emit(self.tr(f"The mean and standard deviation of the image channels of the dataset are "

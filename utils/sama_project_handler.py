@@ -110,7 +110,7 @@ class DatasetSAMAHandler:
     def get_images_list(self):
         """Az+: возвращение перечня изображений текущих данных"""
         if self.get_images_num() > 0:
-            return self.data["images"].keys()
+            return list(self.data["images"].keys())
         else:
             return None
 
