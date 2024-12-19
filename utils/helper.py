@@ -27,6 +27,23 @@ def generate_random_name(length=5, letters=True, digits=True):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
+def get_random_files(path, percentage, template="image", extensions=None):
+    """
+    Принимает каталог и указанное значение в процентах, а возвращает перечень случайных файлов из каталога,
+    но не более указанного числа процентов.
+    """
+    all_files = [file for file in os.listdir(path) if os.path.isfile(os.path.join(path, file))]  # все файлы
+    if extensions:
+        filtered_files = [file for file in all_files if check_ext(file, template, extensions)]  # фильтр расширения
+    else:
+        filtered_files = all_files
+
+    count_return = max(1, int(len(filtered_files) * percentage / 100))  # определяем число файлов
+    random_files = random.sample(filtered_files, count_return)  # выбираем случайные файлы
+    return random_files
+
+
+# ----------------------------------------------------------------------------------------------------------------------
 def natural_order(val):
     """Естественная сортировка"""
     return [int(text) if text.isdigit() else text.lower() for text in re.split('(\d+)', val)]
