@@ -84,6 +84,6 @@ ALPHA = 230  # степень прозрачности заливки у мет�
 
 UI_OUTPUT_TYPES = ["SAMA.json"]  # типы выходных данных
 UI_INPUT_TYPES = ["LabelMe.json", "SAMA.json"]  # типы входных данных
-UI_AZ_EXPORT_TYPES = ["YOLO Seg", "YOLO Box", "MMSegmentation"]
+UI_AZ_EXPORT_TYPES = ["SAMA (split and copy according to selected tran/test/val)", "YOLO Seg", "YOLO Box", "MMSegmentation"]
 
 UI_READ_LINES = 3  # количество загружаемых строк в проектах *.json для предпросмотра

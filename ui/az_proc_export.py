@@ -1,6 +1,10 @@
+import datetime
+
 from PyQt5 import QtWidgets, QtGui, QtCore
 from utils import UI_COLORS, config, AppSettings
+from utils.sama_project_handler import DatasetSAMAHandler
 from ui import new_button, new_cbx, new_text, AzButtonLineEdit
+from datetime import datetime
 from rasterio import features
 from shapely import Polygon
 import numpy as np
@@ -164,8 +168,64 @@ class Exporter(QtCore.QThread):
             self.exportToYOLO(type="box")
         elif self.format == "MMSegmentation":
             self.exportMMSeg()
+        elif self.format == "SAMA (split and copy according to selected tran/test/val)":
+            self.export_sama()  # Az+: копирование части датасета в исходном формате SAMA
         # else:
         #     self.exportToCOCO()
+
+    def export_sama(self):
+        """Копирование в отдельные каталоги train, val, test файлов проекта в
+        соответствии с параметрами сортировки"""
+        export_dir = self.export_dir
+        if not os.path.isdir(export_dir):
+            return
+
+        # создаем каталоги train/val/test
+        train_val_test_dirs = self.create_images_labels_subdirs(export_dir)
+
+        # Собираем только существующие изображения
+        self.clear_not_existing_images()
+        split_names = self.split_data
+        sum_images = sum(len(images) for images in self.split_data.values())
+        im_num = 0  # счетчик
+        timestamp = datetime.now().strftime("%Y-%m-%d--%H-%M-%S")
+
+        # {"train": ["img01.jpg, "img02.jpg", ...], ... }
+        for split_folder, image_names in split_names.items():
+            if image_names:
+                # создаем новый проект SAMA
+                new_sama_file = DatasetSAMAHandler()
+
+                # каталог для файла проекта и соответствующих изображений
+                dest_dir = train_val_test_dirs[split_folder]
+                new_sama_file.data["path_to_images"] = dest_dir
+                new_sama_file.data["labels"] = self.data["labels"]
+                new_sama_file.data["labels_color"] = self.data["labels_color"]
+                new_sama_file.data["description"] = "Export to " + train_val_test_dirs[split_folder] + "\n" + \
+                                                    str(timestamp) + "\n" + self.data["description"]
+
+                new_sama_images = []
+                for filename, image in self.data["images"].items():
+                    if filename not in image_names:
+                        continue
+
+                    if not len(image["shapes"]) and self.is_filter_null:  # чтобы не создавать пустых файлов
+                        continue
+
+                    src = os.path.join(self.data["path_to_images"], filename)
+                    if not os.path.exists(src):
+                        continue
+
+                    dest = os.path.join(dest_dir, filename)
+                    if src != dest:
+                        shutil.copy(src, dest)
+
+                    new_sama_images.append({filename: image})
+                    im_num += 1
+                    self.export_percent_conn.emit(int(100 * im_num / sum_images))
+
+                new_sama_file.data["images"] = new_sama_images
+                new_sama_file.save(os.path.join(dest_dir, f"export_{split_folder}.json"))
 
     def get_labels(self):
         return self.data["labels"]
@@ -213,7 +273,7 @@ class Exporter(QtCore.QThread):
 
             return images_dir, labels_dir
 
-        else:
+        elif (self.format == "YOLO Seg") or (self.format == "YOLO Box"):
             # Формат экспорт YOLO или COCO
             images_dir = os.path.join(export_dir, 'images')
             if not os.path.exists(images_dir):
@@ -237,6 +297,26 @@ class Exporter(QtCore.QThread):
                 return images_dir, labels_dir
 
             return images_dir
+
+        else:
+            # формат SAMA
+            if not self.split_data:
+                return None
+
+            if not self.split_data:
+                return None
+
+            dirs = {"train": None, "val": None, "test": None}
+
+            for key in dirs.keys():
+                # Проверяем наличие ключа и его значение в self.split_data
+                if key in self.split_data and self.split_data[key]:
+                    new_dir = os.path.join(export_dir, key)
+                    if not os.path.exists(new_dir):
+                        os.makedirs(new_dir)
+                    dirs[key] = new_dir
+
+            return dirs
 
     def create_blur_dir(self, export_dir):
         blur_dir = os.path.join(export_dir, 'blur')
@@ -830,13 +910,13 @@ def convert_image_name_to_png_name(image_name):
 if __name__ == "__main__":
     import sys
     from utils.sama_project_handler import DatasetSAMAHandler
+
     app = QtWidgets.QApplication(sys.argv)
     sama_data = DatasetSAMAHandler()
-    sama_data.load("D:/data_sets/uranium enrichment/anno_json_r800/anno_sama_r800.json")
+    sama_data.load("D:/data_sets/uranium enrichment/data/anno_json_r800/anno_sama_r800.json")
     split = {'train': ['01_bra_resende_2023-08_02_000.jpg', '01_bra_resende_bing_03_000.jpg'],
-        'val': ['02_gbr_capenhurst_2018-03_000.jpg', '02_gbr_capenhurst_2018-03_001.jpg', '03_DEU_2022.jpg'],
-        'test': []}
+             'val': ['02_gbr_capenhurst_2018-03_000.jpg', '02_gbr_capenhurst_2018-03_001.jpg', '03_DEU_2022.jpg'],
+             'test': []}
     w = AzExportDialog(sama_data, split_data=split)
     w.show()
     app.exec()
-
