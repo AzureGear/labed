@@ -154,7 +154,7 @@ def check_ext(file_path, template="image", extensions=None):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-def get_files(path, types: list = None, deep=False):
+def get_files(path, types: tuple = None, deep=False):
     """
     Возвращает перечень всех файлов, заданного расширения (types) из каталога (path). Для рекурсивного погружения
     в каталог используется флаг (deep)
@@ -170,7 +170,7 @@ def get_files(path, types: list = None, deep=False):
                 relative_path = os.path.normpath(os.path.join(root, file))
                 return_files.append(relative_path)
             else:
-                if file.lower().endswith(tuple(types)):
+                if file.lower().endswith(types):
                     relative_path = os.path.normpath(os.path.join(root, file))
                     return_files.append(relative_path)
         if not deep:  # если поиск по субдиректориям False

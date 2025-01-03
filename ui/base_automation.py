@@ -1,10 +1,12 @@
 from PyQt5 import QtCore, QtWidgets, QtGui
 from utils import AppSettings, UI_COLORS, helper
-from utils.helper import load, save, check_files
+from utils import helper
 from ui import az_file_dialog
 import cv2
 import random
 import os
+from PIL import Image
+
 
 current_folder = os.path.dirname(os.path.abspath(__file__))  # каталога проекта + /ui/
 the_color = UI_COLORS.get("automation_color")
@@ -75,19 +77,19 @@ class AutomationUI(QtWidgets.QWidget):
         # загружаем файл с палитрой
         sel_file = az_file_dialog(self, self.tr("Выберете палитру *.palette"), self.settings.read_last_dir(),
                                   dir_only=False, filter="Palette (*.palette)", initial_filter="palette (*.palette)")
-        if not check_files(sel_file):
+        if not helper.check_files(sel_file):
             return
         self.log.append(f"\nВыбрана палитра: &{sel_file[0]}")
-        palette = load(sel_file[0])
+        palette = helper.load(sel_file[0])
         colors = palette["labels_color"]  # выгружаем цвета палитры
 
         # загружаем файл проекта SAMA
         input_file = az_file_dialog(self, self.tr("Применить палитру к проекту SAMA *.json"),
                                     self.settings.read_last_dir(),
                                     dir_only=False, filter="SAMA project (*.json)", initial_filter="json (*.json)")
-        if not check_files(input_file):
+        if not helper.check_files(input_file):
             return
-        json = load(input_file[0])
+        json = helper.load(input_file[0])
         input_colors = json["labels_color"]
 
         # обходим ключи
@@ -95,7 +97,7 @@ class AutomationUI(QtWidgets.QWidget):
             if color in colors:  # такой цвет есть в нашей палитре
                 input_colors[color] = colors[color]
         json["labels_color"] = input_colors
-        save(input_file[0], json)
+        helper.save(input_file[0], json)
         self.log.append(f"\nПалитра применена, файл сохранён: &{input_file[0]}")
 
     def split_images_in_dir(self):
@@ -103,12 +105,14 @@ class AutomationUI(QtWidgets.QWidget):
         sel_dir = az_file_dialog(self, self.tr("Каталог с изображениями"), self.settings.read_last_dir(), dir_only=True)
         if not os.path.exists(sel_dir):
             return
-        # dir = "d:/data_sets/nuclear_power_stations/"
-        save = self.settings.read_default_output_dir()
+
+        save_dir = self.settings.read_default_output_dir()
         files_count, ok = QtWidgets.QInputDialog.getText(None, "Количество снимков в каталоге", "Укажите количество:")
+        
         if not ok:
             return
         size, ok = QtWidgets.QInputDialog.getText(None, "Размер кадрирования", "Введите размер стороны:")
+        
         if not ok:
             return
         # получаем случайные снимки...
@@ -116,7 +120,7 @@ class AutomationUI(QtWidgets.QWidget):
         random_filenames = self.get_random_files(sel_dir, int(files_count))
         if random_filenames:  # ...и режем их на заданные размеры
             for file in random_filenames:
-                self.split_image(file, int(size), int(size), save, False)
+                self.split_image(file, int(size), int(size), save_dir, False)
 
     def none(self):
         pass
@@ -184,6 +188,21 @@ class AutomationUI(QtWidgets.QWidget):
                     cv2.imwrite(tile_path, tile)
                     count += 1
 # ----------------------------------------------------------------------------------------------------------------------
+
+def repear_png_palette(input_path, output_path):
+    """Исправляет проблему палитры для файлов иконок PNG"""
+    pngs = helper.get_files(input_path, ("png"))
+    # path = r"D:\data_prj\labed\labed\icons"
+    # out_dir = r"D:\data_prj\labed\labed\new_icons"
+    for item in pngs:
+        name = os.path.basename(item) # базовое имя с расширением
+        
+        with Image.open(input_path) as img:
+            img.info.pop('icc_profile', None)
+            img.save(os.path.join(output_path, name), 'png')
+
+# ----------------------------------------------------------------------------------------------------------------------
+
 
 import random
 

@@ -648,7 +648,7 @@ class DatasetSAMAHandler:
                 label = self.get_label_name(shape["cls_num"])
                 match = re.search(pattern, im_name)  # ищем имя объекта
 
-                if obj is not None:  # собираем сокращение "объекта", у нас общий сбор
+                if match is not None:  # собираем сокращение "объекта", у нас общий сбор
                     obj = match.group(0)
 
                 if object_name is None and label_name is None:  # получение всего перечня

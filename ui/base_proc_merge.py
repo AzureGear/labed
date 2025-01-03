@@ -79,8 +79,7 @@ class TabMergeUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.merge_output_file_path = AzButtonLineEdit("glyph_folder", the_color,
                                                        caption="Output file",
                                                        read_only=True, dir_only=True)
-        # соединяем, поскольку требуется изменять выходной каталог, в случае деактивации
-        self.merge_output_file_check.clicked.connect(self.merge_toggle_output_file)
+        # соединяем, поскольку требуется изменять выходной каталог, в случае деактивацииself.merge_output_file_check.clicked.connect(self.merge_toggle_output_file)
         # соединяем, чтобы записывать изменения в переменную.
         self.merge_output_file_path.textChanged.connect(self.merge_output_file_path_change)
         self.merge_output_file_path.setEnabled(False)  # Отключаем, т.е. по умолчанию флаг не включен

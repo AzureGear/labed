@@ -1,31 +1,39 @@
 import sys
+import itertools
+import numpy as np
 
-def check_palindrome(text: str):
-    zip_text = text.replace(" ", "")
-    if len(zip_text) < 2:
-        print("Введенный текст по умолчанию является палиндромом, поскольку имеет менее 2 символов.")
-        return True
-    for i in range(0, int(len(zip_text)/2)):
-        print(f"{zip_text[i].lower()} compare to {zip_text[-i-1].lower()}")
-        if zip_text[i].lower() != zip_text[-i-1].lower():
-            return False
-    return True
+mns = np.arange(0.0, 0.8, 0.1).tolist()
+conf = [0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+for conf_value, mns_value in itertools.product(conf, mns):
+    print(conf_value, mns_value)
 
-def fibbonachi(limit):
-    num1 = 0
-    num2 = 1
-    next_number = num2
-    while next_number <= limit:
-        print(next_number, end=" ")
-        num1, num2 = num2, next_number
-        next_number = num1 + num2
-
-if __name__ == '__main__':
-    palin_true = "А роза упала на лапу Азора"
-    text = "А роза свалилась на лапу Азора"
-
-    print(f"Этот текст '{palin_true}' является палиндромом: {check_palindrome(palin_true)}")
-    print(f"А этот текст '{text}' является палиндромом: {check_palindrome(text)}")
+#
+# def check_palindrome(text: str):
+#     zip_text = text.replace(" ", "")
+#     if len(zip_text) < 2:
+#         print("Введенный текст по умолчанию является палиндромом, поскольку имеет менее 2 символов.")
+#         return True
+#     for i in range(0, int(len(zip_text)/2)):
+#         print(f"{zip_text[i].lower()} compare to {zip_text[-i-1].lower()}")
+#         if zip_text[i].lower() != zip_text[-i-1].lower():
+#             return False
+#     return True
+#
+# def fibbonachi(limit):
+#     num1 = 0
+#     num2 = 1
+#     next_number = num2
+#     while next_number <= limit:
+#         print(next_number, end=" ")
+#         num1, num2 = num2, next_number
+#         next_number = num1 + num2
+#
+# if __name__ == '__main__':
+#     palin_true = "А роза упала на лапу Азора"
+#     text = "А роза свалилась на лапу Азора"
+#
+#     print(f"Этот текст '{palin_true}' является палиндромом: {check_palindrome(palin_true)}")
+#     print(f"А этот текст '{text}' является палиндромом: {check_palindrome(text)}")
 
 # import sys
 # import numpy as np
