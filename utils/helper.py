@@ -15,7 +15,17 @@ PATTERNS = {"double_underscore": r"^([^_]+)_([^_]+)",
 
 # ----------------------------------------------------------------------------------------------------------------------
 def generate_random_name(length=5, letters=True, digits=True):
-    """Генерация случайных имен, определенной длинны. С помощью флагов можно указать генерацию только цифр/букв"""
+    """Генерация случайных имен, заданной длины.
+    С помощью флагов можно указать генерацию только цифр/букв
+
+    Args:
+        length: количество символов
+        letters: флаг использования литер
+        digits: флаг использования цифр
+
+    Return:
+        (str) Random symbols"""
+
     letters = string.ascii_letters if letters else ''
     digits = string.digits if digits else ''
     symbols = letters + digits
@@ -79,8 +89,14 @@ def load(file_path):
 
 # ----------------------------------------------------------------------------------------------------------------------
 def save_txt(txt_path, data, mode='w', add_line_breaks=False):
-    """Сохранение данных (data) в формате txt (txt_path), для добавления переноса строк использовать
-    флаг add_line_breaks"""
+    """Сохранение данных формате txt
+
+    Args:
+        txt_path: путь сохранения
+        data: данные для записи
+        mode: тип записи, по умолчанию 'w'
+        add_line_breaks: добавление переноса строк
+    """
     if add_line_breaks:
         for item in data:
             item += "\n"  # добавляем перенос строк
@@ -150,7 +166,6 @@ def check_ext(file_path, template="image", extensions=None):
     _, file_ext = os.path.splitext(file_path)
 
     return file_ext.lower() in extensions
-
 
 
 # ----------------------------------------------------------------------------------------------------------------------
