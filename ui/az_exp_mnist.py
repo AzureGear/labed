@@ -136,7 +136,7 @@ class PageMNIST(QtWidgets.QWidget):
         self.digits = {}  # словарь цифр, например 6: RoundProgressbar
         self.digits_chance = {}  # словарь вероятностей распознавания, например 6: QLabel.text
         for i in range(10):  # автоматом делаем все 10 цифр
-            digit_v = QtWidgets.QVBoxLayout(self)
+            digit_v = QtWidgets.QVBoxLayout()
             digit_v.setSpacing(0)
             digit_v.setContentsMargins(0, 0, 0, 0)
             digit_lbl = QtWidgets.QLabel(f"{(i * 10 + 10):.0f}%")
@@ -818,7 +818,7 @@ class MNISTHandler(QtWidgets.QWidget):
             data = helper.load_pickle(self.settings.read_mnist_model_file())  # загружаем данные
         else:
             sel_file = az_file_dialog(self, self.tr("Load MNIST model *.pkl"), self.settings.read_last_dir(),
-                                      dir_only=False, filter="Pickle (*.pkl)", initial_filter="pickle (*.pkl)")
+                                      dir_only=False, filter="Pickle (*.pkl)", initial_filter="Pickle (*.pkl)")
             if not helper.check_files(sel_file):  # нажали "Отмена"
                 return
             data = helper.load_pickle(sel_file[0])

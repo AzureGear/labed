@@ -51,7 +51,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical, self)
         splitter.addWidget(container_up)
         splitter.addWidget(QtWidgets.QPushButton("Temp"))
-        central_layout = QtWidgets.QVBoxLayout(self)  # главный Layout, наследуемый класс
+        central_layout = QtWidgets.QVBoxLayout()  # главный Layout, наследуемый класс
         central_layout.addLayout(caption)
         central_layout.addWidget(splitter, 1)
         wid = QtWidgets.QWidget()
@@ -79,9 +79,9 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                                              slot=self.toggle_log, checkable=True, tooltip=self.tr("Toggle log"))
         self.label_project = QtWidgets.QLabel("Path to file project (*.json:)")
         self.file_json = AzButtonLineEdit("glyph_folder", the_color, caption=self.tr("Load dataset SAMA project"),
-                                          read_only=True, dir_only=False, filter=self.tr("Projects files (*.json)"),
+                                          read_only=True, dir_only=False, filter="Projects files (*.json)",
                                           slot=self.attr_load_projects_data,
-                                          initial_filter="json (*.json)")
+                                          initial_filter="Projects files (*.json)")
         spacer = QtWidgets.QWidget()
         spacer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
 
@@ -418,7 +418,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         data["labels_color"] = colors
         file = az_file_dialog(self, self.tr("Save project SAMA *.json palette"), self.settings.read_last_dir(),
                               dir_only=False, file_to_save=True, filter="Palette (*.palette)",
-                              initial_filter="palette (*.palette)")
+                              initial_filter="Palette (*.palette)")
         if file is None:
             return
         if len(file) > 0:
@@ -429,7 +429,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         """Применить палитру к файлу проекта SAMA"""
         # загружаем файл с палитрой
         sel_file = az_file_dialog(self, self.tr("Apply palette file to current project"), self.settings.read_last_dir(),
-                                  dir_only=False, filter="Palette (*.palette)", initial_filter="palette (*.palette)")
+                                  dir_only=False, filter="Palette (*.palette)", initial_filter="Palette (*.palette)")
         if not helper.check_files(sel_file):
             return
         palette = helper.load(sel_file[0])

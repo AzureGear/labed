@@ -47,7 +47,7 @@ class TabSortUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         caption = self.setup_caption_widget()  # возвращает QHBoxLayout, настроенный компоновщик
         container_down = self.setup_down_central_widget()  # настройка ui, таблица фильтрата, возвращает виджет
 
-        central_layout = QtWidgets.QVBoxLayout(self)  # главный Layout, наследуемый класс
+        central_layout = QtWidgets.QVBoxLayout()  # главный Layout, наследуемый класс
         central_layout.addLayout(caption)
         central_layout.addWidget(container_down, 1)
         wid = QtWidgets.QWidget()
@@ -101,9 +101,9 @@ class TabSortUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                                      slot=self.show_status, checkable=True, tooltip=self.tr("Toggle log"))
         self.label_project = QtWidgets.QLabel("Path to file project (*.json:)")
         self.file_json = AzButtonLineEdit("glyph_folder", the_color, caption=self.tr("Load dataset SAMA project"),
-                                          read_only=True, dir_only=False, filter=self.tr("Projects files (*.json)"),
+                                          read_only=True, dir_only=False, filter="Projects files (*.json)",
                                           slot=self.try_to_load_project,
-                                          initial_filter="json (*.json)")
+                                          initial_filter="Projects files (*.json)")
         spacer = QtWidgets.QWidget()
         spacer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
 
@@ -462,7 +462,7 @@ class TabSortUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         file = az_file_dialog(self, self.tr("Create new sorting train/validation project *.sort file"),
                               self.settings.read_last_dir(),
                               dir_only=False, file_to_save=True, filter="Sort (*.sort)",
-                              initial_filter="sort (*.sort)")
+                              initial_filter="Sort (*.sort)")
         if helper.check_list(file):
             new_sort_file = DatasetSortHandler()  # создаём пустой объект
             data = new_sort_file.create_new_sort_file(self.sama_data)  # создаем данные по текущим SAMA

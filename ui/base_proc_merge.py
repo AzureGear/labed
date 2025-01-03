@@ -171,7 +171,7 @@ class TabMergeUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
     def merge_add_files(self):
         sel_files = az_file_dialog(self, "Select project files to add", self.settings.read_last_dir(), dir_only=False,
-                                   filter="LabelMe projects (*.json)", initial_filter="json (*.json)")
+                                   filter="LabelMe projects (*.json)", initial_filter="LabelMe projects (*.json)")
         if sel_files:
             self.merge_fill_files(sel_files)
             self.merge_toggle_instruments()

@@ -76,7 +76,7 @@ class AutomationUI(QtWidgets.QWidget):
         """Применить палитру к файлу проекта SAMA"""
         # загружаем файл с палитрой
         sel_file = az_file_dialog(self, self.tr("Выберете палитру *.palette"), self.settings.read_last_dir(),
-                                  dir_only=False, filter="Palette (*.palette)", initial_filter="palette (*.palette)")
+                                  dir_only=False, filter="Palette (*.palette)", initial_filter="Palette (*.palette)")
         if not helper.check_files(sel_file):
             return
         self.log.append(f"\nВыбрана палитра: &{sel_file[0]}")
@@ -86,7 +86,8 @@ class AutomationUI(QtWidgets.QWidget):
         # загружаем файл проекта SAMA
         input_file = az_file_dialog(self, self.tr("Применить палитру к проекту SAMA *.json"),
                                     self.settings.read_last_dir(),
-                                    dir_only=False, filter="SAMA project (*.json)", initial_filter="json (*.json)")
+                                    dir_only=False, filter="SAMA project (*.json)", 
+                                    initial_filter="SAMA project (*.json)")
         if not helper.check_files(input_file):
             return
         json = helper.load(input_file[0])
