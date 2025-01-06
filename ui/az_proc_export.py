@@ -22,18 +22,23 @@ the_color = UI_COLORS.get("processing_color")
 class AzExportDialog(QtWidgets.QDialog):
     """
     Диалоговое окно для экспорта данных. Использованы реализации экспорта Романа Хабарова
-    sama_data - объект класса DatasetSAMAHandler файла проекта SAMA
-    data - отсортированные данные по выборкам, например:
-        {'train': ['02_GBR_2015.jpg', '03_DEU_2022.jpg'],
-        'val': ['03_DEU_2023.jpg', '03_DEU_2020.jpg', '03_DEU_2022.jpg'],
-        'test': []}
+
+    Args:
+        sama_data: объект класса DatasetSAMAHandler(); файл проекта SAMA
+        split_data: отсортированные данные по выборкам перечнем изображений 
+         относящихся к ним, например:
+         {'train': ['02_GBR_2015.jpg', '03_DEU_2022.jpg'],
+         'val': ['03_DEU_2023.jpg', '03_DEU_2020.jpg', '03_DEU_2022.jpg'],
+         'test': []}
+        windows_title: заголовок окна
     """
 
     def __init__(self, sama_data, split_data, window_title="Export dataset", parent=None):
         super().__init__(parent)
         self.settings = AppSettings()  # настройки программы
         self.setWindowTitle(window_title)
-        self.setFixedSize(600, 150)  # фиксированные размеры для размещения кастомных виджетов
+        # фиксированные размеры для размещения кастомных виджетов
+        self.setFixedSize(600, 150)
         self.setWindowFlag(QtCore.Qt.WindowType.Tool)
         self.sama_data = sama_data  # исходный проект SAMA
         self.split_data = split_data  # отсортированные данные
@@ -45,27 +50,43 @@ class AzExportDialog(QtWidgets.QDialog):
                                       format=self.format_cbx.currentText(), dataset_name="dataset")
 
         # Сигналы
-        self.export_worker.signal_percent_conn.connect(self.worker_percent_change)
+        self.export_worker.signal_percent_conn.connect(
+            self.worker_percent_change)
         self.export_worker.started.connect(lambda: self.switch_buttons(False))
         self.export_worker.finished.connect(self.finish)
 
     def setup_ui(self):
         """Настройка интерфейса"""
         # Создаем кнопки
-        self.button_cancel = new_button(self, "pb", self.tr("Close"), slot=self.reject)
-        self.button_ok = new_button(self, "pb", self.tr("Export"), slot=self.exec_export)
+        self.button_cancel = new_button(
+            self, "pb", self.tr("Close"), slot=self.reject)
+        self.button_ok = new_button(
+            self, "pb", self.tr("Export"), slot=self.exec_export)
 
-        self.format_cbx = new_cbx(self, config.UI_AZ_EXPORT_TYPES)  # формат выходных данных
+        # формат выходных данных
+        self.format_cbx = new_cbx(self, config.UI_AZ_EXPORT_TYPES)
         self.format_label = new_text(self, self.tr("Output format:"))
 
         self.output_dir_label = new_text(self, self.tr("Output dir:"))
         self.output_dir = AzButtonLineEdit("glyph_folder", the_color, self.tr("Select dir"), True, dir_only=True,
                                            save_dialog=True, parent=self)
-        self.output_dir.setText(self.settings.read_default_output_dir())  # по умолчанию выходной каталог из настроек
+        # по умолчанию выходной каталог из настроек
+        self.output_dir.setText(self.settings.read_default_output_dir())
 
         self.split_info_label = new_text(self, self.tr("Split settings:"))
-        self.split_info = new_text(self, "TADA!")
+        self.split_info = new_text(self, "None")
 
+        # Рассчитаем показатель выборки
+        total_imgs = len(self.sama_data["images"])
+        cur_imgs = sum(len(values) for values in self.split_data.values())
+
+        # Проверим, есть ли что отображать
+        if cur_imgs > 1:
+            # Форматируем и отображаем его
+            self.split_info.setText(self.format_split_info(
+                self.split_data, total_imgs, cur_imgs))
+
+        self.progress_bar = QtWidgets.QProgressBar(self)
         self.button_cancel.setMinimumWidth(100)
         self.button_ok.setMinimumWidth(100)
         button_layout = QtWidgets.QHBoxLayout()  # компоновщик для кнопок
@@ -73,23 +94,46 @@ class AzExportDialog(QtWidgets.QDialog):
         button_layout.addWidget(self.button_ok)
         button_layout.addSpacing(10)
         button_layout.addWidget(self.button_cancel)
-
-        self.layout = QtWidgets.QFormLayout()  # основной компоновщик вида QFormLayout
-        self.layout.addRow(self.output_dir_label, self.output_dir)
-        self.layout.addRow(self.format_label, self.format_cbx)
-        self.layout.addRow(self.split_info_label, self.split_info)
-        self.layout.addItem(button_layout)
-        self.setLayout(self.layout)
+        self.lay_form = QtWidgets.QFormLayout()  # основной компоновщик вида QFormLayout
+        self.lay_form.addRow(self.output_dir_label, self.output_dir)
+        self.lay_form.addRow(self.format_label, self.format_cbx)
+        self.lay_form.addRow(self.split_info_label, self.split_info)
+        self.lay_form.addItem(button_layout)
+        self.lay_form.addRow(self.progress_bar)
+        self.setLayout(self.lay_form)
 
     @QtCore.pyqtSlot(int)
     def worker_percent_change(self, val):
         # заглушка под индикатор прогресса
+        self.progress_bar.setValue(val)
         if val == 100:
             self.export_complete = True
 
     def switch_buttons(self, flag):
         self.button_ok.setEnabled(flag)
         self.button_cancel.setEnabled(flag)
+
+    @staticmethod
+    def format_split_info(input_dict, total_imgs, cur_imgs):
+        # Словарь хранения итоговой информации о параметрах разбиения на train/val/test
+        split_info_dict = {'total': {}, 'current': {}}
+        split_items = ['train', 'val', 'test']
+        for item in split_items:
+            color_key = f"{item}_color"
+            color = UI_COLORS.get(color_key)  # цвет из config
+            split_info_dict['total'][
+                item] = f'<span style="color:{color};">{len(input_dict[item]) / total_imgs * 100:.1f}% {item}</span>'
+            split_info_dict['current'][
+                item] = f'<span style="color:{color};">{len(input_dict[item]) / cur_imgs * 100:.1f}% {item}</span>'
+            print(split_info_dict['total'][item])
+
+        # Указываем параметрах разбиения выборок, в виде:
+        # total [80.0% train / 20.0% val / 0% test]; current: [15.0% train / 4.0% val / 0.0% test]
+        total_str = " / ".join(split_info_dict['total'][item]
+                               for item in split_items)
+        current_str = " / ".join(split_info_dict['current'][item]
+                                 for item in split_items)
+        return (f"total: [{total_str}]; current: [{current_str}]")
 
     def finish(self):
         self.switch_buttons(True)
@@ -202,14 +246,16 @@ class Exporter(QtCore.QThread):
                 new_sama_file.data["labels"] = self.data["labels"]
                 new_sama_file.data["labels_color"] = self.data["labels_color"]
                 new_sama_file.data["description"] = "Export to " + train_val_test_dirs[split_folder] + "\n" + \
-                                                    str(timestamp) + "\n" + self.data["description"]
+                                                    str(timestamp) + "\n" + \
+                    self.data["description"]
 
-                new_sama_images = []
+                new_sama_images = {}
                 for filename, image in self.data["images"].items():
                     if filename not in image_names:
                         continue
 
-                    if not len(image["shapes"]) and self.is_filter_null:  # чтобы не создавать пустых файлов
+                    # чтобы не создавать пустых файлов
+                    if not len(image["shapes"]) and self.is_filter_null:
                         continue
 
                     src = os.path.join(self.data["path_to_images"], filename)
@@ -220,12 +266,14 @@ class Exporter(QtCore.QThread):
                     if src != dest:
                         shutil.copy(src, dest)
 
-                    new_sama_images.append({filename: image})
+                    new_sama_images[filename] = image
                     im_num += 1
-                    self.export_percent_conn.emit(int(100 * im_num / sum_images))
+                    self.export_percent_conn.emit(
+                        int(100 * im_num / sum_images))
 
                 new_sama_file.data["images"] = new_sama_images
-                new_sama_file.save(os.path.join(dest_dir, f"export_{split_folder}.json"))
+                new_sama_file.save(os.path.join(
+                    dest_dir, f"export_{split_folder}.json"))
 
     def get_labels(self):
         return self.data["labels"]
@@ -446,7 +494,8 @@ class Exporter(QtCore.QThread):
                 if filename not in image_names:
                     continue
 
-                if not len(image["shapes"]) and self.is_filter_null:  # чтобы не создавать пустых файлов
+                # чтобы не создавать пустых файлов
+                if not len(image["shapes"]) and self.is_filter_null:
                     continue
 
                 fullname = os.path.join(self.data["path_to_images"], filename)
@@ -459,7 +508,8 @@ class Exporter(QtCore.QThread):
 
                 # Final_mask - маска. На нее по очереди наносятся маски полигонов
                 if self.new_image_size:
-                    final_mask = np.zeros((self.new_image_size[1], self.new_image_size[0]))
+                    final_mask = np.zeros(
+                        (self.new_image_size[1], self.new_image_size[0]))
                 else:
                     final_mask = np.zeros((height, width))
 
@@ -473,7 +523,8 @@ class Exporter(QtCore.QThread):
                 # Desc - порядок. По умолчанию - по убыванию площади
                 #     Нужно для нанесения сегментов на маску. Сперва большие сегменты, затем маленькие.
                 #     Возвращает сортированный список shapes по площади
-                sorted_by_area_shapes = sort_shapes_by_area(image['shapes'], True)
+                sorted_by_area_shapes = sort_shapes_by_area(
+                    image['shapes'], True)
 
                 for shape in sorted_by_area_shapes:
                     cls_num = shape["cls_num"]
@@ -506,11 +557,13 @@ class Exporter(QtCore.QThread):
                     else:
                         # Наносим полигон в виде маски на image_name.png
                         # нумерация классов начинается с 1. 0 - фон
-                        paint_shape_to_mask(final_mask, points, export_cls_num + 1)
+                        paint_shape_to_mask(
+                            final_mask, points, export_cls_num + 1)
 
                 # Сохраняем маску {png_ann_name} в директорию ann_dir/{split_folder}/
                 png_ann_name = convert_image_name_to_png_name(filename)
-                png_fullpath = os.path.join(labels_dir, split_folder, png_ann_name)
+                png_fullpath = os.path.join(
+                    labels_dir, split_folder, png_ann_name)
                 cv2.imwrite(png_fullpath, final_mask)
 
                 if is_blur:
@@ -526,12 +579,15 @@ class Exporter(QtCore.QThread):
                     if self.new_image_size:
                         img = cv2.imread(fullname)
                         new_img = cv2.resize(img, self.new_image_size)
-                        cv2.imwrite(os.path.join(images_dir, split_folder, filename), new_img)
+                        cv2.imwrite(os.path.join(
+                            images_dir, split_folder, filename), new_img)
                     else:
-                        shutil.copy(fullname, os.path.join(images_dir, split_folder, filename))
+                        shutil.copy(fullname, os.path.join(
+                            images_dir, split_folder, filename))
 
                 im_num += 1
-                self.export_percent_conn.emit(int(100 * im_num / (len(self.data['images']))))
+                self.export_percent_conn.emit(
+                    int(100 * im_num / (len(self.data['images']))))
 
     def exportToYOLO(self, type):
         """
@@ -577,7 +633,8 @@ class Exporter(QtCore.QThread):
                 if filename not in image_names:
                     continue
 
-                if not len(image["shapes"]) and self.is_filter_null:  # чтобы не создавать пустых файлов
+                # чтобы не создавать пустых файлов
+                if not len(image["shapes"]) and self.is_filter_null:
                     continue
 
                 fullname = os.path.join(self.data["path_to_images"], filename)
@@ -596,7 +653,8 @@ class Exporter(QtCore.QThread):
 
                 with open(os.path.join(labels_dir, split_folder, txt_yolo_name), 'w') as f:
                     for shape in image["shapes"]:
-                        cls_num = shape["cls_num"]  # Shape - в абсолютных координатах
+                        # Shape - в абсолютных координатах
+                        cls_num = shape["cls_num"]
 
                         if cls_num == -1 or cls_num > len(labels_names) - 1:
                             continue
@@ -609,15 +667,19 @@ class Exporter(QtCore.QThread):
 
                         elif export_cls_num == 'blur':
                             if type == "seg":
-                                self.write_yolo_seg_line(shape, im_shape, blur_f, 0)
+                                self.write_yolo_seg_line(
+                                    shape, im_shape, blur_f, 0)
                             elif type == "box":
-                                self.write_yolo_box_line(shape, im_shape, blur_f, 0)
+                                self.write_yolo_box_line(
+                                    shape, im_shape, blur_f, 0)
 
                         else:
                             if type == "seg":
-                                self.write_yolo_seg_line(shape, im_shape, f, export_cls_num)
+                                self.write_yolo_seg_line(
+                                    shape, im_shape, f, export_cls_num)
                             elif type == "box":
-                                self.write_yolo_box_line(shape, im_shape, f, export_cls_num)
+                                self.write_yolo_box_line(
+                                    shape, im_shape, f, export_cls_num)
 
                 if is_blur:
                     blur_f.close()
@@ -640,7 +702,8 @@ class Exporter(QtCore.QThread):
                             shutil.copy(src, dest)
 
                 im_num += 1
-                self.export_percent_conn.emit(int(100 * im_num / (len(self.data['images']))))
+                self.export_percent_conn.emit(
+                    int(100 * im_num / (len(self.data['images']))))
 
     # def exportToCOCO(self):
     #
@@ -913,7 +976,8 @@ if __name__ == "__main__":
 
     app = QtWidgets.QApplication(sys.argv)
     sama_data = DatasetSAMAHandler()
-    sama_data.load("D:/data_sets/uranium enrichment/data/anno_json_r800/anno_sama_r800.json")
+    sama_data.load(
+        "D:/data_sets/uranium enrichment/data/anno_json_r800/anno_sama_r800.json")
     split = {'train': ['01_bra_resende_2023-08_02_000.jpg', '01_bra_resende_bing_03_000.jpg'],
              'val': ['02_gbr_capenhurst_2018-03_000.jpg', '02_gbr_capenhurst_2018-03_001.jpg', '03_DEU_2022.jpg'],
              'test': []}

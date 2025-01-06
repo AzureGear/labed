@@ -487,7 +487,8 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         common_headers = [item.replace('\n', ' ') for item in common_headers]  # общие заголовки
         common_data = self.common_data[0]
         export_data += [f"{key}{value}\n" for key, value in zip(common_headers, common_data)]
-        export_data.append(self.project_label.text() + "\n" + self.project_description.toPlainText() + "\n")
+        export_data += ["\n---------- Description project ----------\n"]
+        export_data += [self.project_description.toPlainText() + "\n"]
         export_data += ["-------------- Labels info --------------\n"]
 
         # Экспорт табличных данных
@@ -512,7 +513,6 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                     else:
                         label_data.append("\t")
             export_data.append("".join(label_data) + "\n")
-        print(export_data)
 
         helper.save_txt(file, export_data)
         self.signal_message.emit(self.tr(f"Table data export to: {file}"))

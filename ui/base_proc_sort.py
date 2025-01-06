@@ -353,6 +353,7 @@ class TabSortUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         else:
             flag_wid = False
 
+        self.ti_tb_toggle_groups.setEnabled(flag_wid)
         for wid in self.sort_tables:  # устанавливаем флаг для виджетов таблиц сортировки
             wid.setEnabled(flag_wid)
 
@@ -404,7 +405,7 @@ class TabSortUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                 wid.ti_tb_sort_add_to.setEnabled(False)
                 wid.ti_tb_sort_remove_from.setEnabled(False)
             return
-
+        
         flag = not self.ti_tb_toggle_groups.isChecked()
         self.group_mode = not flag
         for wid in self.sort_tables:
@@ -414,7 +415,7 @@ class TabSortUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
             self.signal_message.emit(self.tr("Toggle group mode off"))
         else:
             self.signal_message.emit(self.tr("Toggle group mode on"))
-
+        
         self.update_sort_data_tables()  # обновляем таблицы сортировки и...
         self.table_image_filter_changed()  # ...таблицу фильтрата
 
@@ -446,6 +447,11 @@ class TabSortUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.change_log_icon("green")
         self.signal_message.emit(message)
         QtWidgets.QApplication.restoreOverrideCursor()
+
+    def attr_actions_disable(self, message):  # сброс всех форм при загрузке, а также отключение инструментов
+        self.current_file = None
+        self.toggle_tool_buttons(False)
+        self.signal_message.emit(message)
 
     def change_log_icon(self, color):
         if color == "red":
