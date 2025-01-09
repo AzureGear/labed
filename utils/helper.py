@@ -29,7 +29,7 @@ def generate_random_name(length=5, letters=True, digits=True):
     letters = string.ascii_letters if letters else ''
     digits = string.digits if digits else ''
     symbols = letters + digits
-    if not letters:
+    if not (letters or digits):
         return None
 
     random_name = ''.join(random.choice(symbols) for _ in range(length))

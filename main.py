@@ -14,7 +14,6 @@ log_file_name = 'labed.log'  # имя файла ведения лога при 
 #  обновляются всю жизнь. И поезда разные выезжают.
 # TODO: Сделать тесты для объединения, разрезания
 # TODO: инструмент для просмотра результатов работы сети (две картинки рядом)
-# TODO: ошибки "libpng warning: iCCP: known incorrect sRGB profile" и "QLayout: Attempting to add QLayout "" to TabAttributesUI "", which already has a layout"
 
 
 # Ловчий ошибок
