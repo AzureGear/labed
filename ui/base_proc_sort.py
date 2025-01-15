@@ -815,6 +815,7 @@ class TabSortUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         self.ti_tb_sort_cook.setToolTip(self.tr("Cook dataset"))
         self.sort_project_name.setText(self.tr("Path to sorting project (*.sort):"))
         self.ti_tb_sort_open.button.setToolTip(self.tr("Open file"))
+        self.ti_tb_toggle_groups.setToolTip(self.tr("Toggle groups"))
 
         self.test_val_stats_label.setText(self.tr("Statistic for train/val data:"))
         self.toggle_train.setText(self.tr(f"Toggle train"))
