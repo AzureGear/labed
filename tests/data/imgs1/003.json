@@ -1,0 +1,146 @@
+{
+  "version": "5.3.0",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "circle",
+      "points": [
+        [
+          16.871148459383758,
+          34.728291316526615
+        ],
+        [
+          15.330532212885156,
+          30.666666666666668
+        ],
+        [
+          13.789915966386555,
+          25.344537815126053
+        ],
+        [
+          15.47058823529412,
+          20.58263305322129
+        ],
+        [
+          20.23249299719888,
+          16.380952380952383
+        ],
+        [
+          25.69467787114846,
+          14.560224089635858
+        ],
+        [
+          31.296918767507005,
+          16.24089635854342
+        ],
+        [
+          35.358543417366946,
+          20.442577030812327
+        ],
+        [
+          37.17927170868347,
+          26.044817927170868
+        ],
+        [
+          36.198879551820724,
+          30.666666666666668
+        ],
+        [
+          33.817927170868344,
+          35.42857142857143
+        ],
+        [
+          29.476190476190478,
+          38.08963585434174
+        ],
+        [
+          23.73389355742297,
+          38.08963585434174
+        ],
+        [
+          20.372549019607842,
+          36.82913165266107
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "polygon",
+      "flags": {}
+    },
+    {
+      "label": "triangle",
+      "points": [
+        [
+          52.58543417366947,
+          59.51820728291317
+        ],
+        [
+          33.817927170868344,
+          96.3529411764706
+        ],
+        [
+          71.07282913165267,
+          95.65266106442577
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "polygon",
+      "flags": {}
+    },
+    {
+      "label": "box",
+      "points": [
+        [
+          8.32773109243698,
+          112.17927170868347
+        ],
+        [
+          8.467787114845944,
+          121.98319327731092
+        ],
+        [
+          117.71148459383754,
+          122.40336134453781
+        ],
+        [
+          117.4313725490196,
+          112.8795518207283
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "polygon",
+      "flags": {}
+    },
+    {
+      "label": "box",
+      "points": [
+        [
+          79.05602240896359,
+          52.235294117647065
+        ],
+        [
+          79.05602240896359,
+          4.896358543417372
+        ],
+        [
+          120.79271708683474,
+          4.756302521008409
+        ],
+        [
+          121.07282913165265,
+          52.37535014005603
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "polygon",
+      "flags": {}
+    }
+  ],
+  "imagePath": "003.png",
+  "imageData": "iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAADlUlEQVR4nO2dPW7UUBRGmYgFgNJQpEKRWECa1NRI7IAKdhCJElEiZQdQsQKQUlNPkwUgRVRT0ERhBQlFFJJhnv3s93fv83dOlYw94yvdcz9bHtuzutp8u3kEsuxZFwC2IIA4j60L6JEnn99bl5DEn3efdl4jAcRBAHEQQBwEEIeDwEKsPv60LmGLmw8vJq1HAoiDAOIggDgIIE61g8Dr45PBZXvr01qbhZkUF2Cs8aF1kMGWYruA6+OTSc0PvQ/sKCJAbhORwI5sAUo1LzVBII+sY4BYw/Y3FzuvXR4c5mwSCpOcAGPN399cBJsfWxb7XChP8fMAY82duh4StCNJgKEGTW1+6vpQnmIJkNpMJLBltgCt4pndQBuKJEDuFJMCdvBlkDgIIA4CiIMA4hQRIPf0LqeH7ZgtQKvv77lOoA3FdgGpU8z021L0GIBm9keSAGPxPFWCy4PDwXWJ/3YkJ0BMgqHmji2LfS6UJ+uCkL316eg5e3YJ/nF1HoDpb0/2ZeF3Tcv59o7G21EsAVKbSPNtKXpjyMNmcmdQH1S7NYwm94Grg0BoDwKIgwDiIIA4CCAOAoiDAOIggDg8KLIQUx/M6A0SQBwEEAcBxEEAcVb8apg2JIA4CCAOAoizqBNBR+df/v19fvTWsJJ+WEwCPGx+6H8IsxgBII1FCDA07aRAnEUIAOl0L0BsykmBcboXAPLoWoCp000KDNO1ACF+vT6zLqEruhVg7lSTAmG6FSDE3fSTAtPpUoDUaSYFdulSgBD/Tz0pMI3uBMidYlJgm+4ECDE07aRAnK4EKDW9pMA9XQkQIjblQ8uR4JZuBKBhdehGgBBT9/GkwDBdCECj6uFegKHmzz3CJwXCuBcA6uJagFLTH3ufcgq4FqAGnBzaxq0Apac/dXtLx60ANSEF7nEpQOvpj213ybgUoAWkwC3uBLCa/tj2l4o7AULUaj4p4EwAL9PnpY4WuBIgRO0pVU8BNwJ4mzpv9dTCjQAhWk2ncgq4EMDrtHmtqySuHxHz/Psr6xIWj3kCeJ8y7/XlYi4A2IIA4pgL4P1xbt7ry4VnBYtjngBgCwKIgwDiIIA4CCAOAoiDAOIggDgIIA4CiIMA4iCAOINXBD39cdyyDqjE1cv16HISQBwEEAcBxEEAceZdFv7mWaUyoAhff89+CwkgDgKIM28XkBAx4BsSQBwEEAcBxEEAcbgzSBwSQBwEEAcBxPkLXyP18f8RUjUAAAAASUVORK5CYII=",
+  "imageHeight": 128,
+  "imageWidth": 128
+}
