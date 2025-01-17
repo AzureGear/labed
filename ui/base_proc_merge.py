@@ -215,11 +215,17 @@ class TabMergeUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
 
         if input_type == "LabelMe.json":
             new_name = os.path.join(output_dir, f"converted_{timestamp}.json")
-            if convert_labelme_to_sama(unique_files, new_name):
-                self.merge_files_list.clearSelection()
-                self.signal_message.emit(self.tr(f"Файлы успешно объединены и конвертированы в файл: '{new_name}'"))
-            else:
+            flag, info = convert_labelme_to_sama(unique_files, new_name)
+            if not flag:
                 self.signal_message.emit(self.tr("Ошибка при конвертации данных. Проверьте исходные файлы."))
+            else:
+                if len(info["no_label_me_data"]) == 0 and len(info["dublicated_data"]) == 0:
+                    self.signal_message.emit(self.tr(f"Файлы успешно объединены и конвертированы в файл: '{new_name}'"))
+                    self.merge_files_list.clearSelection()  
+                else:
+                    errors = f'no_data: {len(info["no_label_me_data"])}; dublicate: {len(info["dublicated_data"])}'
+                    self.signal_message.emit(self.tr(f"Выполнено с ошибками: {errors}"))
+                
 
         elif input_type == "SAMA.json":
             new_name = os.path.join(output_dir, f"merged_{timestamp}.json")

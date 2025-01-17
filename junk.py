@@ -1,24 +1,24 @@
-import logging
+# import logging
 
-def combine_files(file_list, output_path):
-    """
-    Объединяет содержимое всех файлов из списка и записывает его в выходной файл.
+# def combine_files(file_list, output_path):
+#     """
+#     Объединяет содержимое всех файлов из списка и записывает его в выходной файл.
 
-    :param file_list: Список путей к входным файлам.
-    :param output_path: Путь к выходному файлу.
-    """
-    try:
-        with open(output_path, 'w') as output_file:
-            for file_path in file_list:
-                logging.debug(f"Reading file: {file_path}")
-                with open(file_path, 'r') as input_file:
-                    content = input_file.read()
-                    logging.debug(f"Content of {file_path}: {content}")
-                    output_file.write(content + '\n')
-        return True
-    except Exception as e:
-        logging.error(f"Error occurred: {e}")
-        return False
+#     :param file_list: Список путей к входным файлам.
+#     :param output_path: Путь к выходному файлу.
+#     """
+#     try:
+#         with open(output_path, 'w') as output_file:
+#             for file_path in file_list:
+#                 logging.debug(f"Reading file: {file_path}")
+#                 with open(file_path, 'r') as input_file:
+#                     content = input_file.read()
+#                     logging.debug(f"Content of {file_path}: {content}")
+#                     output_file.write(content + '\n')
+#         return True
+#     except Exception as e:
+#         logging.error(f"Error occurred: {e}")
+#         return False
     
 
 # ----------------------------------------------------------------------------------------------------------------------

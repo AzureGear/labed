@@ -53,8 +53,13 @@ def convert_labelme_to_sama(input_files, output_file):
     Конвертация файлов проекта LabelMe в проект SAMA
     """
     data = dict()
-    data["path_to_images"] = os.path.dirname(input_files[0])  # такой же, как у первого файла
+    result = {"no_label_me_data": [], "dublicated_data": []}
+    error_no_data = []  # список ошибок отсутствия данных labelme
+    error_duplicate_images = []  # список ошибок дублирования изображений
+    data["path_to_images"] = os.path.dirname(
+        input_files[0])  # такой же, как у первого файла
     images = {}  # изображения
+    base_names_set = set()  # базовые имена, т.к. SAMA не терпят одинаковых
     error_numbers = 0  # количество ошибок при конвертации
     class_numbers = {}  # {имя класса:номера класса} считая с 0; создаётся динамически
     labels_colors = {}  # цвета меток
@@ -67,41 +72,52 @@ def convert_labelme_to_sama(input_files, output_file):
 
         if not label_me_data:
             error_numbers += 1
+            error_no_data.append(item)
             continue
 
-        if not "imagePath" in label_me_data:
-            error_numbers += 1
-            continue
-
-        img_name = label_me_data["imagePath"]  # формируем имя файла (можно и через os.path.basename(image))
-        lm_shapes = label_me_data["shapes"]  # список формата labelMe, где [ { "label", "points []", ... }, { ... } ]
+        # формируем имя файла (можно и через os.path.basename(image))
+        img_name = label_me_data["imagePath"]
+        # список формата labelMe, где [ { "label", "points []", ... }, { ... } ]
+        lm_shapes = label_me_data["shapes"]
 
         for lm_shp_dict in lm_shapes:  # просматриваем список "shapes" LabelMe
             shapes = {}  # каждое новое изображение обновляем
-            labels_set.add(lm_shp_dict["label"])  # перечень меток должен быть уникальным без повтора
+            # перечень меток должен быть уникальным без повтора
+            labels_set.add(lm_shp_dict["label"])
 
             for lab in labels_set:  # проверяем есть ли у нас такой ключ в сете
                 if lab not in class_numbers:
-                    class_numbers[lab] = len(labels_set) - 1  # счетчик классов в формате Ромы начинается с 0
+                    # счетчик классов в формате Ромы начинается с 0
+                    class_numbers[lab] = len(labels_set) - 1
             id_count = id_count + 1  # увеличиваем счётчик объектов
-            shapes["cls_num"] = class_numbers[lm_shp_dict["label"]]  # номер класса (имя метки)
+            # номер класса (имя метки)
+            shapes["cls_num"] = class_numbers[lm_shp_dict["label"]]
             shapes["id"] = id_count  # счетчик объектов
             shapes["points"] = lm_shp_dict["points"]  # полигоны
             list_shapes.append(shapes)
         images[img_name] = {"shapes": list_shapes,
                             "lrm": None,
                             'status': 'empty'}
+        base_name = os.path.basename(item)
+        if base_name not in base_names_set:
+            base_names_set.add(base_name)
+        else:
+            error_duplicate_images.append(item)
 
+    result["no_label_me_data"] = error_no_data
+    result["dublicated_data"] = error_duplicate_images
     if error_numbers == len(input_files):  # всё завершилось ошибками
-        return False
+
+        return False, result
 
     for label in labels_set:  # для всех меток...
         labels_colors[label] = random_color()  # ...формируем случайные цвета
     data["images"] = images
-    data["labels"] = list(class_numbers.keys())  # ключи class_numbers содержат список меток по порядку
+    # ключи class_numbers содержат список меток по порядку
+    data["labels"] = list(class_numbers.keys())
     data["labels_color"] = labels_colors
     save_json(output_file, data, 'w+')
-    return True
+    return True, result
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -109,30 +125,36 @@ def merge_sama_to_sama(input_files, output_file, copy_files=False):
     """
     Слияние файлов проектов формата SAMA с копированием файлов
     """
-    result = {"error_no_data": [], "error_duplicate": []}
+    result = {"succes": [], "error_no_data": [], "error_duplicate": []}
 
     error_no_data = []  # список ошибок отсутствия данных
+    succes_data = []
     error_duplicate_images = []  # список ошибок дублирования изображений
     data = dict()  # выходные данные
-    data["path_to_images"] = os.path.dirname(output_file)  # путь каталога выходного файла
+    data["path_to_images"] = os.path.dirname(
+        output_file)  # путь каталога выходного файла
     images = dict()  # словарь всех изображений
     id_count = 0
-    combined_labels = []  # объединенные метки для всех-всех файлов (супер список)
+    # объединенные метки для всех-всех файлов (супер список)
+    combined_labels = []
     combined_colors = dict()
     combined_descr = ""  # объединенное описание проекта
 
-    for input_file in input_files:  # проходим цикл, чтобы сформировать общий набор классов (имён меток)
+    # проходим цикл, чтобы сформировать общий набор классов (имён меток)
+    for input_file in input_files:
         input_data = load_json(input_file)
         if not input_data:
             error_no_data.append(input_file)
 
         else:
-            input_labels = input_data["labels"]  # список имен меток { "label1", "label2", ... }
+            # список имен меток { "label1", "label2", ... }
+            input_labels = input_data["labels"]
 
             for label in input_labels:
                 if label not in combined_labels:  # если метки в нашем объединённом словаре нет...
                     combined_labels.append(label)  # ...то мы её добавляем
-                    combined_colors[label] = input_data["labels_color"][label]  # заодно формируем цвета
+                    # заодно формируем цвета
+                    combined_colors[label] = input_data["labels_color"][label]
             if "description" in input_data.keys():
                 combined_descr += input_data["description"] + "\n"
 
@@ -155,7 +177,8 @@ def merge_sama_to_sama(input_files, output_file, copy_files=False):
         labels_match_dict = {i: combined_labels.index(label) for i, label in enumerate(input_labels) if
                              label in combined_labels}
 
-        for image, image_dict in input_data["images"].items():  # анализируем словарь изображений
+        # анализируем словарь изображений
+        for image, image_dict in input_data["images"].items():
             if image not in images.keys():  # такого изображения нет, значит будем добавлять его в словарь
                 image_dict.setdefault("last_user", None)
                 image_dict.setdefault("lrm", None)
@@ -166,7 +189,8 @@ def merge_sama_to_sama(input_files, output_file, copy_files=False):
                                   "status": image_dict["status"],
                                   "last_user": image_dict["last_user"]}
 
-                for shape in image_dict["shapes"]:  # shape = { "cls_num":, "id":, "points":[ ] }
+                # shape = { "cls_num":, "id":, "points":[ ] }
+                for shape in image_dict["shapes"]:
                     new_one_shape = {"cls_num": labels_match_dict[shape["cls_num"]], "id": id_count,
                                      "points": shape["points"]}
                     id_count += 1
@@ -174,18 +198,27 @@ def merge_sama_to_sama(input_files, output_file, copy_files=False):
 
                 # копируем изображение из исходного в выходной каталог, если оно в наличии
                 if copy_files and os.path.exists(os.path.join(input_dir, image)):
-                    shutil.copyfile(os.path.join(input_dir, image), os.path.join(os.path.dirname(output_file), image))
+                    shutil.copyfile(os.path.join(input_dir, image), os.path.join(
+                        os.path.dirname(output_file), image))
 
                 images[image] = new_image_dict
+                succes_data.append[image]
             else:
                 # имеется такое же точно изображение; сперва попробуем объединить разметку
-                exist_image_dict = images[image]  # анализируем имеющуюся разметку
-                exist_cls = set(shape["cls_num"] for shape in exist_image_dict["shapes"])  # список классов правильный
-                new_cls = set(labels_match_dict[shape["cls_num"]] for shape in image_dict["shapes"])
+                # TODO: правильнее было бы рассчитывать и сравнивать хэш для изображений, после принимать решение объединять или нет
+
+                # анализируем имеющуюся разметку
+                exist_image_dict = images[image]
+                # список классов правильный
+                exist_cls = set(shape["cls_num"]
+                                for shape in exist_image_dict["shapes"])
+                new_cls = set(labels_match_dict[shape["cls_num"]]
+                              for shape in image_dict["shapes"])
                 common_cls = exist_cls & new_cls
 
                 if len(common_cls) > 0:  # для изображения есть разметка, которая может конфликтовать
-                    error_duplicate_images.append(image)  # не стоит объединять, добавляем в ошибку
+                    # не стоит объединять, добавляем в ошибку
+                    error_duplicate_images.append(image)
 
                 else:  # иначе объединяем разметку для снимка
                     exist_shape = exist_image_dict["shapes"]
@@ -195,27 +228,46 @@ def merge_sama_to_sama(input_files, output_file, copy_files=False):
                         exist_shape.append(new_one_shape)
                         id_count += 1
 
-                    keys_check = ["last_user", "lrm", "status"]  # перечень ключей, которые следует проверить
+                    # перечень ключей, которые следует проверить
+                    keys_check = ["last_user", "lrm", "status"]
                     for key in keys_check:
                         if exist_image_dict.get(key):  # если они не пустые...
-                            image_dict[key] = exist_image_dict[key]  # ...то они заменяться реальными значениями
+                            # ...то они заменяться реальными значениями
+                            image_dict[key] = exist_image_dict[key]
 
                     new_image_dict = {"shapes": exist_shape,  # объединенный словарь для image
                                       "lrm": image_dict["lrm"],
                                       "status": image_dict["status"],
                                       "last_user": image_dict["last_user"]}
                     images[image] = new_image_dict
+                    succes_data.append[image]
 
     data["images"] = images
     data["description"] = combined_descr
     save_json(output_file, data, 'w+')  # записываем результат
 
-    result["error_duplicate_images"] = error_duplicate_images  # ошибки отсутствия данных
+    # ошибки отсутствия данных
+    result["error_duplicate_images"] = error_duplicate_images
+    result["succes"] = succes_data
     return result
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 if __name__ == '__main__':  # заглушка для отладки
-    merge_sama_to_sama(["d:/data_sets/oil_refinery/tests/test_for_sama_merge/proj1/proj_one.json",
-                        "d:/data_sets/oil_refinery/tests/test_for_sama_merge/proj2/proj_two.json"],
-                       "d:/data_sets/output_data/_merge.json")
+    here = os.path.dirname(os.path.abspath(__file__))
+    print(here)
+    common_dir = os.path.abspath(os.path.join(
+        os.path.dirname(here), "tests/data"))
+    files_labelme1 = ["001.json", "002.json",
+                      "003.json", "004.json", "005.json"]
+    files_labelme2 = ["002.json", "004.json", "006.json"]
+    for files, subdir in [(files_labelme1, "imgs1"), (files_labelme2, "imgs2")]:
+        files[:] = [os.path.join(common_dir, subdir, f) for f in files]
+    files_sum = files_labelme1 + files_labelme2
+    flag, info = convert_labelme_to_sama(
+        files_sum, os.path.join(common_dir, "test_output", "my.json"))
+    print(flag, info)
+    # merge_sama_to_sama([os.path.join(),
+    # "d:/data_sets/oil_refinery/tests/test_for_sama_merge/proj2/proj_two.json"],
+    #    "d:/data_sets/output_data/_merge.json")
     # convert_labelme_to_sama(my_list, "D:/data_sets/output data/_merge.json")
