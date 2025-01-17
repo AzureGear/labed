@@ -472,7 +472,7 @@ class TabSortUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         if helper.check_list(file):
             new_sort_file = DatasetSortHandler()  # создаём пустой объект
             data = new_sort_file.create_new_sort_file(self.sama_data)  # создаем данные по текущим SAMA
-            helper.save(file, data)  # сохраняем объект
+            helper.save_json(file, data)  # сохраняем объект
             self.load_sort_project(file)  # загружаем проект, он сам всё настроит
             self.signal_message.emit(self.tr(f"New sorting project file was created: {file}"))
 
@@ -487,7 +487,7 @@ class TabSortUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         if not helper.check_file(self.sort_file):
             self.signal_message.emit(self.tr("Before saving you must to create or to open a sorting project"))
             return
-        helper.save(self.sort_file, self.sort_data.data)
+        helper.save_json(self.sort_file, self.sort_data.data)
         self.signal_message.emit(self.tr(f"Train-val sorting project saved to: '{self.sort_file}'"))
 
     def check_sort_project(self, sort_data) -> bool:

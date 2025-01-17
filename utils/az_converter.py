@@ -1,5 +1,5 @@
 from random import randint
-from utils.helper import load, save
+from utils.helper import load_json, save_json, random_color
 import shutil
 import os
 
@@ -63,16 +63,17 @@ def convert_labelme_to_sama(input_files, output_file):
 
     for item in input_files:  # начинаем обход перечня полученных файлов
         list_shapes = []
-        label_me_data = load(item)
+        label_me_data = load_json(item)
 
         if not label_me_data:
             error_numbers += 1
             continue
+
         if not "imagePath" in label_me_data:
             error_numbers += 1
             continue
-        img_name = label_me_data["imagePath"]  # формируем имя файла (можно и через os.path.basename(image))
 
+        img_name = label_me_data["imagePath"]  # формируем имя файла (можно и через os.path.basename(image))
         lm_shapes = label_me_data["shapes"]  # список формата labelMe, где [ { "label", "points []", ... }, { ... } ]
 
         for lm_shp_dict in lm_shapes:  # просматриваем список "shapes" LabelMe
@@ -99,7 +100,7 @@ def convert_labelme_to_sama(input_files, output_file):
     data["images"] = images
     data["labels"] = list(class_numbers.keys())  # ключи class_numbers содержат список меток по порядку
     data["labels_color"] = labels_colors
-    save(output_file, data, 'w+')
+    save_json(output_file, data, 'w+')
     return True
 
 
@@ -121,7 +122,7 @@ def merge_sama_to_sama(input_files, output_file, copy_files=False):
     combined_descr = ""  # объединенное описание проекта
 
     for input_file in input_files:  # проходим цикл, чтобы сформировать общий набор классов (имён меток)
-        input_data = load(input_file)
+        input_data = load_json(input_file)
         if not input_data:
             error_no_data.append(input_file)
 
@@ -145,7 +146,7 @@ def merge_sama_to_sama(input_files, output_file, copy_files=False):
         return result  # возвращаем словарь ошибок: чтение файлов неудачно, объединить ничего не выйдет
 
     for input_file in input_files:  # снова проходим все файлы
-        input_data = load(input_file)
+        input_data = load_json(input_file)
         if not input_data:
             continue
         input_dir = input_data["path_to_images"]
@@ -207,21 +208,14 @@ def merge_sama_to_sama(input_files, output_file, copy_files=False):
 
     data["images"] = images
     data["description"] = combined_descr
-    save(output_file, data, 'w+')  # записываем результат
+    save_json(output_file, data, 'w+')  # записываем результат
 
     result["error_duplicate_images"] = error_duplicate_images  # ошибки отсутствия данных
     return result
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-def random_color():  # генерируем случайные цвета
-    rand_col = [randint(0, 255), randint(0, 255), randint(0, 255), 120]  # оттенок alfa по умолчанию оставляем 120
-    return rand_col
-
 
 # ----------------------------------------------------------------------------------------------------------------------
 if __name__ == '__main__':  # заглушка для отладки
     merge_sama_to_sama(["d:/data_sets/oil_refinery/tests/test_for_sama_merge/proj1/proj_one.json",
                         "d:/data_sets/oil_refinery/tests/test_for_sama_merge/proj2/proj_two.json"],
                        "d:/data_sets/output_data/_merge.json")
-    # convert_labelme_to_sama(my_list, "F:/data_sets/uranium enrichment/_merge.json")
+    # convert_labelme_to_sama(my_list, "D:/data_sets/output data/_merge.json")

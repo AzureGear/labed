@@ -1,4 +1,4 @@
-from utils.helper import load, save, check_files
+from utils.helper import load_json, save_json, check_files
 from utils.helper import natural_order
 from utils.helper import format_time
 

@@ -422,7 +422,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         if file is None:
             return
         if len(file) > 0:
-            helper.save(file, data, 'w+')  # сохраняем файл как палитру
+            helper.save_json(file, data, 'w+')  # сохраняем файл как палитру
         self.signal_message.emit(self.tr(f"Palette saved to: {file}"))
 
     def attrs_apply_palette(self):  # применение палитры
@@ -432,7 +432,7 @@ class TabAttributesUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
                                   dir_only=False, filter="Palette (*.palette)", initial_filter="Palette (*.palette)")
         if not helper.check_files(sel_file):
             return
-        palette = helper.load(sel_file[0])
+        palette = helper.load_json(sel_file[0])
         colors = palette["labels_color"]  # выгружаем цвета палитры
         input_colors = self.sama_data.data["labels_color"]
 

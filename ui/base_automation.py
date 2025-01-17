@@ -80,7 +80,7 @@ class AutomationUI(QtWidgets.QWidget):
         if not helper.check_files(sel_file):
             return
         self.log.append(f"\nВыбрана палитра: &{sel_file[0]}")
-        palette = helper.load(sel_file[0])
+        palette = helper.load_json(sel_file[0])
         colors = palette["labels_color"]  # выгружаем цвета палитры
 
         # загружаем файл проекта SAMA
@@ -90,7 +90,7 @@ class AutomationUI(QtWidgets.QWidget):
                                     initial_filter="SAMA project (*.json)")
         if not helper.check_files(input_file):
             return
-        json = helper.load(input_file[0])
+        json = helper.load_json(input_file[0])
         input_colors = json["labels_color"]
 
         # обходим ключи
@@ -98,7 +98,7 @@ class AutomationUI(QtWidgets.QWidget):
             if color in colors:  # такой цвет есть в нашей палитре
                 input_colors[color] = colors[color]
         json["labels_color"] = input_colors
-        helper.save(input_file[0], json)
+        helper.save_json(input_file[0], json)
         self.log.append(f"\nПалитра применена, файл сохранён: &{input_file[0]}")
 
     def split_images_in_dir(self):

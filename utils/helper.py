@@ -76,7 +76,7 @@ def load_pickle(file_path):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-def load(file_path):
+def load_json(file_path):
     """Загрузка данных типа json из файла (file_path)"""
     try:
         with open(file_path, 'r') as f:
@@ -110,7 +110,7 @@ def save_txt(txt_path, data, mode='w', add_line_breaks=False):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-def save(json_path, data, mode='w'):
+def save_json(json_path, data, mode='w'):
     """Сохранение данных (data) в файл json (json_path)"""
     with open(json_path, mode) as f:
         ujson.dump(data, f)
@@ -157,6 +157,8 @@ def check_ext(file_path, template="image", extensions=None):
         extensions = {".log", ".txt"}
     elif template == "image" and extensions is None:
         extensions = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".svg", ".webp"}
+    elif template == "json":
+        extensions = {".json"}
     if extensions is None:
         extensions = set()
 
@@ -229,4 +231,11 @@ def format_time(seconds, lang="en"):
     else:
         return f"{int(seconds)} {sec_af}"
 
+
 # ----------------------------------------------------------------------------------------------------------------------
+def random_color(seed=None, alpha=120):  
+    """Генерация случайных цветов"""
+    if seed is not None:
+        random.seed(seed)
+    rand_col = [random.randint(0, 255), random.randint(0, 255), random.randint(0, 255), alpha]  
+    return rand_col
