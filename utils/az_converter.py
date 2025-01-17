@@ -125,10 +125,10 @@ def merge_sama_to_sama(input_files, output_file, copy_files=False):
     """
     Слияние файлов проектов формата SAMA с копированием файлов
     """
-    result = {"succes": [], "error_no_data": [], "error_duplicate": []}
+    result = {"success": [], "error_no_data": [], "error_duplicate": []}
 
     error_no_data = []  # список ошибок отсутствия данных
-    succes_data = []
+    success_data = []
     error_duplicate_images = []  # список ошибок дублирования изображений
     data = dict()  # выходные данные
     data["path_to_images"] = os.path.dirname(
@@ -202,7 +202,8 @@ def merge_sama_to_sama(input_files, output_file, copy_files=False):
                         os.path.dirname(output_file), image))
 
                 images[image] = new_image_dict
-                succes_data.append[image]
+                success_data.append(image)
+
             else:
                 # имеется такое же точно изображение; сперва попробуем объединить разметку
                 # TODO: правильнее было бы рассчитывать и сравнивать хэш для изображений, после принимать решение объединять или нет
@@ -240,7 +241,7 @@ def merge_sama_to_sama(input_files, output_file, copy_files=False):
                                       "status": image_dict["status"],
                                       "last_user": image_dict["last_user"]}
                     images[image] = new_image_dict
-                    succes_data.append[image]
+                    success_data.append(image)
 
     data["images"] = images
     data["description"] = combined_descr
@@ -248,14 +249,14 @@ def merge_sama_to_sama(input_files, output_file, copy_files=False):
 
     # ошибки отсутствия данных
     result["error_duplicate_images"] = error_duplicate_images
-    result["succes"] = succes_data
+    result["success"] = success_data
     return result
 
 
 # ----------------------------------------------------------------------------------------------------------------------
 if __name__ == '__main__':  # заглушка для отладки
     here = os.path.dirname(os.path.abspath(__file__))
-    print(here)
+
     common_dir = os.path.abspath(os.path.join(
         os.path.dirname(here), "tests/data"))
     files_labelme1 = ["001.json", "002.json",
@@ -264,10 +265,13 @@ if __name__ == '__main__':  # заглушка для отладки
     for files, subdir in [(files_labelme1, "imgs1"), (files_labelme2, "imgs2")]:
         files[:] = [os.path.join(common_dir, subdir, f) for f in files]
     files_sum = files_labelme1 + files_labelme2
-    flag, info = convert_labelme_to_sama(
-        files_sum, os.path.join(common_dir, "test_output", "my.json"))
-    print(flag, info)
-    # merge_sama_to_sama([os.path.join(),
-    # "d:/data_sets/oil_refinery/tests/test_for_sama_merge/proj2/proj_two.json"],
-    #    "d:/data_sets/output_data/_merge.json")
-    # convert_labelme_to_sama(my_list, "D:/data_sets/output data/_merge.json")
+    test_merge = True
+    if not test_merge:
+        flag, info = convert_labelme_to_sama(
+            files_sum, os.path.join(common_dir, "test_output", "my.json"))
+        print(flag, info)
+    else:
+        result = merge_sama_to_sama([os.path.join(common_dir, "proj_one.json"),
+                            os.path.join(common_dir, "proj_two.json")],
+                            os.path.join(common_dir, "test_output", "merge_sama.json"))
+        print(result)
