@@ -18,23 +18,51 @@ def get_input_files(dir_name: str, ext_template: str):
     return files
 
 
+def check_file_exists(file_path):
+    assert os.path.exists(file_path), f"File wasn't created: '{file_path}'"
+
+
+@pytest.fixture
+def clean_temp_dir(temp_output_dir):
+    assert temp_output_dir.exists(), "Temp dir not exists"
+    assert not any(temp_output_dir.iterdir()), "Temp dir not empty"
+    yield temp_output_dir
+    for f in temp_output_dir.iterdir():
+        os.remove(f)
+    assert not any(temp_output_dir.iterdir()), "Temp dir not empty after cleanup"
+
+
+@pytest.fixture(params=[("imgs1","image")])
+def png_files(request):
+    """Набор файлов *.png из каталога imgs1"""
+    dir_name, ext_template = request.param
+    return get_input_files(dir_name, ext_template)
+
+
+@pytest.fixture(params=[("imgs2","image")])
+def png_files2(request):
+    """Набор файлов *.png из каталога imgs2"""
+    dir_name, ext_template = request.param
+    return get_input_files(dir_name, ext_template)
+
+
 @pytest.fixture(params=[("", "json")])
-# Набор файлов json SAMA
 def json_SAMA(request):
+    """Набор файлов json SAMA"""
     dir_name, ext_template = request.param
     return get_input_files(dir_name, ext_template)
 
 
 @pytest.fixture(params=[("imgs1", "json")])
-# Набор файлов imgs1
 def json_files(request):
+    """Набор файлов *.json из каталога imgs1"""
     dir_name, ext_template = request.param
     return get_input_files(dir_name, ext_template)
 
 
 @pytest.fixture(params=[("imgs2", "json")])
-# Набор файлов imgs2
 def json_files2(request):
+    """Набор файлов json из каталога imgs2"""
     dir_name, ext_template = request.param
     return get_input_files(dir_name, ext_template)
 
@@ -62,7 +90,7 @@ def test_json_files(json_files):
         expected_filenames), f"Expected filenames {expected_filenames}, but got {actual_filenames}"
 
 
-def test_convert_labelme_to_sama(json_files, temp_output_dir):
+def test_convert_labelme_to_sama(json_files, temp_output_dir, clean_temp_dir):
     """Тестирование конвертации labelme в SAMA"""
     output_file = os.path.join(temp_output_dir, "convert_to_sama_result.json")
     assert len(json_files) == 5
@@ -123,17 +151,19 @@ def test_convert_labelme_with_duplicate_to_sama(json_files, json_files2, temp_ou
     assert not os.path.exists(output_file)
 
 
-def test_merge_sama_to_sama_no_copy(json_SAMA, temp_output_dir):
+def test_merge_sama_to_sama_no_copy(json_SAMA, temp_output_dir, png_files):
     """Тестирование объединения двух проектов SAMA"""
     output_file = os.path.join(temp_output_dir, "merge_sama_result.json")
     assert len(json_SAMA) == 2
     assert temp_output_dir.exists(), "Temp dir not exists"
-    assert not any(temp_output_dir.iterdir()), "Temp dir not empty"
+    assert not any(temp_output_dir.iterdir()), "Temp dir not empty"   
     for f in json_SAMA:
         assert os.path.exists(f), f"File not exist: {f}"
-    print(json_SAMA)
     info = merge_sama_to_sama(json_SAMA, output_file)
     assert os.path.exists(output_file), f"File wasn't create: '{output_file}'"
+    
+    # проверка - файлы изображений не копировались
+    assert not [os.path.exists(os.path.join(temp_output_dir, f)) for f in png_files], f"Exist file: {f}"
     with open(output_file, 'r') as f:
         output_data = ujson.load(f)
     img_dict = output_data["images"]["002.png"]
@@ -144,12 +174,27 @@ def test_merge_sama_to_sama_no_copy(json_SAMA, temp_output_dir):
     assert not os.path.exists(output_file)
 
 
-def test_merge_sama_to_sama_with_copy(json_SAMA, temp_output_dir):
-    """Тестирование объединения двух проектов SAMA"""
+def test_merge_sama_to_sama_with_copy(json_SAMA, temp_output_dir, png_files, png_files2):
+    """Тестирование объединения двух проектов SAMA c копированием файлов"""
     output_file = os.path.join(temp_output_dir, "merge_sama_result.json")
-    assert len(json_SAMA) == 2
+    assert len(json_SAMA) == 2, "Not enough SAMA files"
     assert temp_output_dir.exists(), "Temp dir not exists"
     assert not any(temp_output_dir.iterdir()), "Temp dir not empty"
-    flag, info = merge_sama_to_sama(json_files, output_file)
-    assert flag is True, "Return result False"
-    assert os.path.exists(output_file), f"File wasn't create: '{output_file}'"
+
+    png_all = png_files+png_files2
+    print(png_all)
+    info = merge_sama_to_sama(json_SAMA, output_file, True) # копируем файлы
+    
+    # проверка - файлы изображений скопированы
+    assert all(os.path.exists(f) for f in png_all), "Not all images are copied"
+    for f in png_all:
+        os.remove(f)
+    assert not any(os.path.exists(f) for f in png_all), "Not all images are deleted after test"
+    with open(output_file, 'r') as f:
+        output_data = ujson.load(f)
+    print(output_data["description"])
+    
+    # проверяем, что description объединено
+    assert output_data["description"] == "Lorem ipsum dolor sit amet\n"
+    os.remove(output_file)
+    assert not os.path.exists(output_file)

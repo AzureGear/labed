@@ -12,11 +12,13 @@ def test_random_color_with_seed():
     color2 = helper.random_color(seed)
     assert color1 == color2
 
+
 def test_random_color_without_seed():
     # Осутствие seed возвращает разные цвета
     color1 = helper.random_color()
     color2 = helper.random_color()
     assert color1 != color2
+
 
 def test_color_format():
     # Цвет соответствует формату [R, G, B, A], а A по умолчанию == 120
@@ -25,6 +27,7 @@ def test_color_format():
     for i in range (len(color)):
         assert 0 <= color[i] <= 255
     assert color[3] == 120
+
 
 def test_save_json():
     # Сохранение json
