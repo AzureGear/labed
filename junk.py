@@ -22,31 +22,6 @@
     
 
 # ----------------------------------------------------------------------------------------------------------------------
-# def junk():
-#     # For future test of sorting
-#     start_time = time.time()
-# 
-#     # file = "c:/Users/user/Dropbox/sort_info.json"
-#     # big_real_data = helper.load(file)
-
-#     cur_ratio = 0.8
-#     # result = optimum_by_greed_with_group(big_real_data, cur_ratio)
-#     result = optimum_by_greed_with_group(test_real_uranium, cur_ratio,
-#                                          group_pattern=helper.PATTERNS.get("double_underscore"))
-#     train = result["train"].values()
-#     val = result["val"].values()
-#     # print(big_real_data)
-#     # train, val, count = optimum_split_for_data(unsort, 0.8, 6.5)
-#     end_time = time.time()
-#     sec = (end_time - start_time)  # / 3600
-#     train_per, val_per = calc_ratio(result['ratio'][0], result['ratio'][1])
-#     print(f"Обработано строк: {len(test_real_uranium.keys())}; занятое время: {format_time(sec, 'ru')},"
-#           f"error: {result['error']:.1f};\n%t:",
-#           [f"{p:.0f}" for p in train_per], ";\n%v:",
-#           [f"{p:.0f}" for p in val_per])
-    
-# ----------------------------------------------------------------------------------------------------------------------    
-
 
 
 # import sys
