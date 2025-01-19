@@ -2,17 +2,22 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 from utils import format_time, helper, UI_COLORS
 from ui import new_button, new_text, new_icon, AzSimpleModel
 from itertools import combinations
+from typing import Dict, Tuple
 import numpy as np
 import random
+import copy
 import time
 import re
 
 the_color = UI_COLORS.get("processing_color")
 
 # ----------------------------------------------------------------------------------------------------------------------
+
+
 class SortColWidget(QtWidgets.QWidget):
     signal_spin_changed = QtCore.pyqtSignal(float)  # сигнал изменения значений
-    signal_state_changed = QtCore.pyqtSignal(bool)  # сигнал изменения состояния
+    signal_state_changed = QtCore.pyqtSignal(
+        bool)  # сигнал изменения состояния
 
     def __init__(self, checkbox_text, initial_value=0.0, enabled=True, color=None, parent=None):
         super().__init__(parent)
@@ -27,7 +32,8 @@ class SortColWidget(QtWidgets.QWidget):
         layout = QtWidgets.QHBoxLayout()
 
         self.checkbox = QtWidgets.QCheckBox(self.checkbox_text)
-        self.checkbox.setChecked(self.enabled)  # устанавливаем начальное состояние
+        # устанавливаем начальное состояние
+        self.checkbox.setChecked(self.enabled)
         self.checkbox.stateChanged.connect(self.toggle_widgets)
         layout.addWidget(self.checkbox)
 
@@ -39,16 +45,19 @@ class SortColWidget(QtWidgets.QWidget):
         self.spinbox.setValue(self.initial_value)  # начальное значение
 
         self.checkbox.setStyleSheet(f"QCheckBox {{ color: {self.color}; }}")
-        self.spinbox.setStyleSheet(f"QDoubleSpinBox {{ color: {self.color}; }}")
+        self.spinbox.setStyleSheet(
+            f"QDoubleSpinBox {{ color: {self.color}; }}")
 
         layout.addWidget(self.spinbox)
         self.setLayout(layout)
 
         # Исходная настройка виджетов
-        self.toggle_widgets(self.checkbox.checkState())  # исходное состояние виджетов
+        # исходное состояние виджетов
+        self.toggle_widgets(self.checkbox.checkState())
 
         # Signals
-        self.spinbox.valueChanged.connect(self.signal_spin_changed.emit)  # Подключаем сигнал к изменению значений
+        # Подключаем сигнал к изменению значений
+        self.spinbox.valueChanged.connect(self.signal_spin_changed.emit)
 
     def toggle_widgets(self, state):
         """Переключение состояния виджета"""
@@ -76,7 +85,8 @@ class ColorBarWidget(QtWidgets.QWidget):
 
     def paintEvent(self, event):
         painter = QtGui.QPainter(self)
-        max_length = self.width() - 60  # максимальную длина линии с учетом отступов (10 пикселей слева и 50 справа)
+        # максимальную длина линии с учетом отступов (10 пикселей слева и 50 справа)
+        max_length = self.width() - 60
         x_pos = 10
 
         if not self.lines:
@@ -89,14 +99,17 @@ class ColorBarWidget(QtWidgets.QWidget):
             the_color = QtGui.QColor(color)
             pen = QtGui.QPen(the_color, self.line_thickness)
             painter.setPen(pen)
-            painter.drawLine(x_pos, self.height() // 2, x_pos + length, self.height() // 2)  # линия
+            painter.drawLine(x_pos, self.height() // 2, x_pos +
+                             length, self.height() // 2)  # линия
 
-            font = QtGui.QFont("Tahoma", self.font_size)  # добавляем текст над линией
+            # добавляем текст над линией
+            font = QtGui.QFont("Tahoma", self.font_size)
             painter.setFont(font)
             painter.setPen(the_color)  # цвет текста как у линии
             text_width = painter.fontMetrics().width(text)
             text_x = x_pos + (length - text_width) // 2
-            text_y = self.height() // 2 - self.line_thickness - 1  # учитываем смещение вверх
+            text_y = self.height() // 2 - self.line_thickness - \
+                1  # учитываем смещение вверх
             text2_y = self.height() // 2 + self.line_thickness + self.font_size + 1
             painter.drawText(text_x, text_y, text)
             painter.drawText(text_x, text2_y, str(int(length_percent)) + "%")
@@ -104,12 +117,15 @@ class ColorBarWidget(QtWidgets.QWidget):
 
             x_pos += length
 
-        painter.drawText(self.width() - 37, self.height() // 2 + self.font_size // 2, str(summ) + "%")
+        painter.drawText(self.width() - 37, self.height() //
+                         2 + self.font_size // 2, str(summ) + "%")
 
         if summ == 100:  # если получено 100%, то рисуем красивую рамку
-            painter.setPen(QtGui.QPen(QtGui.QColor("green"), 2, QtCore.Qt.PenStyle.DotLine))
+            painter.setPen(QtGui.QPen(QtGui.QColor("green"),
+                           2, QtCore.Qt.PenStyle.DotLine))
             painter.drawRect(0, 0, self.width() - 40, self.minimumHeight())
-            painter.drawText(self.width() - 37, self.height() // 2 + self.font_size // 2, "100%")
+            painter.drawText(self.width() - 37, self.height() //
+                             2 + self.font_size // 2, "100%")
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -122,7 +138,8 @@ class AzSortingDatasetDialog(QtWidgets.QDialog):
         super().__init__(parent)
         # self.setStyleSheet("QWidget { border: 1px solid red; }")
         self.setWindowTitle(window_title)
-        self.setFixedSize(600, 330)  # фиксированные размеры для размещения кастомных виджетов
+        # фиксированные размеры для размещения кастомных виджетов
+        self.setFixedSize(600, 330)
         self.setWindowFlag(QtCore.Qt.WindowType.Tool)
         self.data = data
         self.setup_ui()
@@ -134,19 +151,24 @@ class AzSortingDatasetDialog(QtWidgets.QDialog):
     def setup_ui(self):
         """Настройка интерфейса"""
         # Создаем кнопки
-        self.button_cancel = new_button(self, "pb", self.tr("Cancel"), slot=self.reject)
-        self.button_ok = new_button(self, "pb", self.tr("OK"), slot=self.accept)
+        self.button_cancel = new_button(
+            self, "pb", self.tr("Cancel"), slot=self.reject)
+        self.button_ok = new_button(
+            self, "pb", self.tr("OK"), slot=self.accept)
         self.button_ok.setEnabled(False)  # по умолчанию отключаем
-        self.button_sort = new_button(self, "pb", self.tr("Сортировать"), slot=self.exec_sort)
+        self.button_sort = new_button(
+            self, "pb", self.tr("Сортировать"), slot=self.exec_sort)
 
         # Объекты с общим именем рассматриваются как группа данных
         self.chk_group_sort = QtWidgets.QCheckBox(
-            self.tr("Objects with a common name are considered as a data group (use group pattern):"),
+            self.tr(
+                "Objects with a common name are considered as a data group (use group pattern):"),
             self)
         # по умолчанию используем шаблон двойного подчеркивания
         self.group_sort_pattern = QtWidgets.QLineEdit(self)
         self.group_sort_pattern.setEnabled(False)
-        self.group_sort_pattern.setText(helper.PATTERNS.get("double_underscore"))
+        self.group_sort_pattern.setText(
+            helper.PATTERNS.get("double_underscore"))
         self.chk_group_sort.stateChanged.connect(
             lambda state: self.group_sort_pattern.setEnabled(state == QtCore.Qt.CheckState.Checked))
 
@@ -165,9 +187,12 @@ class AzSortingDatasetDialog(QtWidgets.QDialog):
         sort_lay = QtWidgets.QHBoxLayout()  # компоновщик виджетов сортировки
 
         for name, value, color in widgets:
-            widget = SortColWidget(checkbox_text=name, initial_value=value, color=color)
-            widget.signal_spin_changed.connect(self.check_values)  # сигнал обновления при изменении значений
-            widget.signal_state_changed.connect(self.check_values)  # сигнал обновления при изменении состояния
+            widget = SortColWidget(
+                checkbox_text=name, initial_value=value, color=color)
+            # сигнал обновления при изменении значений
+            widget.signal_spin_changed.connect(self.check_values)
+            # сигнал обновления при изменении состояния
+            widget.signal_state_changed.connect(self.check_values)
             self.sort_widgets.append(widget)
             sort_lay.addWidget(widget)
 
@@ -178,7 +203,8 @@ class AzSortingDatasetDialog(QtWidgets.QDialog):
                                 self.sort_widgets]
         self.color_bar = ColorBarWidget(5, values_labels_colors)
 
-        hlay = QtWidgets.QHBoxLayout()  # компоновщик для учета группировки объектов и его шаблона
+        # компоновщик для учета группировки объектов и его шаблона
+        hlay = QtWidgets.QHBoxLayout()
         hlay.addWidget(self.chk_group_sort)
         hlay.addWidget(self.group_sort_pattern)
         hlay.addSpacing(40)
@@ -214,40 +240,53 @@ class AzSortingDatasetDialog(QtWidgets.QDialog):
         cols = len(self.sort_cols)  # количество выборок
 
         names = list(self.sort_cols.keys())
-        ratios = [val / 100 for val in self.sort_cols.values()]  # приводим к виду 82% = 0.82
+        # приводим к виду 82% = 0.82
+        ratios = [val / 100 for val in self.sort_cols.values()]
         # stats = {"ratios": ratios, "names": names, "pattern": pattern}  # статистика для вывода
 
         if cols == 1:
             result = optimum_by_greed_with_group(self.data, ratios[0], names=[names[0], "other"],
                                                  group_pattern=pattern)
-            gr1, gr2 = calc_ratio(result['ratio_summ'][0], result['ratio_summ'][1])
-            self.result[names[0]] = {"data": result[names[0]].values(), "ratio": gr1, "img": result[names[0]].keys()}
+            gr1, gr2 = calc_ratio(
+                result['ratio_summ'][0], result['ratio_summ'][1])
+            self.result[names[0]] = {"data": result[names[0]].values(
+            ), "ratio": gr1, "img": result[names[0]].keys()}
 
         elif cols == 2:
             result = optimum_by_greed_with_group(self.data, ratios[0], names=[names[0], names[1]],
                                                  group_pattern=pattern)
-            gr1, gr2 = calc_ratio(result['ratio_summ'][0], result['ratio_summ'][1])
+            gr1, gr2 = calc_ratio(
+                result['ratio_summ'][0], result['ratio_summ'][1])
 
-            self.result[names[0]] = {"data": result[names[0]].values(), "ratio": gr1, "img": result[names[0]].keys()}
-            self.result[names[1]] = {"data": result[names[1]].values(), "ratio": gr2, "img": result[names[1]].keys()}
+            self.result[names[0]] = {"data": result[names[0]].values(
+            ), "ratio": gr1, "img": result[names[0]].keys()}
+            self.result[names[1]] = {"data": result[names[1]].values(
+            ), "ratio": gr2, "img": result[names[1]].keys()}
 
         elif cols == 3:
             result = optimum_by_greed_with_group(self.data, ratios[0], names=[names[0], "combined"],
                                                  group_pattern=pattern)
-            gr1, gr2_3 = calc_ratio(result['ratio_summ'][0], result['ratio_summ'][1])
+            gr1, gr2_3 = calc_ratio(
+                result['ratio_summ'][0], result['ratio_summ'][1])
 
-            corrected_ratio = round(ratios[1] * 100 / (100 - ratios[0] * 100), 2)  # корректируем значение в %
+            corrected_ratio = round(
+                ratios[1] * 100 / (100 - ratios[0] * 100), 2)  # корректируем значение в %
             result2 = optimum_by_greed_with_group(result["combined"], corrected_ratio,
                                                   names=[names[1], names[2]], group_pattern=pattern)
-            gr2, gr3 = calc_ratio(result2['ratio_summ'][0], result2['ratio_summ'][1])
+            gr2, gr3 = calc_ratio(
+                result2['ratio_summ'][0], result2['ratio_summ'][1])
 
-            for i, perc in enumerate(gr2_3):  # пересчитываем проценты с учетом исходного соотношения
+            # пересчитываем проценты с учетом исходного соотношения
+            for i, perc in enumerate(gr2_3):
                 gr2[i] = gr2[i] * perc / 100
                 gr3[i] = 100 - gr2[i] - gr1[i]
 
-            self.result[names[0]] = {"data": result[names[0]].values(), "ratio": gr1, "img": result[names[0]].keys()}
-            self.result[names[1]] = {"data": result2[names[1]].values(), "ratio": gr2, "img": result2[names[1]].keys()}
-            self.result[names[2]] = {"data": result2[names[2]].values(), "ratio": gr3, "img": result2[names[2]].keys()}
+            self.result[names[0]] = {"data": result[names[0]].values(
+            ), "ratio": gr1, "img": result[names[0]].keys()}
+            self.result[names[1]] = {"data": result2[names[1]].values(
+            ), "ratio": gr2, "img": result2[names[1]].keys()}
+            self.result[names[2]] = {"data": result2[names[2]].values(
+            ), "ratio": gr3, "img": result2[names[2]].keys()}
 
         end_time = time.time()
 
@@ -256,18 +295,21 @@ class AzSortingDatasetDialog(QtWidgets.QDialog):
                 f"занятое время: {format_time(end_time - start_time, 'ru')}, "
                 f"величина расхождения: {result['error']:.1f}")
         headers = ["Выборка", "records"]  # заголовки таблицы результатов
-        headers.extend(f"cls{i:02d}" for i in range(1, len(self.result[names[0]]['ratio']) + 1))
+        headers.extend(f"cls{i:02d}" for i in range(
+            1, len(self.result[names[0]]['ratio']) + 1))
 
         data = []  # данные для отображения
         for name, res_dict in self.result.items():
-            row = [name, len(res_dict['data'])] + [round(rat, 0) for rat in res_dict['ratio']]
+            row = [name, len(res_dict['data'])] + [round(rat, 0)
+                                                   for rat in res_dict['ratio']]
             data.append(row)
 
         model = AzSimpleModel(data, headers)
         self.table_view.setModel(model)
         header = self.table_view.horizontalHeader()
         for col in range(model.columnCount()):  # выравниваем столбцы
-            header.setSectionResizeMode(col, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
+            header.setSectionResizeMode(
+                col, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
 
         if len(self.result) > 0:
             self.btn_status.setIcon(new_icon("circle_green"))
@@ -287,9 +329,13 @@ class AzSortingDatasetDialog(QtWidgets.QDialog):
 
     def check_values(self):
         """Проверка значений перед отправкой на отрисовку"""
-        summ = sum(widget.spinbox.value() for widget in self.sort_widgets if widget.checkbox.isChecked())  # общая сумма
-        active_numbers = sum(1 for widget in self.sort_widgets if widget.checkbox.isChecked())  # количество объектов
-        [widget.spinbox.setMaximum(100 - active_numbers + 1) for widget in self.sort_widgets]  # изменяем максимум
+        summ = sum(widget.spinbox.value(
+        ) for widget in self.sort_widgets if widget.checkbox.isChecked())  # общая сумма
+        # количество объектов
+        active_numbers = sum(
+            1 for widget in self.sort_widgets if widget.checkbox.isChecked())
+        [widget.spinbox.setMaximum(100 - active_numbers + 1)
+         for widget in self.sort_widgets]  # изменяем максимум
 
         if summ > 100:  # сумма начала превышать 100, следует это скорректировать
             sender_spinbox = self.sender().spinbox  # определяем отправителя сигнала
@@ -324,15 +370,18 @@ class AzSortingDatasetDialog(QtWidgets.QDialog):
 
 # ----------------------------------------------------------------------------------------------------------------------
 def get_group_objects(data_for_group, pattern=helper.PATTERNS.get("double_underscore")):
-    """Разбиение на группы объектов по заданному паттерну. Принимает данные (data_for_group) и шаблон
-    разбиения (pattern). Возвращает список с перечнем наименований групп"""
+    """Разбиение на группы объектов по заданному паттерну. Принимает данные 
+     (data_for_group) и шаблон разбиения (pattern). Возвращает список 
+    с перечнем успешно найденных наименований групп.
 
-    objects = []
+    Example: пусть имеется словарь family = {"dad": [], "br0ther": [], "pet": [], "f1sh": []} 
+     get_group_objects(family, '\d'), функция вернет ['0', '1']"""
+
+    objects = set()
     for item in data_for_group:
         match = re.search(pattern, item)
         if match:
-            if match.group(0) not in objects:
-                objects.append(match.group(0))
+            objects.add(match.group(0))
     return objects
 
 
@@ -341,55 +390,94 @@ def calc_ratio(train_ratio, val_ratio):
     if len(train_ratio) != len(val_ratio):
         raise ValueError("Списки должны быть одинаковой длины")
     # на 0 делить нельзя, поэтому вводим правило, и считаем сумму/столбец для train и val
-    train_percentages = [(t / (t + v)) * 100 if (t + v) != 0 else 0 for t, v in zip(train_ratio, val_ratio)]
-    val_percentages = [(v / (t + v)) * 100 if (t + v) != 0 else 0 for t, v in zip(train_ratio, val_ratio)]
+    train_percentages = [(t / (t + v)) * 100 if (t + v) !=
+                         0 else 0 for t, v in zip(train_ratio, val_ratio)]
+    val_percentages = [(v / (t + v)) * 100 if (t + v) !=
+                       0 else 0 for t, v in zip(train_ratio, val_ratio)]
     return train_percentages, val_percentages
 
 
-def group_data_by_pattern(data, pattern):
+def check_key(key, pattern_type, group):
+    if pattern_type == "start":
+        return key.startswith(group)
+    else:
+        return re.search(group, key)
+    
+
+def group_data_by_pattern(data: dict, pattern: str, pattern_type: str) -> Tuple[Dict, Dict]:
     """
     Объединение данных и суммация их значений по заданному шаблону.
     Example. Принимаем словарь типа {"bar": [3, 2, 0, 3], "bond": [1, 3, 1, 1], "cell": [2, 0, 0, 3]}, с шаблоном
-    типа r"^." получаем словарь новых значений { "b": [4, 5, 1, 4], "c": [2, 0, 0, 3]} и словарь связанных
-    ключей {"b": ["bar", "bond"], "c":["cell"]}
+    типа r"^." и поиском типа "start" получаем словарь новых значений { "b": [4, 5, 1, 4], "c": [2, 0, 0, 3]} 
+    и словарь связанных ключей {"b": ["bar", "bond"], "c":["cell"]}
     """
-    if not data or not pattern:
-        raise ValueError("Отсутствуют данные либо шаблон")
-    groups = get_group_objects(data.keys())
-    if not groups:
-        return None, None  # по заданному шаблону ничего не найдено
+    if not data:
+        raise ValueError("Отсутствуют исходные данные")
 
-    array = np.array(list(data.values()))  # преобразуем в массив numpy значений типа [0, 1, 3, 0]
+    groups = get_group_objects(data.keys(), pattern)
+    if not groups:
+        raise ValueError("По заданному шаблону ничего не найдено")
+
+    melted_data = copy.deepcopy(data)  # делаем копию словаря
     group_data, group_keys = {}, {}  # создаем словари новых данных и ключей к ним
+    _, n = next(iter(melted_data.items()))
+    if n:
+        n = len(n) # узнаем размерность
+    else:
+        raise ValueError("Исходные данные некоректны")
 
     for group in groups:
-        key_record = []  # связанные значения
-        summ_for_group = np.zeros(array.shape[1])  # сумма для группы
+        key_records = []  # связанные значения
+        keys_to_remove = []  # список ключей для удаления
+        summ_for_group = np.zeros(n, dtype=int)  # сумма для группы
 
-        for key, row_vals in zip(data.keys(), array):  # для изображений: key - имя изображения
-            if key.startswith(group):
-                key_record.append(key)
-                summ_for_group += row_vals
+        # для изображений: key - имя изображения
+        for key, val in melted_data.items():
+            if check_key(key, pattern_type, group):
+                key_records.append(key)
+                summ_for_group += np.array(val)
+                keys_to_remove.append(key)
 
-        group_data[group] = summ_for_group.tolist()  # преобразуем в лист
-        group_keys[group] = key_record
+        if len(key_records) > 0: # для этой группы найдены данные
+            group_data[group] = summ_for_group.tolist()  # преобразуем в лист
+            group_keys[group] = key_records
+            for key in keys_to_remove:  # удаляем ключи из словаря
+                melted_data.pop(key, None)
+
     return group_data, group_keys
 
 
-def optimum_by_greed_with_group(data, ratio=0.8, names=["train", "val"], group_pattern=None):
-    """Поиск оптимального разбиения на основе жадного алгоритма. Исходные данные data являются словарем списка
-     типа: {"dad": [3, 2, 0, 3], "sister": [1, 3, 1, 1], "mom": [2, 0, 0, 3]}
-     names - названия групп, по умолчанию "train", "val" (первая группа имеет распределение ratio)
-     ratio - это размер отношения для выборки train от 1 до 0 (70% = 0.7)
-     group_pattern - шаблон образования групп; если None то группировка не используется
+def optimum_by_greed_with_group(data: dict, ratio: float = 0.8, names: list[str, str] = ["train", "val"],
+                                group_pattern=None, group_beih="start") -> dict:
+    """Поиск оптимального разбиения на основе жадного алгоритма. Возвращает словарь 
+     с именами групп и соответствующим им данным; суммарным значением соотношений; 
+    значением ошибки.
 
-     Возвращает - словарь с именами:соответствующими данными; суммарным значением соотношений; значением ошибки"""
+    Args: 
+        data: словарь исходных данных типа  
+         {"dad": [5, 7], "sister": [2, 3], "mom": [2, 5]}
+        names: названия групп, по умолчанию "train", "val"
+        ratio: размер отношения для первой группы ("train") в долях (от 1 до 0; 70% = 0.7)
+        group_pattern: шаблон образования групп; если None то группировка не используется,
+        group_beih: тип формирования групп: "start" - поиск сначала строки или "re" - классический 
+         поиск, (!) при его использованнии следует учитывать формирование set() и образование последовательных 
+        групп.
+
+    Return:
+        (dict) словарь результатов, типа 
+         {train:{"mom":[2, 5], "sister":[2, 3]}, val:{"dad":[5, 7]}, ratio:[[4, 8], [5, 7]], error: 3.5}
+     """
     if group_pattern:  # есть необходимость использования групп
-        group_data, group_links = group_data_by_pattern(data, group_pattern)  # упаковываем данные
+        group_data, group_links = group_data_by_pattern(
+            data, group_pattern, group_beih)  # упаковываем данные
+        if not group_data:
+            print("Группировка по заданным параметрам не выполнена.")
+            return None
         data_array = np.array(list(group_data.values()))
         keys = list(group_data.keys())
     else:
-        data_array = np.array(list(data.values()))  # преобразуем в массив numpy для оптимизации
+        # преобразуем в массив numpy для оптимизации
+        data_array = np.array(list(data.values()))
         keys = list(data.keys())  # сохраняем список ключей
 
     total_sums = np.sum(data_array, axis=0)  # сумма каждой колонки
@@ -399,12 +487,14 @@ def optimum_by_greed_with_group(data, ratio=0.8, names=["train", "val"], group_p
     sums = np.sum(data_array, axis=1)  # считаем суммы строк
     sorted_idx = np.argsort(sums)[::-1]  # сортируем данные через индексы
     # нулевые матрицы для сумм
-    train_sums, val_sums = np.zeros(data_array.shape[1], dtype=int), np.zeros(data_array.shape[1], dtype=int)  
+    train_sums, val_sums = np.zeros(data_array.shape[1], dtype=int), np.zeros(
+        data_array.shape[1], dtype=int)
 
     for i in sorted_idx:  # используем жадный алгоритм для разбиения данных на отсортированных индексах
         row = data_array[i]
         if all(train_sums + row <= train_score):
-            train_keys.append(keys[i])  # индексы отсортированы, но сами значения верные
+            # индексы отсортированы, но сами значения верные
+            train_keys.append(keys[i])
             train_sums += row
         else:
             val_keys.append(keys[i])
@@ -414,11 +504,13 @@ def optimum_by_greed_with_group(data, ratio=0.8, names=["train", "val"], group_p
 
     result = {}  # словарь выходных данных
     if group_pattern:  # если были использованы группы
-        unpack_train, unpack_val = {}, {}  # имеем набор данных train и val, которые надо распаковать
+        # имеем набор данных train и val, которые надо распаковать
+        unpack_train, unpack_val = {}, {}
         print("train:", train_keys)
         print("val:", val_keys)
         for group in train_keys:  # просматриваем список групп: '022_AUT', '030_BEL'...)
-            for item in group_links[group]:  # смотрим словарь связей: {'022_AUT': "aut_01.jpg", "aut_02.jpg", ... }
+            # смотрим словарь связей: {'022_AUT': "aut_01.jpg", "aut_02.jpg", ... }
+            for item in group_links[group]:
                 unpack_train[item] = data[item]
         for group in val_keys:
             for item in group_links[group]:
@@ -427,8 +519,10 @@ def optimum_by_greed_with_group(data, ratio=0.8, names=["train", "val"], group_p
         result[names[1]] = unpack_val
 
     else:  # простой вариант
-        train_dict = {key: data[key] for key in train_keys if key in data}  # списки для выходных данных train и val...
-        val_dict = {key: data[key] for key in val_keys if key in data}  # ...строим по ключам через исходные "data"
+        # списки для выходных данных train и val...
+        train_dict = {key: data[key] for key in train_keys if key in data}
+        # ...строим по ключам через исходные "data"
+        val_dict = {key: data[key] for key in val_keys if key in data}
         result[names[0]] = train_dict
         result[names[1]] = val_dict
 
@@ -472,12 +566,15 @@ def optimization_swap(train_data, val_data, ratio, input_error, max_iterations=1
             for train_indices in combinations(range(len(array_train)), num_rows_train):
                 for val_indices in combinations(range(len(array_val)), num_rows_val):
                     # сначала перемещаем строки из train в val (если необходимо)...
-                    new_train, new_val = move_rows(array_train.copy(), array_val.copy(), train_indices)
+                    new_train, new_val = move_rows(
+                        array_train.copy(), array_val.copy(), train_indices)
                     # ...теперь (при необходимости перемещаем строки из val в train)
-                    new_train, new_val = move_rows(new_val, new_train, val_indices)
+                    new_train, new_val = move_rows(
+                        new_val, new_train, val_indices)
 
                     # Считаем суммы по столбцам и ошибку
-                    train_sums, val_sums = np.sum(new_train, axis=0), np.sum(new_val, axis=0)
+                    train_sums, val_sums = np.sum(
+                        new_train, axis=0), np.sum(new_val, axis=0)
                     error = calculate_error(train_sums, val_sums, ratio)
                     # if count % 10000 == 0:
                     #     print(f"{count} iteration")
@@ -489,7 +586,6 @@ def optimization_swap(train_data, val_data, ratio, input_error, max_iterations=1
                         best_val = new_val
                     count += 1
     return best_train, best_val
-
 
 
 # ----------------------------------------------------------------------------------------------------------------------
