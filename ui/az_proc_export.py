@@ -125,7 +125,7 @@ class AzExportDialog(QtWidgets.QDialog):
                 item] = f'<span style="color:{color};">{len(input_dict[item]) / total_imgs * 100:.1f}% {item}</span>'
             split_info_dict['current'][
                 item] = f'<span style="color:{color};">{len(input_dict[item]) / cur_imgs * 100:.1f}% {item}</span>'
-            print(split_info_dict['total'][item])
+            # print(split_info_dict['total'][item])
 
         # Указываем параметрах разбиения выборок, в виде:
         # total [80.0% train / 20.0% val / 0% test]; current: [15.0% train / 4.0% val / 0.0% test]
