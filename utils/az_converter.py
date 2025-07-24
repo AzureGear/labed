@@ -1,6 +1,9 @@
-from random import randint
+from shapely.validation import make_valid
+from shapely.geometry import Polygon
 from utils.helper import load_json, save_json, random_color
+from random import randint
 import shutil
+import numpy as np
 import os
 
 
@@ -205,43 +208,50 @@ def merge_sama_to_sama(input_files, output_file, copy_files=False):
                 success_data.append(image)
 
             else:
-                # имеется такое же точно изображение; сперва попробуем объединить разметку
-                # TODO: правильнее было бы рассчитывать и сравнивать хэш для изображений, после принимать решение объединять или нет
-
-                # анализируем имеющуюся разметку
+                # Объединяем разметку (с проверкой на дубликаты)
                 exist_image_dict = images[image]
-                # список классов правильный
-                exist_cls = set(shape["cls_num"]
-                                for shape in exist_image_dict["shapes"])
-                new_cls = set(labels_match_dict[shape["cls_num"]]
-                              for shape in image_dict["shapes"])
-                common_cls = exist_cls & new_cls
-
-                if len(common_cls) > 0:  # для изображения есть разметка, которая может конфликтовать
-                    # не стоит объединять, добавляем в ошибку
-                    error_duplicate_images.append(image)
-
-                else:  # иначе объединяем разметку для снимка
-                    exist_shape = exist_image_dict["shapes"]
-                    for shape in image_dict["shapes"]:  # сама разметка
-                        new_one_shape = {"cls_num": labels_match_dict[shape["cls_num"]], "id": id_count,
-                                         "points": shape["points"]}
-                        exist_shape.append(new_one_shape)
-                        id_count += 1
-
-                    # перечень ключей, которые следует проверить
-                    keys_check = ["last_user", "lrm", "status"]
-                    for key in keys_check:
-                        if exist_image_dict.get(key):  # если они не пустые...
-                            # ...то они заменяться реальными значениями
-                            image_dict[key] = exist_image_dict[key]
-
-                    new_image_dict = {"shapes": exist_shape,  # объединенный словарь для image
-                                      "lrm": image_dict["lrm"],
-                                      "status": image_dict["status"],
-                                      "last_user": image_dict["last_user"]}
-                    images[image] = new_image_dict
-                    success_data.append(image)
+                exist_shapes = exist_image_dict["shapes"]
+                
+                # Создаем словарь для быстрого доступа
+                exist_shapes_by_cls = {}
+                for shape in exist_shapes:
+                    cls_num = shape["cls_num"]
+                    exist_shapes_by_cls.setdefault(cls_num, []).append(shape)
+                
+                # Обработка новых контуров
+                for shape in image_dict["shapes"]:
+                    new_cls = labels_match_dict[shape["cls_num"]]
+                    new_shape = {
+                        "cls_num": new_cls,
+                        "id": id_count,
+                        "points": shape["points"]
+                    }
+                    id_count += 1
+                    
+                    # Проверка дубликатов только для текущего класса
+                    is_duplicate = False
+                    if new_cls in exist_shapes_by_cls:
+                        for exist_shape in exist_shapes_by_cls[new_cls]:
+                            if is_duplicate_poly(exist_shape, new_shape):
+                                is_duplicate = True
+                                break
+                    
+                    if not is_duplicate:
+                        exist_shapes.append(new_shape)
+                
+                # Обновляем словарь
+                keys_check = ["last_user", "lrm", "status"]
+                for key in keys_check:
+                    if exist_image_dict.get(key):
+                        image_dict[key] = exist_image_dict[key]
+                
+                images[image] = {
+                    "shapes": exist_shapes,
+                    "lrm": image_dict["lrm"],
+                    "status": image_dict["status"],
+                    "last_user": image_dict["last_user"]
+                }
+                success_data.append(image)
 
     data["images"] = images
     data["description"] = combined_descr
@@ -252,6 +262,37 @@ def merge_sama_to_sama(input_files, output_file, copy_files=False):
     result["success"] = success_data
     return result
 
+
+# ----------------------------------------------------------------------------------------------------------------------
+def is_duplicate_poly(shape1, shape2, iou_threshold=0.95, distance_threshold=5.0):
+    """Определяет, являются ли два контура дубликатами с помощью геометрических метрик"""
+    # Создаем полигоны из точек
+    poly1 = Polygon(shape1['points'])
+    poly2 = Polygon(shape2['points'])
+    
+    # Исправляем невалидные геометрии (если есть самопересечения)
+    if not poly1.is_valid:
+        poly1 = make_valid(poly1)
+    if not poly2.is_valid:
+        poly2 = make_valid(poly2)
+    
+    # Считаем IoU
+    intersection = poly1.intersection(poly2).area
+    union = poly1.union(poly2).area
+    iou = intersection / union if union > 0 else 0
+    
+    # Считам расстояние между центрами
+    centroid1 = np.array(poly1.centroid.coords[0])
+    centroid2 = np.array(poly2.centroid.coords[0])
+    centroid_distance = np.linalg.norm(centroid1 - centroid2)
+    
+    # Проверяем критерии схожести
+    if iou >= iou_threshold: 
+        return True # провал по IoU
+    if centroid_distance <= distance_threshold and abs(poly1.area - poly2.area) / min(poly1.area, poly2.area) < 0.1:
+        return True # провалились по центроидам с площадями полигонов
+    
+    return False
 
 # ----------------------------------------------------------------------------------------------------------------------
 if __name__ == '__main__':  # заглушка для отладки
