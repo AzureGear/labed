@@ -11,12 +11,28 @@ default_color = UI_COLORS.get("default_color")
 
 # ----------------------------------------------------------------------------------------------------------------------
 class AzButtonLineEdit(QtWidgets.QLineEdit):
-    """
-    Упрощённая QLineEdit с кнопкой внутри: color - цвет, caption - заголовок,
-    read_only - возможность изменения строки вручную, dir_only - возвращает только каталог,
-    save_dialog - возвращает только файл для сохранения, filter - фильтр типа файлов, initial_filter - то же,
-    save_dir - запоминание каталога, в который заходим, on_button_clicked_callback - слот.
-    last_dir - открытие с указанного места, по умолчанию открытый прошлый каталог "settings.read_last_dir()"
+    """Кастомный QLineEdit с встроенной кнопкой для выбора файлов/директорий.
+
+    Позволяет пользователю выбирать файлы или директории через диалоговое окно.
+    Поддерживает различные режимы работы: выбор директории, сохранение файла, открытие файла.
+
+    Attributes:
+        settings (AppSettings): Объект для работы с настройками приложения.
+        button (QToolButton): Внутренняя кнопка для вызова диалога.
+        last_dir (str): Последняя использованная директория.
+
+    Args:
+        icon_name (str): Имя иконки для кнопки.
+        color (str, optional): Цвет иконки. По умолчанию "Black".
+        caption (str, optional): Заголовок диалогового окна.
+        read_only (bool, optional): Запрещает ручное редактирование. По умолчанию True.
+        dir_only (bool, optional): Режим выбора только директории. По умолчанию False.
+        save_dialog (bool, optional): Режим диалога сохранения файла. По умолчанию False.
+        filter (str, optional): Фильтр типов файлов. По умолчанию "All Files (*)".
+        save_dir (bool, optional): Сохранять последнюю директорию. По умолчанию True.
+        initial_filter (str, optional): Начальный фильтр файлов.
+        slot (function, optional): Функция обратного вызова при выборе файла.
+        parent (QWidget, optional): Родительский виджет.
     """
 
     def __init__(self, icon_name, color="Black", caption=None, read_only=True, dir_only=False, save_dialog=False,
@@ -30,29 +46,39 @@ class AzButtonLineEdit(QtWidgets.QLineEdit):
         self.dir_only = dir_only
         self.save_dialog = save_dialog
         self.save_dir = save_dir
-        self.caption = caption
-        self.filter = filter
-        self.initial_filter = initial_filter
+        self.caption = caption if caption is not None else ""
+        self.filter = filter if filter is not None else "All Files (*)"
+        self.initial_filter = initial_filter if initial_filter is not None else ""
         self.setReadOnly(read_only)
-        self.setContentsMargins(0, 0, 31, 0)  # отступ справа на величину иконки
         self.slot = slot
 
+        # Свойства кнопки
+        self.button.setCursor(QtCore.Qt.PointingHandCursor)
+        self.button.setStyleSheet("QToolButton { border: none; padding: 0px; }")
+        
+        # Вычисляем параметры положения
+        frame_width = self.style().pixelMetric(QtWidgets.QStyle.PM_DefaultFrameWidth)
+        button_size = self.button.sizeHint()
+        self.setStyleSheet(f"QLineEdit {{ padding-right: {button_size.width() + frame_width + 2}px; }}")
+
         # Signals
-        self.button.clicked.connect(self.on_button_clicked)  # соединяем сигнал щелчка
-        self.button.setCursor(QtCore.Qt.PointingHandCursor)  # курсор при наведении на иконку
+        self.button.clicked.connect(self.on_button_clicked)
 
     def resizeEvent(self, event):
-        # для перемещения кнопки в правый угол
+        """Ensure the button stays at the right side of the line edit"""
         button_size = self.button.sizeHint()
         frame_width = self.style().pixelMetric(QtWidgets.QStyle.PM_DefaultFrameWidth)
         self.button.move(self.rect().right() - frame_width - button_size.width(),
-                         (self.rect().bottom() - button_size.height() + 1) / 2)
-        super(AzButtonLineEdit, self).resizeEvent(event)
+                        (self.rect().bottom() - button_size.height() + 1) // 2)
+        super().resizeEvent(event)
 
     def on_button_clicked(self):
+        """Handle button click event"""
         self.last_dir = self.settings.read_last_dir()  # обновляем, т.к. могли выполняться действия
+        
         if self.dir_only:  # выбрано "только каталог"
-            select_dir = QtWidgets.QFileDialog.getExistingDirectory(self, self.caption, self.last_dir)
+            select_dir = QtWidgets.QFileDialog.getExistingDirectory(
+                self, self.caption, self.last_dir)
             if select_dir:
                 if self.save_dir:
                     self.settings.write_last_dir(select_dir)
@@ -61,14 +87,13 @@ class AzButtonLineEdit(QtWidgets.QLineEdit):
                     self.slot()
         else:
             if self.save_dialog:  # выбрано диалог сохранения файла
-                filename, _ = QtWidgets.QFileDialog.getSaveFileName(self, self.caption, self.last_dir, self.filter,
-                                                                    self.initial_filter)
-                if self.save_dir:
-                    self.settings.write_last_dir(os.path.dirname(filename))
+                filename, _ = QtWidgets.QFileDialog.getSaveFileName(
+                    self, self.caption, self.last_dir, self.filter, self.initial_filter)
             else:  # значит классический вариант выбора файлов (dir_only=False, save_dialog=False)
-                filename, _ = QtWidgets.QFileDialog.getOpenFileName(self, self.caption, self.last_dir, self.filter,
-                                                                    self.initial_filter)
-            if len(filename) > 0:  # проверяем в обоих случаях возвращаемый файл
+                filename, _ = QtWidgets.QFileDialog.getOpenFileName(
+                    self, self.caption, self.last_dir, self.filter, self.initial_filter)
+            
+            if filename:  # проверяем в обоих случаях возвращаемый файл
                 if self.save_dir:  # сохраняем последний используемый каталог
                     self.settings.write_last_dir(os.path.dirname(filename))
                 self.setText(filename)

@@ -6,15 +6,22 @@ import ujson
 import string
 import pickle
 
-# общие паттерны поиска
+# Общие паттерны поиска
 PATTERNS = {"double_underscore": r"^([^_]+)_([^_]+)",
             "one_underscore": "\d+(?=_(?!_))",  # число, после которого идет подчёркивание с чем угодно
-            "three_letters": r"_[a-zA-Z]{3}_", # два подчеркивания с 3 буквами между ними 
+            "three_letters": r"_[a-zA-Z]{3}_", # два подчеркивания с 3 буквами между ними
             "any_number": "\d",  # любое число
             "any_letter": "\w",  # любая буква
             "has_a": r"a"        # имеется буква "a"
-            }  
+            }
 
+# Словарь шаблонов расширений
+EXTENSION_TEMPLATES = {
+    "text": {".log", ".txt"},
+    "image": {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".svg", ".webp"},
+    "json": {".json"},
+    "icon": {".png", ".svg", ".ico"}
+}
 
 # ----------------------------------------------------------------------------------------------------------------------
 def generate_random_name(length=5, letters=True, digits=True):
@@ -40,18 +47,20 @@ def generate_random_name(length=5, letters=True, digits=True):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-def get_random_files(path, percentage, template="image", extensions=None):
+def get_random_files(path, percentage, template="image", extensions=None, random_seed=13):
     """
     Принимает каталог и указанное значение в процентах, а возвращает перечень случайных файлов из каталога,
     но не более указанного числа процентов.
     """
+    if random_seed is not None:
+        random.seed(random_seed)
     all_files = [file for file in os.listdir(path) if os.path.isfile(os.path.join(path, file))]  # все файлы
     if extensions:
         filtered_files = [file for file in all_files if check_ext(file, template, extensions)]  # фильтр расширения
     else:
         filtered_files = all_files
 
-    count_return = max(1, int(len(filtered_files) * percentage / 100))  # определяем число файлов
+    count_return = max(1, round(len(filtered_files) * percentage / 100))  # определяем число файлов
     random_files = random.sample(filtered_files, count_return)  # выбираем случайные файлы
     return random_files
 
@@ -236,9 +245,9 @@ def format_time(seconds, lang="en"):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-def random_color(seed=None, alpha=120):  
+def random_color(seed=None, alpha=120):
     """Генерация случайных цветов"""
     if seed is not None:
         random.seed(seed)
-    rand_col = [random.randint(0, 255), random.randint(0, 255), random.randint(0, 255), alpha]  
+    rand_col = [random.randint(0, 255), random.randint(0, 255), random.randint(0, 255), alpha]
     return rand_col

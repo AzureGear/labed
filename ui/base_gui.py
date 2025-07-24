@@ -204,8 +204,8 @@ class BaseGUI(QtWidgets.QMainWindow):
         last_lang = self.settings.read_lang()  # загрузка сохранённого языка
         for action in self._ui.actions_switch_lang:
             if action.text() == last_lang: action.trigger()  # меняем язык на сохранённый
-        self.setMinimumWidth(APP_MIN_SIZE.get("HEIGHT"))
-        self.setMinimumHeight(APP_MIN_SIZE.get("HEIGHT") * APP_MIN_SIZE.get("WIDTH"))
+        self.setMinimumWidth(int(APP_MIN_SIZE.get("HEIGHT")))
+        self.setMinimumHeight(int(APP_MIN_SIZE.get("HEIGHT") * APP_MIN_SIZE.get("WIDTH")))
 
         position, size, state = self.settings.read_ui_position()
         self.resize(size)
