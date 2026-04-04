@@ -1,13 +1,24 @@
-from ui.base_gui import BaseGUI
-from PyQt5 import QtWidgets
-from datetime import datetime
+import os
 import sys
+from datetime import datetime
 import traceback
+
+from PyQt5 import QtWidgets
+from ui.base_gui import BaseGUI
 
 TESTING_MODE = True  # на этапе отладки желательно держать включённым
 log_file_name = 'labed.log'  # имя файла ведения лога при ошибках
 
 
+def _qt_wayland_to_xcb_for_nix() -> None:
+    """Для Wayland PyQt5 не является стабильной библиотекой, следует использовать XWayland (xcb).
+    Данный метод используется в shell.nix, когда direnv/nix-shell активен.
+    shell.nix делает то же самое, когда direnv/nix-shell активен — debugpy/IDE часто не наследует этот хук.
+    """
+    plat = (os.environ.get("QT_QPA_PLATFORM") or "").lower()
+    if plat in ("wayland", "wayland-egl"):
+        os.environ["QT_QPA_PLATFORM"] = "xcb"  # устанавливаем XWayland
+        
 # TODO: сделать загрузку предустановленных датасетов self.tb_load_preset.addActions
 # TODO: сделать загрузку данных SAMA, label_me, YOLO, MMSeg
 # TODO: сделать сброс всех настроек по нажатию изменению настроек в файле settings.ini Reset = True
@@ -38,6 +49,7 @@ if __name__ == '__main__':
         file = open(log_file_name, 'w+')
     if TESTING_MODE:
         sys.excepthook = excepthook_catcher  # включение логирования
+    _qt_wayland_to_xcb_for_nix()
     app = QtWidgets.QApplication(sys.argv)
     w = MyWindow()
     w.show()
