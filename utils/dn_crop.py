@@ -152,7 +152,7 @@ class DNjson:
                     print("\t", i, type(DataDict[Key1][i]), DataDict[Key1][i])
 
     # Создание словаря для отдельной картинки
-    def PolsToDict(self, NumCrudeImg: int, Pols: [], ClsNums: []):
+    def PolsToDict(self, NumCrudeImg: int, Pols: [], ClsNums: [], global_ids=None):
         PropsImg = self.ReadImgProp(NumCrudeImg)
         shapes = []
         for i in range(len(Pols)):
@@ -166,6 +166,8 @@ class DNjson:
             PolList = [[xList[j], yList[j]] for j in range(len(xList))]
 
             dict = {'cls_num': ClsNums[i], 'points': PolList, 'id': i + 1}
+            if global_ids is not None and i < len(global_ids) and global_ids[i] is not None:
+                dict['global_id'] = global_ids[i]
             shapes.append(dict)
 
         return {'shapes': shapes, 'lrm': PropsImg['lrm'], 'status': PropsImg['status'],
@@ -873,7 +875,8 @@ class DNImgCut(QtCore.QObject):
                     BadIndxOV.append(Indx_OV[i])
 
             return {'ClsNums': ClsNumsPol, 'Polys': PolSHP, 'AreaOV': AreaOV, 'PartArea': PartArea,
-                    'IndxGood': GoodIndxOV, 'IndxOun': GoodIndxOunOV, 'IndxBad': BadIndxOV}
+                    'IndxGood': GoodIndxOV, 'IndxOun': GoodIndxOunOV, 'IndxBad': BadIndxOV,
+                    'OrigIndx': Indx_OV}
 
     def CutImg(self, NumImg: int, SizeWind: int, ProcOverlapPol: [], ProcOverlapW: float, output_image_dir: str,
                DKray: int,
@@ -935,6 +938,7 @@ class DNImgCut(QtCore.QObject):
 
         # Преобразуем полигоны в SHP
         PolsSHP = DNjson.PolysToShp(Pols['Polys'])
+        shapes_src = self.JsonObj.DataDict["images"][self.JsonObj.ImgsName[NumImg]]["shapes"]
 
         # AZ
         if IsSmartCut:
@@ -960,6 +964,7 @@ class DNImgCut(QtCore.QObject):
         NameCropImgs = []
         PolsImg = []
         ClsNumsImg = []
+        GlobalIdsImg = []
         IndxNoCutPol = []  # Индексы полигонов, которые не были разрезаны (нужно для статистики)
         for pW in WPos:
             # Строим SHP полигон из сканирующего окна
@@ -970,16 +975,19 @@ class DNImgCut(QtCore.QObject):
             if not PolsOvSHP == None:
                 IndxNoCutPol += PolsOvSHP['IndxGood']
 
-            # Режем каждый полигон по границе сканирующего окна
-            ListPolsCutSHP = self.PolsListIntersection(WPolSHP, PolsOvSHP['Polys'])
             PolsCut = []
             ClsNums = []
-
-            for j in range(len(ListPolsCutSHP['PolsSHP'])):
-                for PolSHP in ListPolsCutSHP['PolsSHP'][j]:
-                    if not PolSHP.is_empty:
-                        ClsNums.append(PolsOvSHP['ClsNums'][j])
-                        PolsCut.append(np.array(PolSHP.exterior.coords, float))
+            GlobalIds = []
+            if PolsOvSHP is not None:
+                ListPolsCutSHP = self.PolsListIntersection(WPolSHP, PolsOvSHP['Polys'])
+                for j in range(len(ListPolsCutSHP['PolsSHP'])):
+                    orig_idx = PolsOvSHP['OrigIndx'][j]
+                    gid = shapes_src[orig_idx].get('global_id')
+                    for PolSHP in ListPolsCutSHP['PolsSHP'][j]:
+                        if not PolSHP.is_empty:
+                            ClsNums.append(PolsOvSHP['ClsNums'][j])
+                            PolsCut.append(np.array(PolSHP.exterior.coords, float))
+                            GlobalIds.append(gid)
 
             PolsCut = self.JsonObj.CoordGlobToLocal(PolsCut, pW)
 
@@ -1022,7 +1030,8 @@ class DNImgCut(QtCore.QObject):
         #     print("\nКоличество картинок:", len(WPos))
         #     print("Доля нерезанных полигонов:", len(np.unique(IndxNoCutPol)) / NumbSmollPol)
 
-        return {'ImgNames': NameCropImgs, 'Pols': PolsImg, 'ClsNums': ClsNumsImg}
+        return {'ImgNames': NameCropImgs, 'Pols': PolsImg, 'ClsNums': ClsNumsImg,
+                'GlobalIds': GlobalIdsImg}
 
     # Функция нарезки всех картинок в json файле и генерация нового json-файла
     def CutAllImgs(self, SizeWind: int, ProcOverlapPol: [], ProcOverlapW: float,
@@ -1073,17 +1082,18 @@ class DNImgCut(QtCore.QObject):
                     continue
                 # if i < 139:  # Закончил на 421.
                 #     continue
-                bad_files = ["447_USA_2011-10.jpg", "447_USA_2016-05.jpg", "447_USA_2017-07.jpg", "447_USA_2018-08.jpg",
-                             "447_USA_2019-02.jpg", "447_USA_2020-08.jpg", "447_USA_2020-10.jpg", "447_USA_2021-09.jpg",
-                             "447_USA_2021-11.jpg", "447_USA_2022-09.jpg", "126_FRA_2016-03.jpg", "126_FRA_2018-03.jpg",
-                             "129c_FRA_2016-08.jpg"]
+                # bad_files = ["447_USA_2011-10.jpg", "447_USA_2016-05.jpg", "447_USA_2017-07.jpg", "447_USA_2018-08.jpg",
+                #              "447_USA_2019-02.jpg", "447_USA_2020-08.jpg", "447_USA_2020-10.jpg", "447_USA_2021-09.jpg",
+                #              "447_USA_2021-11.jpg", "447_USA_2022-09.jpg", "126_FRA_2016-03.jpg", "126_FRA_2018-03.jpg",
+                #              "129c_FRA_2016-08.jpg"]
+                # if self.JsonObj.ImgsName[i] in bad_files:
+                #     continue
                 # bad_files = ["128_FRA_2014-06-13.jpg", "128_FRA_2017-06.jpg", "128_FRA_2018-06.jpg",
                 #              "189_IRL_2006-06.jpg", "421_USA_2018-01.jpg", "446s_USA_2012-11-06.jpg"
                 #              "446s_USA_2014-10.jpg", "446s_USA_2016-04.jpg", "446s_USA_2018-05.jpg",
                 #              "446s_USA_2019-06.jpg", "446s_USA_2020-10.jpg", "446s_USA_2022-04.jpg",
                 #              "446s_USA_2022-06.jpg"]
-                if self.JsonObj.ImgsName[i] in bad_files:
-                    continue
+
 
                 # Az+: немного статистики, для понимания процесса
                 sum_size += az_calc_size(os.path.join(self.JsonObj.PathToImg, self.JsonObj.ImgsName[i]))
@@ -1098,13 +1108,17 @@ class DNImgCut(QtCore.QObject):
                                       os.path.dirname(NameJsonFile), DKray, IsSmartCut)
 
                 # Перебор по нарезанным картинкам одного исходного изображения
+                gids_batches = CutData.get('GlobalIds')
                 for j in range(len(CutData['ImgNames'])):
-                    Dict = self.JsonObj.PolsToDict(i, CutData['Pols'][j], CutData['ClsNums'][j])
+                    gids = gids_batches[j] if gids_batches is not None else None
+                    Dict = self.JsonObj.PolsToDict(
+                        i, CutData['Pols'][j], CutData['ClsNums'][j], global_ids=gids)
                     JsonAllData['images'][CutData['ImgNames'][j]] = Dict.copy()
 
             # Записываем оконцовку json без изменений, к картинкам отношение не имеет
             JsonAllData['labels'] = self.JsonObj.DataDict['labels']
             JsonAllData['labels_color'] = self.JsonObj.DataDict['labels_color']
+            # TODO: добавить запись ЛРМ, метаданных и еще, если есть. Но главное уникальный идентификатор!
 
             # Перевод json в строку
             JsonAllDataStr = json.dumps(JsonAllData, ensure_ascii=False, sort_keys=False)
@@ -1134,8 +1148,11 @@ class DNImgCut(QtCore.QObject):
                                               JsonAllData['path_to_images'])
 
                     # Перебор по нарезанным картинкам одного исходного изображения
+                    gids_batches = CutData.get('GlobalIds')
                     for j in range(len(CutData['ImgNames'])):
-                        Dict = self.JsonObj.PolsToDict(i, CutData['Pols'][j], CutData['ClsNums'][j])
+                        gids = gids_batches[j] if gids_batches is not None else None
+                        Dict = self.JsonObj.PolsToDict(
+                            i, CutData['Pols'][j], CutData['ClsNums'][j], global_ids=gids)
                         JsonAllData['images'][CutData['ImgNames'][j]] = Dict.copy()
 
             # Записываем оконцовку json без изменений, к картинкам отношение не имеет
@@ -1161,6 +1178,7 @@ class DNImgCut(QtCore.QObject):
 
         # Преобразуем полигоны в SHP
         PolsSHP = DNjson.PolysToShp(Pols['Polys'])
+        shapes_src = self.JsonObj.DataDict["images"][self.JsonObj.ImgsName[NumImg]]["shapes"]
 
         # Читаем картинку (обходим проблему русских букв в названиях каталогов для open cv)
         path = self.FullNamesImgsMCFile[NumImg]
@@ -1196,6 +1214,7 @@ class DNImgCut(QtCore.QObject):
         NameCropImgs = []
         PolsImg = []
         ClsNumsImg = []
+        GlobalIdsImg = []
         i = 0  # Счетчик изображений
         for pW in WPos:
             # Строим SHP полигон из сканирующего окна
@@ -1215,12 +1234,16 @@ class DNImgCut(QtCore.QObject):
                 ListPolsCutSHP = self.PolsListIntersection(WPolSHP, PolsOvSHP['Polys'])
                 PolsCut = []
                 ClsNums = []
+                GlobalIds = []
 
                 for j in range(len(ListPolsCutSHP['PolsSHP'])):
+                    orig_idx = PolsOvSHP['OrigIndx'][j]
+                    gid = shapes_src[orig_idx].get('global_id')
                     for PolSHP in ListPolsCutSHP['PolsSHP'][j]:
                         if not PolSHP.is_empty:
                             ClsNums.append(PolsOvSHP['ClsNums'][j])
                             PolsCut.append(np.array(PolSHP.exterior.coords, float))
+                            GlobalIds.append(gid)
 
                 PolsCut = self.JsonObj.CoordGlobToLocal(PolsCut, pW)
 
@@ -1241,8 +1264,10 @@ class DNImgCut(QtCore.QObject):
                 NameCropImgs.append(NameImg)
                 PolsImg.append(PolsCut)
                 ClsNumsImg.append(ClsNums)
+                GlobalIdsImg.append(GlobalIds)
 
-        return {'ImgNames': NameCropImgs, 'Pols': PolsImg, 'ClsNums': ClsNumsImg}
+        return {'ImgNames': NameCropImgs, 'Pols': PolsImg, 'ClsNums': ClsNumsImg,
+                'GlobalIds': GlobalIdsImg}
 
 
 # ----------------------------------------------------------------------------------------------------------------------

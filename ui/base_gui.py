@@ -198,9 +198,12 @@ class BaseGUI(QtWidgets.QMainWindow):
                                additional_qss=qss_light if self._theme == "dark" else qss_dark)
         if self._theme == "light":
             self._ui.action_switch_theme.setChecked(True)  # кнопка зажата
-        self._ui.stack_widget.setCurrentIndex(self.settings.read_ui_stack_widget_cur_tab())  # загрузка вкладки
-        # активация сохранённой по нумеру вкладки
-        self._ui.actions_page_side_panel[self.settings.read_ui_stack_widget_cur_tab()].setChecked(True)
+        n_stack = self._ui.stack_widget.count()
+        stack_i = self.settings.read_ui_stack_widget_cur_tab() if n_stack else 0
+        if n_stack:
+            stack_i = max(0, min(stack_i, n_stack - 1))
+        self._ui.stack_widget.setCurrentIndex(stack_i)
+        self._ui.actions_page_side_panel[stack_i].setChecked(True)
         last_lang = self.settings.read_lang()  # загрузка сохранённого языка
         for action in self._ui.actions_switch_lang:
             if action.text() == last_lang: action.trigger()  # меняем язык на сохранённый

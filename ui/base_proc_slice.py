@@ -51,15 +51,15 @@ class TabSliceUI(QtWidgets.QMainWindow, QtWidgets.QWidget):
         # размер сканирующего окна
         self.slice_scan_size = AzSpinBox(min_val=config.MIN_CROP_SIZE, min_wide=53, max_val=config.MAX_CROP_SIZE)
         self.slice_overlap_window_label = QtWidgets.QLabel("Scanning window overlap percentage:")
-        self.slice_scan_size.setValue(self.settings.read_slice_crop_size())
+        self.slice_scan_size.setValue(int(self.settings.read_slice_crop_size()))
 
         # процент перекрытия окна для смежных кадров скользящего окна:
         self.slice_overlap_window = AzSpinBox(min_val=30, max_val=95, step=1, max_start_val=False,
-                                              start_val=self.settings.read_slice_window_overlap())
+                                              start_val=int(self.settings.read_slice_window_overlap()))
         self.slice_overlap_window.valueChanged.connect(self.slice_write_overlap_window)
         self.slice_overlap_pols_default_label = QtWidgets.QLabel("Default overlap percentage for classes:")
         self.slice_overlap_pols_default = AzSpinBox(min_val=1, max_val=95, step=1, max_start_val=False,
-                                                    start_val=self.settings.read_default_slice_overlap_pols())
+                                                    start_val=int(self.settings.read_default_slice_overlap_pols()))
         self.slice_overlap_pols_default.valueChanged.connect(self.slice_write_default_overlap_pols)
 
         # отступ полигонов от края снимка
