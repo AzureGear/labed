@@ -13,14 +13,17 @@ import os
 
 "path_to_images": "F:\\data_sets\\test_oil_ref\\"
 data["path_to_images"] = "only_one_path"
- ├- data["images"] = {"one.jpg":{ }, "two.jpg":{ }, ... , "n.jpg":{ } }
+ ├- data["images"] = {'one.jpg':{ }, 'two.jpg':{ }, ... , "n.jpg":{ } }
  |                               └- {shapes: [ { } ] }
- |                                              └- "cls_num":, "id":, "points":[ ]
- |                                                                              └- [[x1, y1], [x2, y2], ... [xn, yn]]
+ |                                              └- "points":[ ], "cls_num":int, "id":int, "global_id":str
+ |                                                           └- [[x1, y1], [x2, y2], ... [xn, yn]]
  ├- data["labels"] = ["name_one", "name_two", ... , "name_n"]
  └- data["labels_color"] = {"name_one", "name_two", ... , "name_n": [ ] }
                                                                      └- label [r, g, b]
+{"path_to_images": "/my/path", "images": {"one.jpg":{shapes: [ { "cls_num":1, "global_id":"1_2", "id":24, "points":[ ] } ] }, "two.jpg":{...}, ... , "n.jpg":{ } }, "labels": ["label1" ... , "label_n"], "labels_color": {"label1": [ ], ... }}
+
 """
+
 # ----------------------------------------------------------------------------------------------------------------------
 """ Структура *.json  файла LabelMe (Michael Pitidis, Hussein Abdulwahid, Kentaro Wada)
 
