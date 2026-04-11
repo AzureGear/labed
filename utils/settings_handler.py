@@ -12,19 +12,27 @@ class AppSettings:
 
     def read_ui_stack_widget_cur_tab(self):
         """Активный виджет для боковой панели [r]"""
-        return self.settings.value('ui/ui_stack_widget_current_tab', 0)
+        return self._settings_int('ui/ui_stack_widget_current_tab', 0)
 
     def write_ui_stack_widget_cur_tab(self, ui_tab):
         """Активный виджет для боковой панели [w]"""
-        self.settings.setValue('ui/ui_stack_widget_current_tab', ui_tab)
+        self.settings.setValue('ui/ui_stack_widget_current_tab', int(ui_tab))
 
     def read_ui_proc_page(self):
         """Активная страница для 1 виджета, если он выбран [r]"""
-        return self.settings.value('ui/ui_proc_page', 3)
+        return self._settings_int('ui/ui_proc_page', 3)
 
     def write_ui_proc_page(self, proc_page):
         """Активная страница для 1 виджета, если он выбран [w]"""
-        self.settings.setValue('ui/ui_proc_page', proc_page)
+        self.settings.setValue('ui/ui_proc_page', int(proc_page))
+
+    def _settings_int(self, key, default):
+        """QSettings often returns str from INI; Qt widgets expect int."""
+        raw = self.settings.value(key, default)
+        try:
+            return int(raw)
+        except (TypeError, ValueError):
+            return int(default)
 
     def read_lang(self):
         """Язык [r] """

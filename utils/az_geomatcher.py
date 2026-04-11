@@ -1,7 +1,6 @@
 from collections import defaultdict
 from pathlib import Path
 
-from utils.sama_project_handler import DatasetSAMAHandler
 import numpy as np
 import json
 import math
@@ -204,10 +203,10 @@ class GeoObjectMatcher:
 
                 global_id = global_objects_map[object_key]
                 
-                # Присваиваем глобальный ID
+                # Присваиваем глобальный ID (shape — ссылка на dict внутри images[..]["shapes"], не индекс)
                 for idx in similar_objects:
                     obj = group_objects[idx]
-                    images[obj['image']]["shapes"][obj['shape']['id']]['global_id'] = global_id
+                    obj["shape"]["global_id"] = global_id
                     processed_ids.add(idx)
         
         return json_data
@@ -255,4 +254,4 @@ def export_matching_table(json_data, output_file):
 
 # ----------------------------------------------------------------------------------------------------------------------
 if __name__ == "__main__":
-    main()
+    print(f"You are in {__name__} module. Shouldn't run this file directly!")

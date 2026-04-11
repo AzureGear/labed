@@ -28,6 +28,7 @@ class AutomationUI(QtWidgets.QWidget):
         self.button02 = QtWidgets.QPushButton("Apply palette")
         self.button03 = QtWidgets.QPushButton("Cut images in dir")
         self.button04 = QtWidgets.QPushButton("Create txt files in dir")
+        self.button05 = QtWidgets.QPushButton("Create examples (like collage)")
 
         main_win = QtWidgets.QMainWindow()
         main_win.setCentralWidget(self.log)
@@ -37,6 +38,7 @@ class AutomationUI(QtWidgets.QWidget):
         g_layout.addWidget(self.button02, 1, 0)
         g_layout.addWidget(self.button03, 2, 0)
         g_layout.addWidget(self.button04, 3, 0)
+        g_layout.addWidget(self.button05, 4, 0)
 
         h_layout = QtWidgets.QHBoxLayout()
         h_layout.addLayout(g_layout)
@@ -50,6 +52,123 @@ class AutomationUI(QtWidgets.QWidget):
         self.button02.clicked.connect(self.palette_apply)
         self.button03.clicked.connect(self.split_images_in_dir)
         self.button04.clicked.connect(self.create_text_files_in_dir)
+        self.button05.clicked.connect(self.view_examples)
+
+    def view_examples(self):
+        self.create_collage_dataset("D:/data_sets/oil_refinery/data/labeled_data/paper_with_Vika/vika+new_merge.json",
+                                    out_dir=r"D:\data_sets\output_dir",
+                                    res=(1280, 1280),
+                                    count=5,
+                                    batch=9)
+
+    def create_collage_dataset(self, path, out_dir, res, count, batch):
+        import os
+        import json
+        import random
+        import numpy as np
+        import cv2
+        from math import ceil, sqrt
+        from PIL import Image, ImageDraw
+        """
+        Создает коллажи изображений с разметкой для каждого класса.
+        
+        Параметры:
+        path (str): Путь к JSON-файлу с разметкой датасета
+        out_dir (str): Директория для сохранения результатов
+        res (tuple): Разрешение выходных изображений (width, height)
+        count (int): Количество коллажей на класс
+        batch (int): Количество изображений в одном коллаже
+        """
+        
+        # Загрузка данных
+        with open(path, 'r') as f:
+            data = json.load(f)
+        
+        base_path = data['path_to_images'].replace('\/', '/')
+        images_info = data['images']
+        labels = data['labels']
+        colors = data['labels_color']
+        
+        # Создание выходной директории
+        os.makedirs(out_dir, exist_ok=True)
+        
+        # Группировка изображений по классам
+        class_images = {cls: [] for cls in range(len(labels))}
+        
+        for img_name, img_info in images_info.items():
+            img_classes = {shape['cls_num'] for shape in img_info['shapes']}
+            for cls in img_classes:
+                class_images[cls].append((img_name, img_info))
+        
+        # Создание коллажей для каждого класса
+        for cls_idx, img_list in class_images.items():
+            if not img_list:
+                continue
+                
+            class_name = labels[cls_idx]
+            print(f"Обработка класса: {class_name} ({len(img_list)} изображений)")
+            
+            for coll_idx in range(count):
+                # Создание пустого холста
+                collage = Image.new('RGB', res, (0, 0, 0))
+                draw = ImageDraw.Draw(collage, 'RGBA')
+                
+                # Расчет сетки для размещения изображений
+                grid_size = ceil(sqrt(batch))
+                cell_width = res[0] // grid_size
+                cell_height = res[1] // grid_size
+                
+                # Выбор случайных изображений
+                selected = random.choices(img_list, k=batch)
+                
+                for idx, (img_name, img_info) in enumerate(selected):
+                    # Загрузка изображения
+                    img_path = os.path.join(base_path, img_name)
+                    try:
+                        img = Image.open(img_path).convert('RGB')
+                    except:
+                        print(f"Ошибка загрузки: {img_path}")
+                        continue
+                    
+                    # Позиция в сетке коллажа
+                    row = idx // grid_size
+                    col = idx % grid_size
+                    x_offset = col * cell_width
+                    y_offset = row * cell_height
+                    
+                    # Масштабирование с сохранением пропорций
+                    img.thumbnail((cell_width, cell_height))
+                    img_w, img_h = img.size
+                    
+                    # Позиционирование по центру ячейки
+                    x_center = x_offset + (cell_width - img_w) // 2
+                    y_center = y_offset + (cell_height - img_h) // 2
+                    
+                    # Вставка изображения в коллаж
+                    collage.paste(img, (x_center, y_center))
+                    
+                    # Отрисовка всех полигонов на изображении
+                    for shape in img_info['shapes']:
+                        points = shape['points']
+                        cls_num = shape['cls_num']
+                        
+                        # Масштабирование координат
+                        scaled_points = []
+                        for x, y in points:
+                            sx = x * (img_w / img.width) + x_center
+                            sy = y * (img_h / img.height) + y_center
+                            scaled_points.append((sx, sy))
+                        
+                        # Цвет для класса
+                        color = tuple(colors[labels[cls_num]])
+                        
+                        # Рисование полигона
+                        draw.polygon(scaled_points, outline=color[:3], fill=color)
+                
+                # Сохранение коллажа
+                output_path = os.path.join(out_dir, f"{class_name}_{coll_idx}.png")
+                collage.save(output_path)
+                print(f"Сохранено: {output_path}")
 
     def create_text_files_in_dir(self):
         """Создание для изображения пустых текстовых файлов (как дополнительные данные в валидацию при обучении)"""

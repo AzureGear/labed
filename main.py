@@ -6,9 +6,6 @@ import traceback
 from PyQt5 import QtWidgets
 from ui.base_gui import BaseGUI
 
-TESTING_MODE = True  # на этапе отладки желательно держать включённым
-log_file_name = 'labed.log'  # имя файла ведения лога при ошибках
-
 
 def _qt_wayland_to_xcb_for_nix() -> None:
     """Для Wayland PyQt5 не является стабильной библиотекой, следует использовать XWayland (xcb).
@@ -27,14 +24,6 @@ def _qt_wayland_to_xcb_for_nix() -> None:
 # TODO: инструмент для просмотра результатов работы сети (две картинки рядом)
 
 
-# Ловчий ошибок
-def excepthook_catcher(t, v, tb):
-    with open(log_file_name, 'w') as file:
-        file.write("\n-------------- Errors log --------------\n")
-        file.write("Timecode: %s\n" % datetime.now().strftime("%Y.%m.%d  %H:%M:%S"))
-        traceback.print_exception(t, v, tb, file=file)
-
-
 class MyWindow(BaseGUI):  # класс интерфейса
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -43,12 +32,6 @@ class MyWindow(BaseGUI):  # класс интерфейса
 
 # Стандартная инициализация
 if __name__ == '__main__':
-    try:  # открываем, если имеется, в противном случае создаем новый файл
-        file = open(log_file_name, 'a+')
-    except IOError:
-        file = open(log_file_name, 'w+')
-    if TESTING_MODE:
-        sys.excepthook = excepthook_catcher  # включение логирования
     _qt_wayland_to_xcb_for_nix()
     app = QtWidgets.QApplication(sys.argv)
     w = MyWindow()

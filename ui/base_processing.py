@@ -52,8 +52,12 @@ class ProcessingUI(QtWidgets.QWidget):
             from ui import base_proc_geom
             self.add_tab("geometry", base_proc_geom.TabGeometryUI)
 
-        # Активация последней активной с прошлого запуска
-        self.tab_widget.setCurrentIndex(self.settings.read_ui_proc_page())
+        # Активация последней активной с прошлого запуска (число из INI + clamp по числу вкладок)
+        n = self.tab_widget.count()
+        idx = self.settings.read_ui_proc_page() if n else 0
+        if n:
+            idx = max(0, min(idx, n - 1))
+        self.tab_widget.setCurrentIndex(idx)
 
         # Signals
         self.tab_widget.currentChanged.connect(self.change_tab)  # изменение вкладки

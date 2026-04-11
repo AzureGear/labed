@@ -1,6 +1,7 @@
 # Azura's project
 test_output/**
 labed.log
+sandbox.log
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -12,6 +12,8 @@ from .config import DEFAULT_DATASET_USAGE
 from .az_converter import convert_labelme_to_sama
 from .az_converter import merge_sama_to_sama
 
+from .sama_project_handler import DatasetSAMAHandler
+
 from .settings_handler import AppSettings
 from .az_graphic_view import AzImageViewer
 from .az_graphic_view import AzPointWithRect

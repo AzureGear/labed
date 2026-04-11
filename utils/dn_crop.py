@@ -1008,6 +1008,7 @@ class DNImgCut(QtCore.QObject):
             NameCropImgs.append(NameImg)
             PolsImg.append(PolsCut)
             ClsNumsImg.append(ClsNums)
+            GlobalIdsImg.append(GlobalIds)
 
         # Для статистики и статьи
         PolsPt = [np.array(PolSHP.exterior.coords, float) for PolSHP in PolsSHP]
