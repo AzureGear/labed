@@ -114,7 +114,7 @@ if __name__ == "__main__":
     # result = json_path.with_name("final_global_only_marinnode.json")
     # make_global_ids(json_path, result, Path("/home/azura/data_sets/oil_refinery/data/init/lrm_maps"), 10.0, export_csv=False)
     
-    prj_sama = ProjectGroupsStats(input_data[2], logger=logger)
+    prj_sama = ProjectGroupsStats(input_data[0], logger=logger)
     # prj_sama.check_issues()
     prj_sama.get_statistic(save=True, save_plot=True, show_plot=False)
     # kill_from_list()

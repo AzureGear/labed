@@ -169,7 +169,7 @@ class ProjectGroupsStats:
                 json.dump(serializable, f, indent=2, ensure_ascii=False)
             self._log.info("Global counts saved to: %s", json_path)
 
-        stats_payload = _build_stats_payload(counts, n_bins=n_bins)
+        stats_payload = _build_stats_payload(counts)
         if log_report:
             for line in stats_payload["text_lines"]:
                 self._log.info("%s", line)
@@ -189,7 +189,26 @@ class ProjectGroupsStats:
         return {"counts": counts, **stats_payload["metrics"], "text_lines": stats_payload["text_lines"]}
 
 
-def _build_stats_payload(counts: dict[str, dict[Any, int]], *, n_bins: int) -> dict[str, Any]:
+def _object_frequency_hist_bins(all_freqs: list[int]) -> tuple[list[str], list[int]]:
+    """Bucket counts: 1..10 individually, 11-12, 13-15, 16+."""
+    labels = [str(i) for i in range(1, 11)] + ["11-12", "13-15", "16+"]
+    counts = [0] * len(labels)
+    for f in all_freqs:
+        x = int(f)
+        if x < 1:
+            continue
+        if x <= 10:
+            counts[x - 1] += 1
+        elif x <= 12:
+            counts[10] += 1
+        elif x <= 15:
+            counts[11] += 1
+        else:
+            counts[12] += 1
+    return labels, counts
+
+
+def _build_stats_payload(counts: dict[str, dict[Any, int]]) -> dict[str, Any]:
     import numpy as np
     from scipy import stats
 
@@ -225,7 +244,7 @@ def _build_stats_payload(counts: dict[str, dict[Any, int]], *, n_bins: int) -> d
     pcts = {p: float(np.percentile(arr, p)) for p in (10, 25, 50, 75, 90, 95, 99)}
     freq_counter = Counter(all_freqs)
     mode_val = freq_counter.most_common(1)[0]
-    hist_counts, bin_edges = np.histogram(arr, bins=n_bins)
+    hist_labels, hist_counts_list = _object_frequency_hist_bins([int(x) for x in all_freqs])
 
     lines.append(sep)
     lines.append("  ГЛОБАЛЬНАЯ СТАТИСТИКА")
@@ -260,11 +279,12 @@ def _build_stats_payload(counts: dict[str, dict[Any, int]], *, n_bins: int) -> d
     else:
         lines.append("    → нет оснований отвергнуть нормальность (p ≥ 0.05)")
     lines.append("")
-    lines.append(f"  Гистограмма ({n_bins} бинов):")
-    for lo, hi, c in zip(bin_edges[:-1], bin_edges[1:], hist_counts):
+    lines.append("  Распределение объектов по частоте (число объектов в бине):")
+    label_w = max(len(lb) for lb in hist_labels)
+    for lb, c in zip(hist_labels, hist_counts_list):
         pct_str = f"{c / len(arr) * 100:5.1f}%"
         bar = "█" * int(c)
-        lines.append(f"    [{lo:5.2f} – {hi:5.2f}):  {bar:<15} {int(c):>2}  ({pct_str})")
+        lines.append(f"    {lb:>{label_w}}:  {bar:<15} {int(c):>4}  ({pct_str})")
     lines.append("")
     lines.append(sep)
     lines.append("  СТАТИСТИКА ПО ГРУППАМ")
@@ -291,7 +311,7 @@ def _build_stats_payload(counts: dict[str, dict[Any, int]], *, n_bins: int) -> d
         "shapiro_p": float(shapiro_p) if not np.isnan(shapiro_p) else None,
         "percentiles": pcts,
         "mode": {"value": mode_val[0], "count": mode_val[1]},
-        "histogram": {"counts": hist_counts.tolist(), "bin_edges": bin_edges.tolist()},
+        "histogram": {"bin_labels": hist_labels, "counts": hist_counts_list},
         "per_group": [
             {
                 "group": g,
